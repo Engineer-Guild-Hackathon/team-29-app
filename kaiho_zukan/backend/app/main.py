@@ -154,74 +154,8 @@ def seed_categories():
         s.commit()
 
 def seed_sample_problem():
-    """Seed a sample MCQ problem under the 'ネットワーク' unit if not already present.
-    Creates user 'ranmi' if missing and posts the problem titled '令和2年秋　問32'.
-    """
-    from sqlalchemy import select
-    with Session(engine) as s:
-        # 1) Ensure user 'ranmi'
-        u = s.execute(select(User).where(User.username == 'ranmi')).scalar_one_or_none()
-        if not u:
-            u = User(username='ranmi', password_hash=hash_pw('ranmi'), nickname='ranmi')
-            s.add(u); s.flush()
-
-        # 2) Find a level-2 category that contains 'ネット' to use as grand unit
-        net = s.execute(select(Category).where(Category.level == 2, Category.name.ilike('%ネット%'))).scalar_one_or_none()
-        child_id = None; grand_id = None
-        if net:
-            grand_id = net.id
-            child_id = net.parent_id
-        else:
-            # Fallback to first available child/grand
-            first_parent = s.execute(select(Category).where(Category.level == 1)).scalar_one_or_none()
-            if first_parent:
-                first_grand = s.execute(select(Category).where(Category.parent_id == first_parent.id)).scalar_one_or_none()
-                if first_grand:
-                    child_id = first_parent.id; grand_id = first_grand.id
-
-        if not child_id or not grand_id:
-            s.rollback(); return
-
-        # 3) If problem already exists, skip
-        title = '令和2年秋　問32'
-        exist = s.execute(select(Problem).where(Problem.title == title)).scalar_one_or_none()
-        if exist:
-            return
-
-        body = 'IPv4において，インターネット接続用ルータのNAT機能の説明として，適切なものはどれか。'
-        p = Problem(title=title, body=body, qtype='mcq', child_id=child_id, grand_id=grand_id, created_by=u.id)
-        s.add(p); s.flush()
-
-        opts = [
-            'ア　インターネットへのアクセスをキャッシュしておくことによって，その後に同じIPアドレスのWebサイトへアクセスする場合，表示を高速化できる機能である。',
-            'イ　通信中のIPパケットを検査して，インターネットからの攻撃や侵入を検知する機能である。',
-            'ウ　特定の端末宛てのIPパケットだけを通過させる機能である。',
-            'エ　プライベートIPアドレスとグローバルIPアドレスを相互に変換する機能である。',
-        ]
-        correct_index = 3
-        for i, t in enumerate(opts):
-            s.add(Option(problem_id=p.id, text=t, is_correct=(i == correct_index)))
-
-        initial_explanation = (
-            'NAT(Network Address Translation)とは，プライベートIPアドレスとグローバルIPアドレスを1対1で相互に変換する技術です。'
-            '複数の端末が同時にインターネットに接続する場合には，それに対応する数のグローバルIPアドレスが必要になります。\n\n'
-            'ア: プロキシ/ブラウザのキャッシュ機能の説明。\n'
-            'イ: IDSやWAFの機能の説明。\n'
-            'ウ: ファイアウォールのパケットフィルタリングの説明。\n'
-            'エ: 正しい（NATの機能）。'
-        )
-        s.add(Explanation(problem_id=p.id, user_id=u.id, content=initial_explanation, option_index=None))
-        # Option-wise brief notes
-        per_option = [
-            'キャッシュ機能の説明（誤り）',
-            'IDS/WAFの説明（誤り）',
-            'パケットフィルタリングの説明（誤り）',
-            'NATの説明（正しい）',
-        ]
-        for i, txt in enumerate(per_option):
-            s.add(Explanation(problem_id=p.id, user_id=u.id, content=txt, option_index=i))
-
-        s.commit()
+    # Removed: sample problem seeding disabled
+    return
 from fastapi.responses import JSONResponse
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
@@ -258,7 +192,6 @@ def on_start():
     create_all()
     ensure_schema()
     seed_categories() 
-    seed_sample_problem()
     with engine.begin() as conn:
         conn.execute(text("SET NAMES utf8mb4 COLLATE utf8mb4_0900_ai_ci"))
 
@@ -1146,39 +1079,4 @@ def delete_my_explanations(pid: int, request: Request, authorization: Optional[s
     db.commit()
     return {"ok": True, "deleted": int(deleted or 0)}
 
-# Override and harden seeding to avoid MultipleResultsFound at startup
-def seed_sample_problem():
-    try:
-        # Use deterministic first items to avoid multiple-match issues
-        with Session(engine) as s:
-            parent = s.execute(
-                select(Category).where(Category.level == 1).order_by(Category.id.asc()).limit(1)
-            ).scalar_one_or_none()
-            if not parent:
-                return
-            grand = s.execute(
-                select(Category).where(Category.parent_id == parent.id).order_by(Category.id.asc()).limit(1)
-            ).scalar_one_or_none()
-            if not grand:
-                return
-            # Skip if already any problem exists under chosen unit
-            exist_any = s.execute(select(Problem.id).where(Problem.grand_id == grand.id).limit(1)).first()
-            if exist_any:
-                return
-            # Ensure user
-            u = s.execute(select(User).where(User.username == 'ranmi')).scalar_one_or_none()
-            if not u:
-                u = User(username='ranmi', password_hash=hash_pw('ranmi'), nickname='ranmi')
-                s.add(u); s.flush()
-            # Minimal MCQ seed
-            p = Problem(title='サンプル問題', body='サンプル問題文', qtype='mcq', child_id=parent.id, grand_id=grand.id, created_by=u.id)
-            s.add(p); s.flush()
-            s.add_all([
-                Option(problem_id=p.id, text='ア', is_correct=False),
-                Option(problem_id=p.id, text='イ', is_correct=True),
-            ])
-            s.add(Explanation(problem_id=p.id, user_id=u.id, content='サンプル解説', option_index=None))
-            s.commit()
-    except Exception:
-        # never block startup
-        pass
+## sample problem seeding removed
