@@ -1,0 +1,34 @@
+services:
+  db:
+    image: mysql:8.0
+    env_file: ["mysql.env"]            # MYSQL_DATABASE=learn など
+    command:
+      - "--default-authentication-plugin=mysql_native_password"
+      - "--character-set-server=utf8mb4"
+      - "--collation-server=utf8mb4_0900_ai_ci"
+      - "--skip-host-cache"
+      - "--skip-name-resolve"
+    volumes:
+      - dbdata:/var/lib/mysql
+      # - ./initdb:/docker-entrypoint-initdb.d
+    ports: ["3306:3306"]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u$${MYSQL_USER} -p$${MYSQL_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  api:
+    build: .
+    env_file: [".env", ".env.db"]     # DATABASE_URL など
+    depends_on:
+      db:
+        condition: service_healthy
+    ports: ["8000:8000"]
+    restart: unless-stopped
+    volumes:
+      - api_uploads:/data/uploads
+
+volumes:
+  dbdata:
+  api_uploads:
