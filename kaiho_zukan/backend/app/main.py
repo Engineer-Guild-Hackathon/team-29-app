@@ -122,6 +122,35 @@ def seed_categories():
             get_or_create(u, basic.id, 2)
         for u in applied_units:
             get_or_create(u, applied.id, 2)
+
+        # ===== 学校教材（中学・高校）
+        # 中学教材: 教科 -> 単元
+        jr = get_or_create("中学教材", None, 0)
+        jr_map: dict[str, list[str]] = {
+            "国語": ["文法","読解","古典入門"],
+            "数学": ["正負の数","文字式","方程式","関数","図形"],
+            "英語": ["文法","読解","リスニング"],
+            "理科": ["物理","化学","生物","地学"],
+            "社会": ["地理","歴史","公民"],
+        }
+        for subj, units in jr_map.items():
+            sc = get_or_create(subj, jr.id, 1)
+            for u in units:
+                get_or_create(u, sc.id, 2)
+
+        # 高校教材: 教科 -> 単元（名称は一般的な区分を採用）
+        hs = get_or_create("高校教材", None, 0)
+        hs_map: dict[str, list[str]] = {
+            "国語": ["現代文","古文","漢文"],
+            "数学": ["数学I","数学A","数学II","数学B"],
+            "英語": ["英語コミュニケーションI","英語コミュニケーションII","英語表現"],
+            "理科": ["物理基礎","化学基礎","生物基礎","地学基礎","物理","化学","生物","地学"],
+            "社会": ["日本史","世界史","地理","政治・経済","倫理"],
+        }
+        for subj, units in hs_map.items():
+            sc = get_or_create(subj, hs.id, 1)
+            for u in units:
+                get_or_create(u, sc.id, 2)
         s.commit()
 
 def seed_sample_problem():
@@ -370,9 +399,153 @@ def create_problem(request: Request, authorization: Optional[str] = None, db: Se
     db.commit()
 
     if OPENAI_ENABLED and OPENAI_API_KEY:
-        threading.Thread(target=generate_ai_explanation, args=(p.id,), daemon=True).start()
+        threading.Thread(target=generate_ai_explanations, args=(p.id,), daemon=True).start()
 
     return {"id": p.id, "ok": True}
+
+def generate_ai_explanations(problem_id: int):
+    """Background task to generate AI explanations.
+    - MCQ: overall + per-option explanations (option_index=0..n-1)
+    - free: overall only
+    Safe to run multiple times; it clears prior AI explanations for the problem first.
+    """
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=OPENAI_API_KEY)
+        with SessionLocal() as db:
+            p = db.get(Problem, problem_id)
+            if not p:
+                return
+            # Remove prior AI explanations to avoid duplicates
+            db.query(Explanation).filter(Explanation.problem_id==p.id, Explanation.user_id==None).delete(synchronize_session=False)
+
+            if p.qtype == 'mcq':
+                # Fetch options in stable order
+                opts = list(db.execute(select(Option).where(Option.problem_id==p.id).order_by(Option.id.asc())).scalars().all())
+                kana = ['ア','イ','ウ','エ','オ','カ','キ','ク','ケ','コ']
+                opt_lines = []
+                for i, o in enumerate(opts):
+                    label = kana[i] if i < len(kana) else f'選択肢{i+1}'
+                    opt_lines.append(f"{label}: {o.text}")
+                options_block = "\n".join(opt_lines)
+                prompt = (
+                    "あなたは日本語の講師です。以下の択一問題について、簡潔な解説を作成してください。\n"
+                    "出力は必ず次のJSON形式のみで返してください．ただし出力する文章に「アの解説：」「正解です。」といった文は含めず，解説だけ書いてください：\n"
+                    "{overall: 全体の解説, options: [「アの解説」, 「イの解説」, ...]}\n"
+                    "要件:\n- 各選択肢ごとに正誤の要点と理由を1〜2文で説明\n- 専門用語は簡潔に補足\n- overallでは問題全体の考え方を2〜4文で要約\n"
+                    f"[問題タイトル]\n{p.title}\n"
+                    f"[問題文]\n{p.body or ''}\n"
+                    f"[選択肢]\n{options_block}\n"
+                )
+                # Build multimodal content (text + images if any)
+                message_content = [{"type": "text", "text": prompt}]
+                try:
+                    imgs = list(db.execute(select(ProblemImage).where(ProblemImage.problem_id==p.id).order_by(ProblemImage.id.asc())).scalars().all())
+                    import base64
+                    for im in imgs[:4]:  # limit to first 4 images
+                        fpath = os.path.join(UPLOAD_DIR, im.filename)
+                        if not os.path.exists(fpath):
+                            continue
+                        with open(fpath, 'rb') as fh:
+                            b64 = base64.b64encode(fh.read()).decode('ascii')
+                        # Guess mime from extension
+                        ext = os.path.splitext(im.filename)[1].lower()
+                        mime = 'image/jpeg' if ext in ('.jpg', '.jpeg') else 'image/png' if ext=='.png' else 'image/webp' if ext=='.webp' else 'application/octet-stream'
+                        data_url = f"data:{mime};base64,{b64}"
+                        message_content.append({"type": "image_url", "image_url": {"url": data_url}})
+                except Exception:
+                    pass
+                resp = client.chat.completions.create(
+                    model=OPENAI_MODEL,
+                    messages=[{"role": "user", "content": message_content}],
+                    temperature=0.2,
+                    max_tokens=700,
+                )
+                raw = (resp.choices[0].message.content or '').strip()
+                overall_txt = None
+                option_txts = []
+                try:
+                    data = json.loads(raw)
+                    if isinstance(data, dict):
+                        if isinstance(data.get('overall'), str):
+                            overall_txt = data['overall'].strip()
+                        if isinstance(data.get('options'), list):
+                            option_txts = [str(x).strip() for x in data['options']]
+                except Exception:
+                    overall_txt = raw
+
+                if overall_txt:
+                    db.add(Explanation(problem_id=p.id, user_id=None, content=overall_txt, option_index=None))
+                for i in range(len(opts)):
+                    txt = option_txts[i] if i < len(option_txts) else None
+                    if txt and txt.strip():
+                        db.add(Explanation(problem_id=p.id, user_id=None, content=txt.strip(), option_index=i))
+                db.commit()
+            else:
+                # Free-text problem: overall explanation only
+                prompt = (
+                    "あなたは日本語の講師です。次の記述式問題について、400〜600字で簡潔に解説してください。\n"
+                    "- ポイントを1〜3個に絞る\n- 専門用語は短く補足\n"
+                    f"[問題タイトル] {p.title}\n[問題文] {p.body or ''}\n"
+                )
+                # Build multimodal content (text + images if any)
+                message_content = [{"type": "text", "text": prompt}]
+                try:
+                    imgs = list(db.execute(select(ProblemImage).where(ProblemImage.problem_id==p.id).order_by(ProblemImage.id.asc())).scalars().all())
+                    import base64
+                    for im in imgs[:4]:
+                        fpath = os.path.join(UPLOAD_DIR, im.filename)
+                        if not os.path.exists(fpath):
+                            continue
+                        with open(fpath, 'rb') as fh:
+                            b64 = base64.b64encode(fh.read()).decode('ascii')
+                        ext = os.path.splitext(im.filename)[1].lower()
+                        mime = 'image/jpeg' if ext in ('.jpg', '.jpeg') else 'image/png' if ext=='.png' else 'image/webp' if ext=='.webp' else 'application/octet-stream'
+                        data_url = f"data:{mime};base64,{b64}"
+                        message_content.append({"type": "image_url", "image_url": {"url": data_url}})
+                except Exception:
+                    pass
+                resp = client.chat.completions.create(
+                    model=OPENAI_MODEL,
+                    messages=[{"role":"user","content": message_content}],
+                    temperature=0.2,
+                    max_tokens=500,
+                )
+                content = (resp.choices[0].message.content or '').strip()
+                if content:
+                    db.add(Explanation(problem_id=p.id, user_id=None, content=content, option_index=None))
+                    db.commit()
+    except Exception:
+        # Do not raise in background thread
+        pass
+
+def regenerate_ai_explanations_preserve_likes(problem_id: int):
+    """Regenerate AI explanations and preserve like_count by mapping on option_index/overall.
+    Note: ExplanationLike 行は引き継ぎません（集計値のみ維持）。
+    """
+    try:
+        # Capture previous like counts for AI explanations
+        with SessionLocal() as db:
+            prev = {}
+            for e in db.execute(select(Explanation).where(Explanation.problem_id==problem_id, Explanation.user_id==None)).scalars().all():
+                key = 'overall' if e.option_index is None else int(e.option_index)
+                prev[key] = int(e.like_count or 0)
+        # Regenerate fresh AI explanations (this clears prior AI explanations internally)
+        generate_ai_explanations(problem_id)
+        # Apply preserved counts to new rows
+        with SessionLocal() as db:
+            rows = db.execute(select(Explanation).where(Explanation.problem_id==problem_id, Explanation.user_id==None)).scalars().all()
+            changed = False
+            for e in rows:
+                key = 'overall' if e.option_index is None else int(e.option_index)
+                if key in prev:
+                    if int(e.like_count or 0) != prev[key]:
+                        e.like_count = prev[key]
+                        changed = True
+            if changed:
+                db.commit()
+    except Exception:
+        pass
 
 def generate_ai_explanation(problem_id: int):
     try:
@@ -381,10 +554,9 @@ def generate_ai_explanation(problem_id: int):
         with SessionLocal() as db:
             p = db.get(Problem, problem_id)
             if not p: return
-            prompt = f"""あなたは日本語でIT試験の講師です。次の問題に対して、100〜160文字程度で、
-- ポイントを1〜2個に絞る
-- 専門用語は短く補足
-- 最後に1行の覚え方ヒント
+            prompt = f"""あなたは日本語の講師です。次の問題に対して、200〜250文字程度で、
+- ポイントを2~3個に絞る
+- 問題文または正解の選択肢に含まれる重要な専門用語について詳しく説明する
 というスタイルで、簡潔な解説を作成してください。
 [問題タイトル] {p.title}
 [問題文] {p.body or ''}
@@ -439,7 +611,7 @@ def problems_for_explain(child_id: int, grand_id: Optional[int] = None, sort: st
     elif sort=="explanations": q = q.order_by(text("ex_cnt DESC"), Problem.id.desc())
     else: q = q.order_by(Problem.id.desc())
     rows = db.execute(q).all()
-    items=[{"id":r[0].id,"title":r[0].title,"qtype": r[0].qtype, "like_count":int(r[1]),"ex_cnt":int(r[2])} for r in rows]
+    items=[{"id":r[0].id,"title":r[0].title,"body": r[0].body, "qtype": r[0].qtype, "like_count":int(r[1]),"ex_cnt":int(r[2])} for r in rows]
     return {"items": items}
 
 @app.post("/problems/{pid}/explanations")
@@ -546,8 +718,9 @@ def unlike_explanation(eid: int, request: Request, authorization: Optional[str] 
 def my_problems(request: Request, authorization: Optional[str] = None, db: Session = Depends(get_db), sort: str="new"):
     user = get_user(db, authorization, request)
     from sqlalchemy import func
-    q = select(Problem,
-               func.count(Explanation.id).label("ex_cnt")).outerjoin(Explanation, Explanation.problem_id==Problem.id).where(Problem.created_by==user.id).group_by(Problem.id)
+    # Count distinct authors (user-wise). Treat AI(None) as a single author via COALESCE(-1).
+    ex_authors = func.count(func.distinct(func.coalesce(Explanation.user_id, -1))).label("ex_cnt")
+    q = select(Problem, ex_authors).outerjoin(Explanation, Explanation.problem_id==Problem.id).where(Problem.created_by==user.id).group_by(Problem.id)
     if sort=="likes": q = q.order_by(Problem.like_count.desc(), Problem.id.desc())
     elif sort=="ex_cnt": q = q.order_by(text("ex_cnt DESC"), Problem.id.desc())
     else: q = q.order_by(Problem.id.desc())
@@ -565,6 +738,8 @@ def edit_problem(pid: int, request: Request, authorization: Optional[str] = None
     p = db.get(Problem, pid)
     if not p: raise HTTPException(404, "not found")
     is_owner = (p.created_by == user.id)
+    # Determine whether problem metadata/options were updated by owner (not just explanations)
+    should_regen_ai = is_owner and any(v is not None for v in [title, body, qtype, category_child_id, category_grand_id, options_text, options, correct_index, model_answer])
     # Only owners may change problem attributes/options. Non-owners may update ONLY their own explanations via this endpoint.
     if not is_owner:
         if any(v is not None for v in [title, body, qtype, category_child_id, category_grand_id, options_text, options, correct_index, model_answer]):
@@ -623,6 +798,13 @@ def update_me(request: Request, authorization: Optional[str] = None, db: Session
     if nickname is not None:
         user.nickname = nickname
         db.commit()
+    # If problem content changed by owner, regenerate AI explanations preserving like counts
+    if should_regen_ai and OPENAI_ENABLED and OPENAI_API_KEY:
+        try:
+            db.commit()  # ensure latest changes are visible
+        except Exception:
+            pass
+        threading.Thread(target=regenerate_ai_explanations_preserve_likes, args=(p.id,), daemon=True).start()
     return {"ok": True}
 
 @app.get("/problems/next")
@@ -768,12 +950,56 @@ def leaderboard(metric: str = "points", db: Session = Depends(get_db)):
     if metric == "points":
         rows = db.execute(select(User.id, User.username, User.nickname, User.points.label("val")).order_by(User.points.desc(), User.id.asc())).all()
         items = [{"user_id": r.id, "username": r.username, "nickname": r.nickname, "value": int(r.val or 0), "score": int(r.val or 0)} for r in rows]
+    elif metric in ("created_problem", "created_problems", "problems_created"):
+        # Count of problems created per user
+        from sqlalchemy import func
+        rows = db.execute(
+            select(User.id, User.username, User.nickname, func.count(Problem.id).label("val"))
+            .outerjoin(Problem, Problem.created_by==User.id)
+            .group_by(User.id)
+            .order_by(text("val DESC"), User.id.asc())
+        ).all()
+        items = [{"user_id": r.id, "username": r.username, "nickname": r.nickname, "value": int(r.val or 0), "score": int(r.val or 0)} for r in rows]
+    elif metric in ("created_expl", "created_explanation", "explanations_created"):
+        # Count explanations by distinct problem per user (avoid counting per-option multiples)
+        from sqlalchemy import func
+        rows = db.execute(
+            select(User.id, User.username, User.nickname, func.count(func.distinct(Explanation.problem_id)).label("val"))
+            .outerjoin(Explanation, Explanation.user_id==User.id)
+            .group_by(User.id)
+            .order_by(text("val DESC"), User.id.asc())
+        ).all()
+        items = [{"user_id": r.id, "username": r.username, "nickname": r.nickname, "value": int(r.val or 0), "score": int(r.val or 0)} for r in rows]
     elif metric == "likes":
         # Sum of likes on explanations written by the user
         from sqlalchemy import func
         rows = db.execute(
             select(User.id, User.username, User.nickname, func.coalesce(func.sum(Explanation.like_count), 0).label("val"))
             .outerjoin(Explanation, Explanation.user_id==User.id)
+            .group_by(User.id)
+            .order_by(text("val DESC"), User.id.asc())
+        ).all()
+        items = [{"user_id": r.id, "username": r.username, "nickname": r.nickname, "value": int(r.val or 0), "score": int(r.val or 0)} for r in rows]
+    elif metric in ("likes_problem", "likes_problems"):
+        # Sum of likes on problems the user created
+        from sqlalchemy import func
+        rows = db.execute(
+            select(User.id, User.username, User.nickname, func.coalesce(func.sum(Problem.like_count), 0).label("val"))
+            .outerjoin(Problem, Problem.created_by==User.id)
+            .group_by(User.id)
+            .order_by(text("val DESC"), User.id.asc())
+        ).all()
+        items = [{"user_id": r.id, "username": r.username, "nickname": r.nickname, "value": int(r.val or 0), "score": int(r.val or 0)} for r in rows]
+    elif metric in ("likes_expl", "likes_explanations"):
+        # Sum likes for explanations per problem per user, then aggregate per user (avoid per-option inflation)
+        from sqlalchemy import func
+        sub = (
+            select(Explanation.user_id.label("uid"), Explanation.problem_id.label("pid"), func.coalesce(func.sum(Explanation.like_count), 0).label("grp"))
+            .group_by(Explanation.user_id, Explanation.problem_id)
+        ).subquery()
+        rows = db.execute(
+            select(User.id, User.username, User.nickname, func.coalesce(func.sum(sub.c.grp), 0).label("val"))
+            .outerjoin(sub, sub.c.uid==User.id)
             .group_by(User.id)
             .order_by(text("val DESC"), User.id.asc())
         ).all()
@@ -872,6 +1098,53 @@ def my_explanations_problems(request: Request, authorization: Optional[str] = No
         .order_by(Problem.id.desc())
     ).all()
     return {"items": [{"id": r.id, "title": r.title, "qtype": r.qtype, "my_like_count": int(getattr(r, 'my_like') or 0)} for r in rows]}
+
+# Delete a problem (owner only)
+@app.delete("/problems/{pid:int}")
+def delete_problem(pid: int, request: Request, authorization: Optional[str] = None, db: Session = Depends(get_db)):
+    user = get_user(db, authorization, request)
+    p = db.get(Problem, pid)
+    if not p:
+        raise HTTPException(404, "not found")
+    if p.created_by != user.id:
+        raise HTTPException(403, "forbidden")
+    # Delete likes on explanations under this problem
+    ex_ids = [row[0] for row in db.execute(select(Explanation.id).where(Explanation.problem_id == pid)).all()]
+    if ex_ids:
+        db.query(ExplanationLike).filter(ExplanationLike.explanation_id.in_(ex_ids)).delete(synchronize_session=False)
+    # Delete explanations, answers, options
+    db.query(Explanation).filter(Explanation.problem_id == pid).delete(synchronize_session=False)
+    db.query(Answer).filter(Answer.problem_id == pid).delete(synchronize_session=False)
+    db.query(Option).filter(Option.problem_id == pid).delete(synchronize_session=False)
+    # Delete problem-level likes
+    db.query(ProblemLike).filter(ProblemLike.problem_id == pid).delete(synchronize_session=False)
+    db.query(ProblemExplLike).filter(ProblemExplLike.problem_id == pid).delete(synchronize_session=False)
+    # Delete images from disk and rows
+    imgs = db.execute(select(ProblemImage).where(ProblemImage.problem_id == pid)).scalars().all()
+    for img in imgs:
+        try:
+            path = os.path.join(UPLOAD_DIR, img.filename)
+            if os.path.exists(path):
+                os.remove(path)
+        except Exception:
+            pass
+    db.query(ProblemImage).filter(ProblemImage.problem_id == pid).delete(synchronize_session=False)
+    # Finally delete problem
+    db.delete(p)
+    db.commit()
+    return {"ok": True}
+
+# Delete current user's explanations for a problem
+@app.delete("/problems/{pid:int}/my-explanations")
+def delete_my_explanations(pid: int, request: Request, authorization: Optional[str] = None, db: Session = Depends(get_db)):
+    user = get_user(db, authorization, request)
+    ex_ids = [row[0] for row in db.execute(select(Explanation.id).where(Explanation.problem_id == pid, Explanation.user_id == user.id)).all()]
+    if not ex_ids:
+        return {"ok": True, "deleted": 0}
+    db.query(ExplanationLike).filter(ExplanationLike.explanation_id.in_(ex_ids)).delete(synchronize_session=False)
+    deleted = db.query(Explanation).filter(Explanation.id.in_(ex_ids)).delete(synchronize_session=False)
+    db.commit()
+    return {"ok": True, "deleted": int(deleted or 0)}
 
 # Override and harden seeding to avoid MultipleResultsFound at startup
 def seed_sample_problem():
