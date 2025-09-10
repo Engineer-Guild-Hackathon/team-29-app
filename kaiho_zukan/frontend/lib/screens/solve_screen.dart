@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../services/api.dart';
+import 'solve_picker_screen.dart';
 
 class SolveScreen extends StatefulWidget {
-  const SolveScreen({super.key});
+  final int? initialProblemId; // 指定された問題を解く場合に使用
+  const SolveScreen({super.key, this.initialProblemId});
   @override
   State<SolveScreen> createState() => _SolveScreenState();
 }
@@ -50,7 +52,11 @@ class _SolveScreenState extends State<SolveScreen> {
         grandId = null; // デフォルトは全単元
       }
     }
-    await _loadProblem();
+    if (widget.initialProblemId != null) {
+      await _loadProblemById(widget.initialProblemId!);
+    } else {
+      await _loadProblem();
+    }
   }
 
   Future<void> _loadProblem() async {
@@ -78,6 +84,28 @@ class _SolveScreenState extends State<SolveScreen> {
       prob = p;
       explLikes = (p != null && p['expl_like_count'] is int) ? (p!['expl_like_count'] as int) : 0;
       explLiked = (p != null && p['expl_liked'] == true);
+      loading = false;
+    });
+  }
+
+  Future<void> _loadProblemById(int pid) async {
+    setState(() {
+      loading = true;
+      prob = null;
+      explanations = [];
+      freeCtrl.clear();
+      _freeUserAnswer = null;
+      _freeSubmitted = false;
+      _modelAnswer = null;
+      _mcqSelectedIndex = null;
+      _mcqCorrectIndex = null;
+      _mcqResult = null;
+    });
+    final p = await Api.problemDetail(pid);
+    setState(() {
+      prob = p;
+      explLikes = (p['expl_like_count'] is int) ? (p['expl_like_count'] as int) : 0;
+      explLiked = (p['expl_liked'] == true);
       loading = false;
     });
   }
@@ -156,18 +184,21 @@ class _SolveScreenState extends State<SolveScreen> {
   @override
   Widget build(BuildContext c) {
     return Scaffold(
-      appBar: AppBar(title: const Text('問題を解く')),
+      appBar: AppBar(title: const Text('問題をランダムに解く')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView(children: [
-          Row(children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: [
             const Text('教科: '), const SizedBox(width: 8),
             DropdownButton<int>(value: childId, items: _childItems(), onChanged: (v) { setState(() => childId = v); _loadProblem(); }),
             const SizedBox(width: 24), const Text('単元: '), const SizedBox(width: 8),
             DropdownButton<int?>(value: grandId, items: _grandItems(), onChanged: (v) { setState(() => grandId = v); _loadProblem(); }),
             const SizedBox(width: 16),
             Row(children: [ Checkbox(value: includeAnswered, onChanged: (v) { setState(() => includeAnswered = v ?? false); _loadProblem(); }), const Text('回答済みも含める') ])
-          ]),
+            ]),
+          ),
           const Divider(),
           if (loading) const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
           if (!loading && prob == null) const Text('この条件の問題はありません'),
@@ -291,7 +322,19 @@ class _SolveScreenState extends State<SolveScreen> {
               ],
             ],
             const SizedBox(height: 24),
-            OutlinedButton(onPressed: _loadProblem, child: const Text('次の問題へ')),
+            if (widget.initialProblemId != null)
+              OutlinedButton(
+                onPressed: () {
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  } else {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const SolvePickerScreen()));
+                  }
+                },
+                child: const Text('戻る'),
+              )
+            else
+              OutlinedButton(onPressed: _loadProblem, child: const Text('次の問題へ')),
           ],
         ]),
       ),
@@ -337,9 +380,16 @@ class _SolveScreenState extends State<SolveScreen> {
       final overall = (g['overall'] as List<String>);
       final children = <Widget>[];
       if (isMcq) {
-        final keys = perOpt.keys.toList()..sort();
-        for (final k in keys) {
-          final merged = perOpt[k]!.join('\n');
+        // For MCQ: show per-option lines in order. If AI group, list all options; otherwise list only those that exist.
+        final List<dynamic>? opts = (prob?['options'] as List<dynamic>?);
+        final bool isAiGroup = by == 'AI';
+        final List<int> indices = (isAiGroup && opts != null)
+            ? List<int>.generate(opts.length, (i) => i)
+            : (perOpt.keys.toList()..sort());
+        for (final k in indices) {
+          final merged = (perOpt[k] == null || perOpt[k]!.isEmpty)
+              ? ''
+              : perOpt[k]!.join('\n');
           children.add(Padding(
             padding: const EdgeInsets.only(bottom: 6),
             child: Text('${_kanaOf(k)}：$merged'),
@@ -359,7 +409,7 @@ class _SolveScreenState extends State<SolveScreen> {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(by == 'AI' ? 'AIの解答' : '$by さんの解説', style: const TextStyle(fontWeight: FontWeight.w600)),
+            Text(by == 'AI' ? 'AIの解説' : '$by さんの解説', style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             ...children,
             const SizedBox(height: 8),
@@ -466,6 +516,3 @@ class _ImagesPagerState extends State<_ImagesPager> {
     ]);
   }
 }
-
-
-

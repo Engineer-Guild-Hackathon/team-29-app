@@ -331,7 +331,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
                           const SizedBox(width: 4),
                           Text('選択肢 ${i + 1}')
                         ]),
-                        TextField(controller: optionCtrls[i], enabled: !widget.explainOnly, decoration: const InputDecoration(labelText: '問題文'), maxLines: 2),
+                        TextField(controller: optionCtrls[i], enabled: !widget.explainOnly, decoration: const InputDecoration(labelText: '選択肢文'), maxLines: 2),
                         const SizedBox(height: 8),
                         TextField(controller: optionExplainCtrls[i], decoration: const InputDecoration(labelText: '解説'), maxLines: 3),
                       ]),

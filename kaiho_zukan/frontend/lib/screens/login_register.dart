@@ -12,7 +12,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   final u = TextEditingController();
   final p = TextEditingController();
   final n = TextEditingController();
-  bool isLogin = false;
+  bool isLogin = true;
   String msg = '';
   @override
   Widget build(BuildContext context) {
