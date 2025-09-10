@@ -1,11 +1,21 @@
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class Api {
   // ===== Base =====
-  static String get base => dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
+  static String get base {
+    final fromEnv = dotenv.env['API_BASE_URL'];
+    if (fromEnv != null && fromEnv.isNotEmpty) return fromEnv;
+    if (kReleaseMode) {
+      // Production (e.g., built via `flutter build`)
+      return 'https://es4.eedept.kobe-u.ac.jp/kaihou-back';
+    }
+    // Development (e.g., `flutter run`)
+    return 'http://localhost:8000';
+  }
 
   static String? _token;
   static String? get token => _token;
@@ -402,6 +412,17 @@ class Api {
   static Future<Map<String,dynamic>> myExplanations(int pid) async {
     final r = await http.get(Uri.parse('$base/problems/$pid/my-explanations'), headers: _authHeader);
     return _decode(r);
+  }
+
+  // ===== Delete (owner) =====
+  static Future<bool> deleteProblem(int id) async {
+    final r = await http.delete(Uri.parse('$base/problems/$id'), headers: _authHeader);
+    return r.statusCode == 200;
+  }
+  static Future<bool> deleteMyExplanations(int pid) async {
+    // Expect backend to support deleting current user's explanations for the problem
+    final r = await http.delete(Uri.parse('$base/problems/$pid/my-explanations'), headers: _authHeader);
+    return r.statusCode == 200;
   }
 
   // ===== Leaderboard / Review =====

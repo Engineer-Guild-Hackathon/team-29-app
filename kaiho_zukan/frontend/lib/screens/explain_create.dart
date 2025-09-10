@@ -140,8 +140,51 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
                       return Card(
                         child: ListTile(
                           title: Text(p['title'] ?? ''),
-                          subtitle: Text('種別: $kind / 自分のいいね: ${p['my_like_count'] ?? 0}'),
-                          trailing: const Icon(Icons.edit),
+                          subtitle: Text('解説のいいね: ${p['my_like_count'] ?? 0}'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                tooltip: '編集',
+                                icon: const Icon(Icons.edit),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => PostProblemForm(editId: p['id'] as int, explainOnly: true)),
+                                  );
+                                },
+                              ),
+                              IconButton(
+                                tooltip: '削除',
+                                icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                onPressed: () async {
+                                  final ok = await showDialog<bool>(
+                                    context: context,
+                                    builder: (c) => AlertDialog(
+                                      title: const Text('自分の解説を削除しますか？'),
+                                      content: const Text('この操作は元に戻せません。'),
+                                      actions: [
+                                        TextButton(onPressed: ()=>Navigator.pop(c,false), child: const Text('キャンセル')),
+                                        FilledButton(onPressed: ()=>Navigator.pop(c,true), child: const Text('削除')),
+                                      ],
+                                    ),
+                                  );
+                                  if (ok == true) {
+                                    final success = await Api.deleteMyExplanations(p['id'] as int);
+                                    if (success) {
+                                      if (!mounted) return;
+                                      await _loadMine();
+                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除しました')));
+                                    } else {
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除に失敗しました'), backgroundColor: Colors.red));
+                                    }
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
                           onTap: () {
                             Navigator.push(
                               context,
@@ -159,4 +202,3 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
     );
   }
 }
-

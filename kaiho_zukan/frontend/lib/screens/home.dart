@@ -6,6 +6,7 @@ import 'post_problem_hub.dart';
 import 'explain_create.dart';
 import 'solve_screen.dart';
 import 'ranking.dart';
+import 'solve_picker_screen.dart';
 import 'review_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -57,9 +58,12 @@ class HomeScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(children: [
-            menuTile(context, '問題を解く', () => Navigator.push(
+            menuTile(context, '問題をランダムに解く', () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const SolveScreen()))),
+            menuTile(context, '問題を選んで解く', () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SolvePickerScreen()))),
             menuTile(context, '問題を投稿する', () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const PostProblemHubScreen()))),
@@ -73,7 +77,7 @@ class HomeScreen extends StatelessWidget {
                 context,
                 MaterialPageRoute(builder: (_) => const RankingScreen()))),
             const SizedBox(height: 8),
-            menuTile(context, 'ユーザー設定・教科設定', () => Navigator.push(
+            menuTile(context, '教科を選択しなおす', () => Navigator.push(
                 context,
                 MaterialPageRoute(
                     builder: (_) => const SubjectSelectScreen(
@@ -85,4 +89,3 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
-

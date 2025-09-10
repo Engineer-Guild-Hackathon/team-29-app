@@ -57,16 +57,50 @@ class _MyProblemsScreenState extends State<MyProblemsScreen> {
                 child: ListTile(
                   title: Text(it['title'] ?? ''),
                   subtitle: Text('解説: ${it['ex_cnt']}  いいね: ${it['like_count']}  種別: $qtypeJp'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => PostProblemForm(editId: it['id'] as int),
-                        ),
-                      );
-                    },
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: '編集',
+                        icon: const Icon(Icons.edit),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PostProblemForm(editId: it['id'] as int),
+                            ),
+                          );
+                        },
+                      ),
+                      IconButton(
+                        tooltip: '削除',
+                        icon: const Icon(Icons.delete, color: Colors.redAccent),
+                        onPressed: () async {
+                          final ok = await showDialog<bool>(
+                            context: context,
+                            builder: (c) => AlertDialog(
+                              title: const Text('問題を削除しますか？'),
+                              content: const Text('この操作は元に戻せません。'),
+                              actions: [
+                                TextButton(onPressed: ()=>Navigator.pop(c,false), child: const Text('キャンセル')),
+                                FilledButton(onPressed: ()=>Navigator.pop(c,true), child: const Text('削除')),
+                              ],
+                            ),
+                          );
+                          if (ok == true) {
+                            final success = await Api.deleteProblem(it['id'] as int);
+                            if (success) {
+                              if (!mounted) return;
+                              setState(() { items.removeAt(i); });
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除しました')));
+                            } else {
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除に失敗しました'), backgroundColor: Colors.red));
+                            }
+                          }
+                        },
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -77,4 +111,3 @@ class _MyProblemsScreenState extends State<MyProblemsScreen> {
     );
   }
 }
-
