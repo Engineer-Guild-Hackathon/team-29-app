@@ -319,6 +319,36 @@ class Api {
     final bodyStr = await res.stream.bytesToString();
     try { return jsonDecode(bodyStr);} catch(_){ return {'status': res.statusCode};}
   }
+
+  // ===== Model Answers (multi-user) =====
+  static Future<bool> upsertMyModelAnswer(int pid, String content) async {
+    final t = token;
+    final req = http.MultipartRequest('POST', Uri.parse('$base/problems/$pid/model-answer'));
+    req.fields['content'] = content;
+    if(t!=null) req.headers['Authorization'] = 'Bearer $t';
+    final res = await req.send();
+    return res.statusCode==200;
+  }
+  static Future<bool> deleteMyModelAnswer(int pid) async {
+    // Use upsert with empty content to delete (backend treats empty as delete)
+    return upsertMyModelAnswer(pid, '');
+  }
+  static Future<String?> myModelAnswer(int pid) async {
+    final r = await http.get(Uri.parse('$base/problems/$pid/model-answer'), headers: _authHeader);
+    if(r.statusCode!=200) return null;
+    try{
+      final obj = jsonDecode(utf8.decode(r.bodyBytes));
+      return (obj is Map && obj['content'] is String) ? (obj['content'] as String) : null;
+    }catch(_){ return null; }
+  }
+  static Future<List<dynamic>> listModelAnswers(int pid) async {
+    final r = await http.get(Uri.parse('$base/problems/$pid/model-answers'), headers: _authHeader);
+    if(r.statusCode!=200) return [];
+    try{
+      final obj = jsonDecode(utf8.decode(r.bodyBytes));
+      return (obj is Map && obj['items'] is List) ? List.from(obj['items']) : <dynamic>[];
+    }catch(_){ return <dynamic>[]; }
+  }
   static Future<bool> updateProblemOk({
     required int id,
     String? title,

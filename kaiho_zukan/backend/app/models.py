@@ -46,7 +46,6 @@ class Problem(Base):
     expl_like_count: Mapped[int] = mapped_column(Integer, default=0)
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
-    model_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class ProblemImage(Base):
@@ -112,3 +111,14 @@ class ProblemExplLike(Base):
     problem_id: Mapped[int] = mapped_column(ForeignKey("problems.id"))
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     __table_args__ = (UniqueConstraint("problem_id", "user_id", name="uq_problem_expl_like"),)
+
+
+class ModelAnswer(Base):
+    __tablename__ = "model_answers"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    problem_id: Mapped[int] = mapped_column(ForeignKey("problems.id"))
+    # user_id is nullable: NULL means AI's model answer
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    content: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
+    __table_args__ = (UniqueConstraint("problem_id", "user_id", name="uq_model_answer_per_user"),)

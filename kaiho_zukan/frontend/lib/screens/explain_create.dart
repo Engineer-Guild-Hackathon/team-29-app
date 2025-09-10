@@ -10,7 +10,7 @@ class ExplainCreateScreen extends StatefulWidget {
 
 class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
   List<dynamic> parents = [], children = [], grands = [];
-  int? parentId, childId, grandId;
+  int? parentId, childId, grandId; // grandId=null で「すべて」
   String sort = 'likes';
   List<dynamic> problems = [];
   List<dynamic> myProblems = [];
@@ -29,7 +29,8 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
         if (children.isNotEmpty) {
           childId = children.first['id'];
           grands = children.first['children'] ?? [];
-          if (grands.isNotEmpty) grandId = grands.first['id'];
+          // 既定は「すべて」
+          grandId = null;
         }
       }
     });
@@ -78,7 +79,8 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
                   children = p['children'] ?? [];
                   childId = children.isNotEmpty ? children.first['id'] : null;
                   grands = childId != null ? (children.firstWhere((c) => c['id'] == childId)['children'] ?? []) : [];
-                  grandId = grands.isNotEmpty ? grands.first['id'] : null;
+                  // 親変更時は「すべて」に戻す
+                  grandId = null;
                 });
                 _search();
               },
@@ -92,18 +94,24 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
                 setState(() {
                   childId = v;
                   grands = c['children'] ?? [];
-                  grandId = grands.isNotEmpty ? grands.first['id'] : null;
+                  // 子変更時も「すべて」に戻す
+                  grandId = null;
                 });
                 _search();
               },
             ),
             const SizedBox(width: 12),
-            DropdownButton<int>(
+            DropdownButton<int?>(
               value: grandId,
-              items: grands.map<DropdownMenuItem<int>>((g) => DropdownMenuItem(value: g['id'] as int, child: Text(g['name']))).toList(),
+              items: <DropdownMenuItem<int?>>[
+                const DropdownMenuItem<int?>(value: null, child: Text('全単元（すべて）')),
+                ...grands.map<DropdownMenuItem<int?>>((g) => DropdownMenuItem<int?>(value: g['id'] as int, child: Text(g['name'])))
+              ],
               onChanged: (v) { setState(() => grandId = v); _search(); },
             ),
-            const Spacer(),
+            // Spacer() は SingleChildScrollView(scrollDirection: Axis.horizontal) 配下だと
+            // 無限幅コンストレイントで例外になるため使用しない
+            const SizedBox(width: 12),
             DropdownButton<String>(
               value: sort,
               items: const [

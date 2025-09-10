@@ -16,6 +16,7 @@ from passlib.context import CryptContext
 from sqlalchemy.exc import OperationalError
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+import re
 
 DATABASE_URL = os.getenv("DATABASE_URL","mysql+pymysql://app:app@db:3306/learn")
 JWT_SECRET = os.getenv("JWT_SECRET")
@@ -27,7 +28,7 @@ UPLOAD_DIR = os.getenv("UPLOAD_DIR", "/data/uploads")
 
 engine = create_engine(DATABASE_URL, pool_pre_ping=True, future=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
-from models import Base, User, Category, UserCategory, Problem, Option, Explanation, Answer, ProblemLike, ExplanationLike, ProblemExplLike, ProblemImage
+from models import Base, User, Category, UserCategory, Problem, Option, Explanation, Answer, ProblemLike, ExplanationLike, ProblemExplLike, ProblemImage, ModelAnswer
 
 """Models imported from app.models"""
     
@@ -50,14 +51,28 @@ def ensure_schema():
                 conn.execute(text("SELECT level FROM categories LIMIT 1"))
             except Exception:
                 conn.execute(text("ALTER TABLE categories ADD COLUMN level INT NOT NULL DEFAULT 0"))
-        # problems.model_answer (nullable TEXT)
+        # Migrate legacy problems.model_answer -> model_answers table, then drop column
         try:
-            conn.execute(text("ALTER TABLE problems ADD COLUMN IF NOT EXISTS model_answer TEXT NULL"))
-        except Exception:
+            # If legacy column exists and has data, copy to model_answers (owner = created_by)
+            rows = conn.execute(text("SELECT id, created_by, model_answer FROM problems WHERE model_answer IS NOT NULL AND model_answer <> ''")).all()
+            if rows:
+                for rid, owner, content in rows:
+                    try:
+                        conn.execute(text("INSERT IGNORE INTO model_answers(problem_id, user_id, content, created_at) VALUES (:pid, :uid, :ct, NOW())"),
+                                     {"pid": rid, "uid": owner, "ct": content})
+                    except Exception:
+                        pass
             try:
-                conn.execute(text("SELECT model_answer FROM problems LIMIT 1"))
+                conn.execute(text("ALTER TABLE problems DROP COLUMN model_answer"))
             except Exception:
-                conn.execute(text("ALTER TABLE problems ADD COLUMN model_answer TEXT NULL"))
+                pass
+        except Exception:
+            pass
+        # Ensure model_answers.user_id is nullable to allow AI (NULL user)
+        try:
+            conn.execute(text("ALTER TABLE model_answers MODIFY COLUMN user_id INT NULL"))
+        except Exception:
+            pass
         # problems.expl_like_count (INT)
         try:
             conn.execute(text("ALTER TABLE problems ADD COLUMN IF NOT EXISTS expl_like_count INT NOT NULL DEFAULT 0"))
@@ -151,6 +166,33 @@ def seed_categories():
             sc = get_or_create(subj, hs.id, 1)
             for u in units:
                 get_or_create(u, sc.id, 2)
+        # 大学教材: 子=数学/電気電子/情報、孫=各専用ユニット
+        uni = get_or_create("大学教材", None, 0)
+        # 数学
+        math = get_or_create("数学", uni.id, 1)
+        for u in [
+            "線形代数",
+            "微分方程式",
+            "複素関数",
+            "フーリエ解析",
+        ]:
+            get_or_create(u, math.id, 2)
+        # 電気電子
+        ee = get_or_create("電気電子", uni.id, 1)
+        for u in [
+            "電気回路",
+            "電子回路",
+            "電磁気学",
+        ]:
+            get_or_create(u, ee.id, 2)
+        # 情報
+        info = get_or_create("情報", uni.id, 1)
+        for u in [
+            "情報理論",
+            "論理回路",
+        ]:
+            get_or_create(u, info.id, 2)
+
         s.commit()
 
 def seed_sample_problem():
@@ -279,11 +321,11 @@ def create_problem(request: Request, authorization: Optional[str] = None, db: Se
     initial_explanation: Optional[str] = Form(None), option_explanations_text: Optional[str] = Form(None), option_explanations_json: Optional[str] = Form(None), model_answer: Optional[str] = Form(None),
     images: List[UploadFile] = File(None)):
     user = get_user(db, authorization, request)
-    # Require model_answer for free-text problems
-    if qtype == "free" and (model_answer is None or not str(model_answer).strip()):
-        raise HTTPException(400, "model_answer required for free-text problems")
-    p = Problem(title=title, body=body, qtype=qtype, child_id=category_child_id, grand_id=category_grand_id, created_by=user.id, model_answer=model_answer)
+    # Free-text problems no longer require model_answer (optional)
+    p = Problem(title=title, body=body, qtype=qtype, child_id=category_child_id, grand_id=category_grand_id, created_by=user.id)
     db.add(p); db.flush()
+    if model_answer is not None and str(model_answer).strip():
+        db.add(ModelAnswer(problem_id=p.id, user_id=user.id, content=str(model_answer).strip()))
     # accept both multiline options_text and comma-separated 'options' for compatibility
     if qtype=="mcq":
         # Accept both 'options_text' (multiline) and 'options' (comma-separated)
@@ -336,6 +378,24 @@ def create_problem(request: Request, authorization: Optional[str] = None, db: Se
 
     return {"id": p.id, "ok": True}
 
+def extract_json_block(text: str) -> str:
+    """
+    ```json ... ``` の柵や前後の説明文を除き、JSON本体({ ... })だけを取り出す。
+    見つからなければ元の文字列を返す。
+    """
+    if not text:
+        return text
+    # ```json ... ``` or ``` ... ```
+    m = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.S | re.I)
+    if m:
+        return m.group(1)
+    # 最初と最後の波括弧で囲まれた範囲を抽出
+    i, j = text.find("{"), text.rfind("}")
+    if i != -1 and j != -1 and i < j:
+        return text[i:j+1]
+    return text
+
+
 def generate_ai_explanations(problem_id: int):
     """Background task to generate AI explanations.
     - MCQ: overall + per-option explanations (option_index=0..n-1)
@@ -362,14 +422,15 @@ def generate_ai_explanations(problem_id: int):
                     opt_lines.append(f"{label}: {o.text}")
                 options_block = "\n".join(opt_lines)
                 prompt = (
-                    "あなたは日本語の講師です。以下の択一問題について、簡潔な解説を作成してください。\n"
-                    "出力は必ず次のJSON形式のみで返してください．ただし出力する文章に「アの解説：」「正解です。」といった文は含めず，解説だけ書いてください：\n"
-                    "{overall: 全体の解説, options: [「アの解説」, 「イの解説」, ...]}\n"
-                    "要件:\n- 各選択肢ごとに正誤の要点と理由を1〜2文で説明\n- 専門用語は簡潔に補足\n- overallでは問題全体の考え方を2〜4文で要約\n"
-                    f"[問題タイトル]\n{p.title}\n"
-                    f"[問題文]\n{p.body or ''}\n"
+                    "あなたは教育用の優秀な出題解説者です。次の選択式の問題について、模範解答と全体の解説，選択肢ごとの解説を作成してください。\n"
+                    "出力は必ずJSONのみで、次のキーを含めてください。\n"
+                    "{model_answer: 模範解答（ア，イなどの選択肢番号のみ）, overall: 全体解説（2〜4文）, options: ['アの解説','イの解説', ...]}\n"
+                    "注意:\n- options配列は提示する選択肢の順に並べ、各要素は1〜2文で簡潔に\n- overallは2〜4文で論理的にまとめる\n選択肢ごとの解説には「アの解説：」「ア：」などの文字は含めず解説文だけ，何が間違っているのか，あっているのかを簡潔に書く\n"
+                    f"[タイトル]\n{p.title}\n"
+                    f"[本文]\n{p.body or ''}\n"
                     f"[選択肢]\n{options_block}\n"
                 )
+
                 # Build multimodal content (text + images if any)
                 message_content = [{"type": "text", "text": prompt}]
                 try:
@@ -395,16 +456,28 @@ def generate_ai_explanations(problem_id: int):
                     max_tokens=700,
                 )
                 raw = (resp.choices[0].message.content or '').strip()
+
                 overall_txt = None
                 option_txts = []
+                model_answer_txt = None
+                print(raw)
+
+                # JSON 部分だけを抽出してパース
+                txt = extract_json_block(raw)
                 try:
-                    data = json.loads(raw)
-                    if isinstance(data, dict):
-                        if isinstance(data.get('overall'), str):
-                            overall_txt = data['overall'].strip()
-                        if isinstance(data.get('options'), list):
-                            option_txts = [str(x).strip() for x in data['options']]
+                    data = json.loads(txt)
                 except Exception:
+                    data = None
+
+                if isinstance(data, dict):
+                    if isinstance(data.get('model_answer'), str):
+                        model_answer_txt = data['model_answer'].strip()
+                    if isinstance(data.get('overall'), str):
+                        overall_txt = data['overall'].strip()
+                    if isinstance(data.get('options'), list):
+                        option_txts = [str(x).strip() for x in data['options']]
+                else:
+                    # どうしてもJSONにできない場合だけ丸ごと保存（従来動作のフォールバック）
                     overall_txt = raw
 
                 if overall_txt:
@@ -413,13 +486,21 @@ def generate_ai_explanations(problem_id: int):
                     txt = option_txts[i] if i < len(option_txts) else None
                     if txt and txt.strip():
                         db.add(Explanation(problem_id=p.id, user_id=None, content=txt.strip(), option_index=i))
+                # Upsert AI model answer (user_id=NULL)
+                try:
+                    db.query(ModelAnswer).filter(ModelAnswer.problem_id==p.id, ModelAnswer.user_id==None).delete(synchronize_session=False)
+                except Exception:
+                    pass
+                if model_answer_txt and model_answer_txt.strip():
+                    db.add(ModelAnswer(problem_id=p.id, user_id=None, content=model_answer_txt.strip()))
                 db.commit()
             else:
                 # Free-text problem: overall explanation only
                 prompt = (
-                    "あなたは日本語の講師です。次の記述式問題について、400〜600字で簡潔に解説してください。\n"
-                    "- ポイントを1〜3個に絞る\n- 専門用語は短く補足\n"
-                    f"[問題タイトル] {p.title}\n[問題文] {p.body or ''}\n"
+                    "あなたは教育用の優秀な出題解説者です。次の記述式の問題について、模範解答と全体解説（200〜400字）を作成してください。\n"
+                    "模範解答は単語を問われている場合は単語のみで，文章を問われている場合は適切な文章量で解答してください。\n"
+                    "出力は必ずJSONのみで、{model_answer: 模範解答, overall: 全体解説} の形で返してください。\n"
+                    f"[タイトル] {p.title}\n[本文] {p.body or ''}\n"
                 )
                 # Build multimodal content (text + images if any)
                 message_content = [{"type": "text", "text": prompt}]
@@ -445,9 +526,32 @@ def generate_ai_explanations(problem_id: int):
                     max_tokens=500,
                 )
                 content = (resp.choices[0].message.content or '').strip()
-                if content:
-                    db.add(Explanation(problem_id=p.id, user_id=None, content=content, option_index=None))
-                    db.commit()
+
+                overall_txt = None
+                model_answer_txt = None
+
+                txt = extract_json_block(content)
+                try:
+                    data = json.loads(txt)
+                except Exception:
+                    data = None
+
+                if isinstance(data, dict):
+                    if isinstance(data.get('model_answer'), str):
+                        model_answer_txt = data['model_answer'].strip()
+                    if isinstance(data.get('overall'), str):
+                        overall_txt = data['overall'].strip()
+                else:
+                    overall_txt = content
+                if overall_txt:
+                    db.add(Explanation(problem_id=p.id, user_id=None, content=overall_txt, option_index=None))
+                try:
+                    db.query(ModelAnswer).filter(ModelAnswer.problem_id==p.id, ModelAnswer.user_id==None).delete(synchronize_session=False)
+                except Exception:
+                    pass
+                if model_answer_txt and model_answer_txt.strip():
+                    db.add(ModelAnswer(problem_id=p.id, user_id=None, content=model_answer_txt.strip()))
+                db.commit()
     except Exception:
         # Do not raise in background thread
         pass
@@ -520,11 +624,13 @@ def problem_detail(pid: int, request: Request, authorization: Optional[str] = No
     data = {"id": p.id, "title": p.title, "body": p.body, "qtype": p.qtype, "like_count": p.like_count, "liked": liked, "expl_like_count": p.expl_like_count, "expl_liked": expl_liked,
              "options":[{"id":o.id, "text":o.text, "content": o.text, "is_correct": bool(o.is_correct)} for o in opts],
              "images": [f"/uploads/{im.filename}" for im in db.execute(select(ProblemImage).where(ProblemImage.problem_id==pid).order_by(ProblemImage.id.asc())).scalars().all()]}
-    # Only owner can see model_answer
+    # Return current user's model_answer from model_answers table (if any)
     try:
         user = get_user(db, authorization, request)
-        if user and user.id == p.created_by and p.model_answer is not None:
-            data["model_answer"] = p.model_answer
+        if user:
+            ma = db.execute(select(ModelAnswer).where(ModelAnswer.problem_id==p.id, ModelAnswer.user_id==user.id).order_by(ModelAnswer.id.desc()).limit(1)).scalar_one_or_none()
+            if ma and ma.content is not None:
+                data["model_answer"] = ma.content
     except HTTPException:
         pass
     return data
@@ -682,7 +788,18 @@ def edit_problem(pid: int, request: Request, authorization: Optional[str] = None
     if is_owner and qtype is not None: p.qtype = qtype
     if is_owner and category_child_id is not None: p.child_id = category_child_id
     if is_owner and category_grand_id is not None: p.grand_id = category_grand_id
-    if is_owner and model_answer is not None: p.model_answer = model_answer
+    if is_owner and model_answer is not None:
+        txt = str(model_answer).strip()
+        existing = db.execute(select(ModelAnswer).where(ModelAnswer.problem_id==p.id, ModelAnswer.user_id==user.id)).scalar_one_or_none()
+        if txt:
+            if existing:
+                existing.content = txt
+            else:
+                db.add(ModelAnswer(problem_id=p.id, user_id=user.id, content=txt))
+        else:
+            # empty string: delete
+            if existing:
+                db.delete(existing)
     if p.qtype=="mcq":
         # Owners may edit option texts/correct index
         if is_owner:
@@ -719,10 +836,54 @@ def edit_problem(pid: int, request: Request, authorization: Optional[str] = None
         db.query(Explanation).filter(Explanation.problem_id==p.id, Explanation.user_id==me, Explanation.option_index==None).delete()
         if initial_explanation.strip():
             db.add(Explanation(problem_id=p.id, user_id=me, content=initial_explanation.strip(), option_index=None))
-    # Enforce model_answer for free-text problems after updates (only for owners modifying model_answer/qtype)
-    if is_owner and p.qtype == "free" and (p.model_answer is None or not str(p.model_answer).strip()):
-        raise HTTPException(400, "model_answer required for free-text problems")
+    # Free-text problems: model_answer remains optional
     db.commit(); return {"ok": True}
+
+# ModelAnswer: upsert current user's model answer for a problem
+@app.post("/problems/{pid:int}/model-answer")
+def upsert_model_answer(pid: int, request: Request, authorization: Optional[str] = None, db: Session = Depends(get_db), content: str = Form(...)):
+    user = get_user(db, authorization, request)
+    p = db.get(Problem, pid)
+    if not p:
+        raise HTTPException(404, "not found")
+    txt = (content or "").strip()
+    existing = db.execute(select(ModelAnswer).where(ModelAnswer.problem_id==pid, ModelAnswer.user_id==user.id)).scalar_one_or_none()
+    if not txt:
+        # empty => delete if present
+        if existing:
+            db.delete(existing); db.commit()
+        return {"ok": True}
+    if existing:
+        existing.content = txt
+    else:
+        db.add(ModelAnswer(problem_id=pid, user_id=user.id, content=txt))
+    db.commit(); return {"ok": True}
+
+# Get current user's model answer
+@app.get("/problems/{pid:int}/model-answer")
+def get_my_model_answer(pid: int, request: Request, authorization: Optional[str] = None, db: Session = Depends(get_db)):
+    user = get_user(db, authorization, request)
+    ma = db.execute(select(ModelAnswer).where(ModelAnswer.problem_id==pid, ModelAnswer.user_id==user.id)).scalar_one_or_none()
+    return {"content": getattr(ma, 'content', None)}
+
+# List all users' model answers for the problem (with basic user info)
+@app.get("/problems/{pid:int}/model-answers")
+def list_model_answers(pid: int, request: Request, authorization: Optional[str] = None, db: Session = Depends(get_db)):
+    _ = get_user(db, authorization, request)  # auth required
+    # Include AI row (user_id NULL) via outer join
+    rows = db.execute(
+        select(ModelAnswer.content, ModelAnswer.user_id, User.username, User.nickname)
+        .outerjoin(User, User.id==ModelAnswer.user_id)
+        .where(ModelAnswer.problem_id==pid)
+        .order_by(ModelAnswer.id.desc())
+    ).all()
+    items = []
+    for content, uid, username, nickname in rows:
+        if uid is None:
+            items.append({"user_id": None, "username": "AI", "nickname": "AI", "content": content, "is_ai": True})
+        else:
+            items.append({"user_id": int(uid), "username": username, "nickname": nickname, "content": content, "is_ai": False})
+    return {"items": items}
 
 # Update profile (nickname)
 @app.put("/me")
@@ -732,12 +893,6 @@ def update_me(request: Request, authorization: Optional[str] = None, db: Session
         user.nickname = nickname
         db.commit()
     # If problem content changed by owner, regenerate AI explanations preserving like counts
-    if should_regen_ai and OPENAI_ENABLED and OPENAI_API_KEY:
-        try:
-            db.commit()  # ensure latest changes are visible
-        except Exception:
-            pass
-        threading.Thread(target=regenerate_ai_explanations_preserve_likes, args=(p.id,), daemon=True).start()
     return {"ok": True}
 
 @app.get("/problems/next")
@@ -802,12 +957,16 @@ def answer(pid: int, request: Request, authorization: Optional[str] = None, db: 
     if not p: raise HTTPException(404, "not found")
     correct = None
     if p.qtype=="mcq":
-        if selected_option_id is None: raise HTTPException(400, "option required")
-        o = db.get(Option, selected_option_id)
-        correct = bool(o and o.is_correct)
+        if selected_option_id is None:
+            raise HTTPException(400, "option required")
+        # MCQ: do not auto-judge; allow user to mark later
+        if is_correct is None:
+            correct = None
+        else:
+            correct = bool(is_correct)
     else:
-        if is_correct is None: raise HTTPException(400, "is_correct required")
-        correct = bool(is_correct)
+        # Free-text: allow is_correct to be omitted (store as NULL)
+        correct = None if is_correct is None else bool(is_correct)
     db.add(Answer(problem_id=pid, user_id=user.id, selected_option_id=selected_option_id, free_text=free_text, is_correct=correct))
     if correct:
         user.points += 1
@@ -1052,6 +1211,8 @@ def delete_problem(pid: int, request: Request, authorization: Optional[str] = No
     # Delete problem-level likes
     db.query(ProblemLike).filter(ProblemLike.problem_id == pid).delete(synchronize_session=False)
     db.query(ProblemExplLike).filter(ProblemExplLike.problem_id == pid).delete(synchronize_session=False)
+    # Delete model answers (AI and user-submitted)
+    db.query(ModelAnswer).filter(ModelAnswer.problem_id == pid).delete(synchronize_session=False)
     # Delete images from disk and rows
     imgs = db.execute(select(ProblemImage).where(ProblemImage.problem_id == pid)).scalars().all()
     for img in imgs:
@@ -1078,5 +1239,3 @@ def delete_my_explanations(pid: int, request: Request, authorization: Optional[s
     deleted = db.query(Explanation).filter(Explanation.id.in_(ex_ids)).delete(synchronize_session=False)
     db.commit()
     return {"ok": True, "deleted": int(deleted or 0)}
-
-## sample problem seeding removed
