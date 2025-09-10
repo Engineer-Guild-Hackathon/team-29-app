@@ -29,6 +29,19 @@ services:
     volumes:
       - api_uploads:/data/uploads
 
+  pma:
+    image: phpmyadmin/phpmyadmin:latest
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      # 任意: 50MB までインポート拡張
+      UPLOAD_LIMIT: 50M
+    ports: ["8080:80"]
+    restart: unless-stopped
+
 volumes:
   dbdata:
   api_uploads:
