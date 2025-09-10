@@ -188,14 +188,17 @@ class _SolveScreenState extends State<SolveScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView(children: [
-          Row(children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: [
             const Text('教科: '), const SizedBox(width: 8),
             DropdownButton<int>(value: childId, items: _childItems(), onChanged: (v) { setState(() => childId = v); _loadProblem(); }),
             const SizedBox(width: 24), const Text('単元: '), const SizedBox(width: 8),
             DropdownButton<int?>(value: grandId, items: _grandItems(), onChanged: (v) { setState(() => grandId = v); _loadProblem(); }),
             const SizedBox(width: 16),
             Row(children: [ Checkbox(value: includeAnswered, onChanged: (v) { setState(() => includeAnswered = v ?? false); _loadProblem(); }), const Text('回答済みも含める') ])
-          ]),
+            ]),
+          ),
           const Divider(),
           if (loading) const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
           if (!loading && prob == null) const Text('この条件の問題はありません'),

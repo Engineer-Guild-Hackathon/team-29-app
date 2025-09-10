@@ -56,13 +56,18 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(children: [
-          Row(children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: [
             ChoiceChip(label: const Text('新規で作る'), selected: tab == 0, onSelected: (_) { setState(() => tab = 0); }),
             const SizedBox(width: 8),
             ChoiceChip(label: const Text('作成済みを見る'), selected: tab == 1, onSelected: (_) { setState(() { tab = 1; }); _loadMine(); }),
-          ]),
+            ]),
+          ),
           const SizedBox(height: 8),
-          Row(children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: [
             DropdownButton<int>(
               value: parentId,
               items: parents.map<DropdownMenuItem<int>>((p) => DropdownMenuItem(value: p['id'] as int, child: Text(p['name']))).toList(),
@@ -108,7 +113,8 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
               ],
               onChanged: (v) { setState(() => sort = v ?? 'likes'); _search(); },
             ),
-          ]),
+            ]),
+          ),
           const SizedBox(height: 8),
           Expanded(
             child: tab == 0
