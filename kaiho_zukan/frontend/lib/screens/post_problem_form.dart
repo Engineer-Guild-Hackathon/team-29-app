@@ -62,14 +62,18 @@ class _PostProblemFormState extends State<PostProblemForm> {
 
   Future<void> _loadCats() async {
     final t = await Api.categoryTree();
-    setState(() {
-      parents = t;
-      parentId = t.isNotEmpty ? t.first['id'] : null;
-      children = t.isNotEmpty ? t.first['children'] ?? [] : [];
-      childId = children.isNotEmpty ? children.first['id'] : null;
-      grands = children.isNotEmpty ? (children.first['children'] ?? []) : [];
-      grandId = grands.isNotEmpty ? grands.first['id'] : null;
-    });
+    // Initial defaults
+    List<dynamic> parentsTmp = t;
+    List<dynamic> childrenTmp =
+        t.isNotEmpty ? (t.first['children'] ?? []) as List<dynamic> : [];
+    List<dynamic> grandsTmp = childrenTmp.isNotEmpty
+        ? (childrenTmp.first['children'] ?? []) as List<dynamic>
+        : [];
+    int? parentIdTmp = t.isNotEmpty ? t.first['id'] as int? : null;
+    int? childIdTmp =
+        childrenTmp.isNotEmpty ? childrenTmp.first['id'] as int? : null;
+    int? grandIdTmp = grandsTmp.isNotEmpty ? grandsTmp.first['id'] as int? : null;
+
     if (widget.editId != null) {
       final d = await Api.getProblem(widget.editId!);
       title.text = (d['title'] ?? '').toString();
@@ -86,21 +90,22 @@ class _PostProblemFormState extends State<PostProblemForm> {
           ? d['grand_id'] as int
           : int.tryParse('${d['grand_id']}');
       if (cid != null) {
-        for (final p in parents) {
+        for (final p in parentsTmp) {
           final ch = (p['children'] as List?) ?? [];
           final match = ch.firstWhere(
               (e) => e is Map && e['id'] == cid,
               orElse: () => null);
           if (match != null) {
-            parentId = p['id'];
-            children = ch;
-            childId = cid;
-            grands = (match['children'] as List?) ?? [];
+            parentIdTmp = p['id'] as int?;
+            childrenTmp = ch;
+            childIdTmp = cid;
+            grandsTmp = (match['children'] as List?) ?? [];
             if (gid != null &&
-                grands.any((g) => g is Map && g['id'] == gid)) {
-              grandId = gid;
+                grandsTmp.any((g) => g is Map && g['id'] == gid)) {
+              grandIdTmp = gid;
             } else {
-              grandId = grands.isNotEmpty ? grands.first['id'] : null;
+              grandIdTmp =
+                  grandsTmp.isNotEmpty ? grandsTmp.first['id'] as int? : null;
             }
             break;
           }
@@ -183,7 +188,16 @@ class _PostProblemFormState extends State<PostProblemForm> {
     } else {
       _ensureOptionControllers(optionCount);
     }
-    setState(() => loading = false);
+
+    setState(() {
+      parents = parentsTmp;
+      children = childrenTmp;
+      grands = grandsTmp;
+      parentId = parentIdTmp;
+      childId = childIdTmp;
+      grandId = grandIdTmp;
+      loading = false;
+    });
   }
 
   Future<void> _submit() async {
