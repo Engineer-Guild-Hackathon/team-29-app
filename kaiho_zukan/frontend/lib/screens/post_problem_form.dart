@@ -295,9 +295,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
             } else if (qtype != 'mcq') {
               final mine = myAnswerCtrl.text.trim();
               final alt = modelAnswerCtrl.text.trim();
-              final payload = mine.isNotEmpty ? mine : alt;
-              if (payload.isNotEmpty) {
-                await Api.answer(newId, freeText: payload);
+              if (mine.isNotEmpty) {
+                await Api.answer(newId, freeText: mine);
               }
               if (alt.isNotEmpty) {
                 await Api.upsertMyModelAnswer(newId, alt);
@@ -346,9 +345,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
           } else if (qtype != 'mcq') {
             final mine = myAnswerCtrl.text.trim();
             final alt = modelAnswerCtrl.text.trim();
-            final payload = mine.isNotEmpty ? mine : alt;
-            if (payload.isNotEmpty) {
-              await Api.answer(widget.editId!, freeText: payload);
+            if (mine.isNotEmpty) {
+              await Api.answer(widget.editId!, freeText: mine);
             }
             if (alt.isNotEmpty) {
               await Api.upsertMyModelAnswer(widget.editId!, alt);
