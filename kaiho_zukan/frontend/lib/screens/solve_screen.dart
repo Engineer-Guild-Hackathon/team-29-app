@@ -12,6 +12,7 @@ class SolveScreen extends StatefulWidget {
 class _SolveScreenState extends State<SolveScreen> {
   // カテゴリ選択
   List<dynamic> tree = [];
+  int? parentId;
   int? childId;
   int? grandId; // null = 全単元
 
@@ -261,13 +262,47 @@ class _SolveScreenState extends State<SolveScreen> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
+                  // 親カテゴリ（教材）
+                  const Text('教材: '),
+                  const SizedBox(width: 8),
+                  DropdownButton<int>(
+                    value: parentId ?? (tree.isNotEmpty ? (tree.first['id'] as int) : null),
+                    items: () {
+                      if (tree.isEmpty) return <DropdownMenuItem<int>>[];
+                      return tree
+                          .map<DropdownMenuItem<int>>(
+                            (p) => DropdownMenuItem(
+                              value: p['id'] as int,
+                              child: Text('${p['name']}'),
+                            ),
+                          )
+                          .toList();
+                    }(),
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() {
+                        parentId = v;
+                        // 親変更時に子/孫をリセット
+                        try {
+                          final p = tree.firstWhere((e) => e['id'] == parentId, orElse: () => tree.first);
+                          final cs = (p['children'] as List?) ?? [];
+                          childId = cs.isNotEmpty ? (cs.first['id'] as int) : null;
+                        } catch (_) {
+                          childId = null;
+                        }
+                        grandId = null;
+                      });
+                      _loadProblem();
+                    },
+                  ),
+                  const SizedBox(width: 24),
                   const Text('教科: '),
                   const SizedBox(width: 8),
                   DropdownButton<int>(
                     value: childId,
                     items: () {
                       if (tree.isEmpty) return <DropdownMenuItem<int>>[];
-                      final cs = (tree.first['children'] as List?) ?? [];
+                      final cs = (((parentId!=null ? (tree.firstWhere((e) => e['id'] == parentId, orElse: () => tree.first)) : tree.first)['children']) as List?) ?? [];
                       return cs
                           .map<DropdownMenuItem<int>>(
                             (c) => DropdownMenuItem(value: c['id'] as int, child: Text('${c['name']}')),
@@ -275,7 +310,10 @@ class _SolveScreenState extends State<SolveScreen> {
                           .toList();
                     }(),
                     onChanged: (v) {
-                      setState(() => childId = v);
+                      setState(() {
+                        childId = v;
+                        grandId = null;
+                      });
                       _loadProblem();
                     },
                   ),
@@ -289,7 +327,7 @@ class _SolveScreenState extends State<SolveScreen> {
                         const DropdownMenuItem(value: null, child: Text('全単元（すべて）')),
                       ];
                       if (tree.isEmpty || childId == null) return items;
-                      final cs = (tree.first['children'] as List?) ?? [];
+                       final cs = (((parentId!=null ? (tree.firstWhere((e) => e['id'] == parentId, orElse: () => tree.first)) : tree.first)['children']) as List?) ?? [];
                       final ch = cs.firstWhere((e) => e['id'] == childId, orElse: () => null);
                       if (ch == null) return items;
                       final gs = (ch['children'] as List?) ?? [];
