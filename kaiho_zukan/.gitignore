@@ -2,3 +2,4 @@
 .env.db
 mysql.env
 .env.production
+.DS_Store
