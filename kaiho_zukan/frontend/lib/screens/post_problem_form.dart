@@ -77,6 +77,36 @@ class _PostProblemFormState extends State<PostProblemForm> {
       qtype = (d['qtype'] ?? 'mcq').toString();
       likeCount = (d['like_count'] ?? 0) as int;
       explLikeCount = (d['expl_like_count'] ?? 0) as int;
+
+      // ----- Restore previously selected category -----
+      final cid = d['child_id'] is int
+          ? d['child_id'] as int
+          : int.tryParse('${d['child_id']}');
+      final gid = d['grand_id'] is int
+          ? d['grand_id'] as int
+          : int.tryParse('${d['grand_id']}');
+      if (cid != null) {
+        for (final p in parents) {
+          final ch = (p['children'] as List?) ?? [];
+          final match = ch.firstWhere(
+              (e) => e is Map && e['id'] == cid,
+              orElse: () => null);
+          if (match != null) {
+            parentId = p['id'];
+            children = ch;
+            childId = cid;
+            grands = (match['children'] as List?) ?? [];
+            if (gid != null &&
+                grands.any((g) => g is Map && g['id'] == gid)) {
+              grandId = gid;
+            } else {
+              grandId = grands.isNotEmpty ? grands.first['id'] : null;
+            }
+            break;
+          }
+        }
+      }
+
       if (d['images'] is List) {
         existingImageUrls =
             List<String>.from((d['images'] as List).map((e) => e.toString()));
