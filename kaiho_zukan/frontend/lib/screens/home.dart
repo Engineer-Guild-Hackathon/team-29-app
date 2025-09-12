@@ -64,7 +64,7 @@ class HomeScreen extends StatelessWidget {
             menuTile(context, '問題を選んで解く', () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const SolvePickerScreen()))),
-            menuTile(context, '問題を投稿する', () => Navigator.push(
+            menuTile(context, '問題を管理する', () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const PostProblemHubScreen()))),
             menuTile(context, '解説を作る', () => Navigator.push(
