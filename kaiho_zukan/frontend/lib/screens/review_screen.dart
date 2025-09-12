@@ -96,6 +96,13 @@ class _ReviewScreenState extends State<ReviewScreen> {
     return (i >= 0 && i < k.length) ? k[i] : '選択肢${i + 1}';
   }
 
+  String _modelAnswerToKana(String text) {
+    return text.replaceAllMapped(RegExp(r'\b([1-9]|10)\b'), (m) {
+      final idx = int.parse(m.group(1)!) - 1;
+      return _kanaOf(idx);
+    });
+  }
+
   Future<void> _openDetail2(int pid) async {
     final detail = await Api.reviewItem(pid);
     final Map<String, dynamic>? problem =
@@ -114,14 +121,17 @@ class _ReviewScreenState extends State<ReviewScreen> {
     final Map<int, String> maByUser = {
       for (final it in mas)
         if ((it is Map) && (it['user_id'] is int) && (it['content'] is String))
-          it['user_id'] as int: (it['content'] as String).toString()
+          it['user_id'] as int:
+              _modelAnswerToKana((it['content'] as String).toString())
     };
     final String? aiModelAnswer = (() {
       for (final it in mas) {
         final uid = it is Map ? it['user_id'] : null;
         final c = it is Map ? it['content'] : null;
         final isAi = (it is Map && (it['is_ai'] == true)) || uid == null;
-        if (isAi && c is String && c.trim().isNotEmpty) return c.trim();
+        if (isAi && c is String && c.trim().isNotEmpty) {
+          return _modelAnswerToKana(c.trim());
+        }
       }
       return null;
     })();
@@ -317,6 +327,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
                           if (uid != null && maByUser.containsKey(uid)) {
                             answerText = (maByUser[uid] ?? '').trim();
                           }
+                        }
+                        if (answerText.isNotEmpty) {
+                          answerText = _modelAnswerToKana(answerText);
                         }
 
                         // 解説本文
