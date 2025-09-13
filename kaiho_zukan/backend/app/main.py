@@ -621,9 +621,35 @@ def problem_detail(pid: int, request: Request, authorization: Optional[str] = No
             liked = (pl is not None)
     except Exception:
         pass
-    data = {"id": p.id, "title": p.title, "body": p.body, "qtype": p.qtype, "like_count": p.like_count, "liked": liked, "expl_like_count": p.expl_like_count, "expl_liked": expl_liked,
-             "options":[{"id":o.id, "text":o.text, "content": o.text, "is_correct": bool(o.is_correct)} for o in opts],
-             "images": [f"/uploads/{im.filename}" for im in db.execute(select(ProblemImage).where(ProblemImage.problem_id==pid).order_by(ProblemImage.id.asc())).scalars().all()]}
+    data = {
+        "id": p.id,
+        "title": p.title,
+        "body": p.body,
+        "qtype": p.qtype,
+        "child_id": p.child_id,
+        "grand_id": p.grand_id,
+        "like_count": p.like_count,
+        "liked": liked,
+        "expl_like_count": p.expl_like_count,
+        "expl_liked": expl_liked,
+        "options": [
+            {
+                "id": o.id,
+                "text": o.text,
+                "content": o.text,
+                "is_correct": bool(o.is_correct),
+            }
+            for o in opts
+        ],
+        "images": [
+            f"/uploads/{im.filename}"
+            for im in db.execute(
+                select(ProblemImage)
+                .where(ProblemImage.problem_id == pid)
+                .order_by(ProblemImage.id.asc())
+            ).scalars().all()
+        ],
+    }
     # Return current user's model_answer from model_answers table (if any)
     try:
         user = get_user(db, authorization, request)

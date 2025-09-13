@@ -62,14 +62,18 @@ class _PostProblemFormState extends State<PostProblemForm> {
 
   Future<void> _loadCats() async {
     final t = await Api.categoryTree();
-    setState(() {
-      parents = t;
-      parentId = t.isNotEmpty ? t.first['id'] : null;
-      children = t.isNotEmpty ? t.first['children'] ?? [] : [];
-      childId = children.isNotEmpty ? children.first['id'] : null;
-      grands = children.isNotEmpty ? (children.first['children'] ?? []) : [];
-      grandId = grands.isNotEmpty ? grands.first['id'] : null;
-    });
+    // Initial defaults
+    List<dynamic> parentsTmp = t;
+    List<dynamic> childrenTmp =
+        t.isNotEmpty ? (t.first['children'] ?? []) as List<dynamic> : [];
+    List<dynamic> grandsTmp = childrenTmp.isNotEmpty
+        ? (childrenTmp.first['children'] ?? []) as List<dynamic>
+        : [];
+    int? parentIdTmp = t.isNotEmpty ? t.first['id'] as int? : null;
+    int? childIdTmp =
+        childrenTmp.isNotEmpty ? childrenTmp.first['id'] as int? : null;
+    int? grandIdTmp = grandsTmp.isNotEmpty ? grandsTmp.first['id'] as int? : null;
+
     if (widget.editId != null) {
       final d = await Api.getProblem(widget.editId!);
       title.text = (d['title'] ?? '').toString();
@@ -77,6 +81,37 @@ class _PostProblemFormState extends State<PostProblemForm> {
       qtype = (d['qtype'] ?? 'mcq').toString();
       likeCount = (d['like_count'] ?? 0) as int;
       explLikeCount = (d['expl_like_count'] ?? 0) as int;
+
+      // ----- Restore previously selected category -----
+      final cid = d['child_id'] is int
+          ? d['child_id'] as int
+          : int.tryParse('${d['child_id']}');
+      final gid = d['grand_id'] is int
+          ? d['grand_id'] as int
+          : int.tryParse('${d['grand_id']}');
+      if (cid != null) {
+        for (final p in parentsTmp) {
+          final ch = (p['children'] as List?) ?? [];
+          final match = ch.firstWhere(
+              (e) => e is Map && e['id'] == cid,
+              orElse: () => null);
+          if (match != null) {
+            parentIdTmp = p['id'] as int?;
+            childrenTmp = ch;
+            childIdTmp = cid;
+            grandsTmp = (match['children'] as List?) ?? [];
+            if (gid != null &&
+                grandsTmp.any((g) => g is Map && g['id'] == gid)) {
+              grandIdTmp = gid;
+            } else {
+              grandIdTmp =
+                  grandsTmp.isNotEmpty ? grandsTmp.first['id'] as int? : null;
+            }
+            break;
+          }
+        }
+      }
+
       if (d['images'] is List) {
         existingImageUrls =
             List<String>.from((d['images'] as List).map((e) => e.toString()));
@@ -153,7 +188,16 @@ class _PostProblemFormState extends State<PostProblemForm> {
     } else {
       _ensureOptionControllers(optionCount);
     }
-    setState(() => loading = false);
+
+    setState(() {
+      parents = parentsTmp;
+      children = childrenTmp;
+      grands = grandsTmp;
+      parentId = parentIdTmp;
+      childId = childIdTmp;
+      grandId = grandIdTmp;
+      loading = false;
+    });
   }
 
   Future<void> _submit() async {
@@ -295,9 +339,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
             } else if (qtype != 'mcq') {
               final mine = myAnswerCtrl.text.trim();
               final alt = modelAnswerCtrl.text.trim();
-              final payload = mine.isNotEmpty ? mine : alt;
-              if (payload.isNotEmpty) {
-                await Api.answer(newId, freeText: payload);
+              if (mine.isNotEmpty) {
+                await Api.answer(newId, freeText: mine);
               }
               if (alt.isNotEmpty) {
                 await Api.upsertMyModelAnswer(newId, alt);
@@ -346,9 +389,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
           } else if (qtype != 'mcq') {
             final mine = myAnswerCtrl.text.trim();
             final alt = modelAnswerCtrl.text.trim();
-            final payload = mine.isNotEmpty ? mine : alt;
-            if (payload.isNotEmpty) {
-              await Api.answer(widget.editId!, freeText: payload);
+            if (mine.isNotEmpty) {
+              await Api.answer(widget.editId!, freeText: mine);
             }
             if (alt.isNotEmpty) {
               await Api.upsertMyModelAnswer(widget.editId!, alt);

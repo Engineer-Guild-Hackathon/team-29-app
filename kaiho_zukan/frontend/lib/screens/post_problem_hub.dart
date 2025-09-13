@@ -7,7 +7,7 @@ class PostProblemHubScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('問題を投稿する')),
+      appBar: AppBar(title: const Text('問題を管理する')),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
