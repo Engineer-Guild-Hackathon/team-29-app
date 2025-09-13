@@ -168,7 +168,8 @@ class _SolveScreenState extends State<SolveScreen> {
       _mcqSelectedIndex = null;
     });
 
-    final r = await Api.nextProblem(childId!, grandId, includeAnswered: includeAnswered);
+    final r = await Api.nextProblem(childId!, grandId,
+        includeAnswered: includeAnswered);
     Map<String, dynamic>? p;
     if (r['id'] != null) {
       p = r;
@@ -178,7 +179,9 @@ class _SolveScreenState extends State<SolveScreen> {
 
     setState(() {
       prob = p;
-      explLikes = (p != null && p['expl_like_count'] is int) ? (p!['expl_like_count'] as int) : 0;
+      explLikes = (p != null && p['expl_like_count'] is int)
+          ? (p!['expl_like_count'] as int)
+          : 0;
       explLiked = (p != null && p['expl_liked'] == true);
       loading = false;
     });
@@ -199,7 +202,8 @@ class _SolveScreenState extends State<SolveScreen> {
     final p = await Api.problemDetail(pid);
     setState(() {
       prob = p;
-      explLikes = (p['expl_like_count'] is int) ? (p['expl_like_count'] as int) : 0;
+      explLikes =
+          (p['expl_like_count'] is int) ? (p['expl_like_count'] as int) : 0;
       explLiked = (p['expl_liked'] == true);
       loading = false;
     });
@@ -243,7 +247,8 @@ class _SolveScreenState extends State<SolveScreen> {
           _modelAnswersByUser[uid] = _modelAnswerToKana(c.trim());
         }
         if ((uid == null || (it is Map && it['is_ai'] == true)) &&
-            c is String && c.trim().isNotEmpty) {
+            c is String &&
+            c.trim().isNotEmpty) {
           _aiModelAnswer = _modelAnswerToKana(c.trim());
         }
       }
@@ -273,7 +278,8 @@ class _SolveScreenState extends State<SolveScreen> {
                   const Text('教材: '),
                   const SizedBox(width: 8),
                   DropdownButton<int>(
-                    value: parentId ?? (tree.isNotEmpty ? (tree.first['id'] as int) : null),
+                    value: parentId ??
+                        (tree.isNotEmpty ? (tree.first['id'] as int) : null),
                     items: () {
                       if (tree.isEmpty) return <DropdownMenuItem<int>>[];
                       return tree
@@ -291,9 +297,11 @@ class _SolveScreenState extends State<SolveScreen> {
                         parentId = v;
                         // 親変更時に子/孫をリセット
                         try {
-                          final p = tree.firstWhere((e) => e['id'] == parentId, orElse: () => tree.first);
+                          final p = tree.firstWhere((e) => e['id'] == parentId,
+                              orElse: () => tree.first);
                           final cs = (p['children'] as List?) ?? [];
-                          childId = cs.isNotEmpty ? (cs.first['id'] as int) : null;
+                          childId =
+                              cs.isNotEmpty ? (cs.first['id'] as int) : null;
                         } catch (_) {
                           childId = null;
                         }
@@ -309,10 +317,16 @@ class _SolveScreenState extends State<SolveScreen> {
                     value: childId,
                     items: () {
                       if (tree.isEmpty) return <DropdownMenuItem<int>>[];
-                      final cs = (((parentId!=null ? (tree.firstWhere((e) => e['id'] == parentId, orElse: () => tree.first)) : tree.first)['children']) as List?) ?? [];
+                      final cs = (((parentId != null
+                              ? (tree.firstWhere((e) => e['id'] == parentId,
+                                  orElse: () => tree.first))
+                              : tree.first)['children']) as List?) ??
+                          [];
                       return cs
                           .map<DropdownMenuItem<int>>(
-                            (c) => DropdownMenuItem(value: c['id'] as int, child: Text('${c['name']}')),
+                            (c) => DropdownMenuItem(
+                                value: c['id'] as int,
+                                child: Text('${c['name']}')),
                           )
                           .toList();
                     }(),
@@ -331,16 +345,24 @@ class _SolveScreenState extends State<SolveScreen> {
                     value: grandId,
                     items: () {
                       final items = <DropdownMenuItem<int?>>[
-                        const DropdownMenuItem(value: null, child: Text('全単元（すべて）')),
+                        const DropdownMenuItem(
+                            value: null, child: Text('全単元（すべて）')),
                       ];
                       if (tree.isEmpty || childId == null) return items;
-                       final cs = (((parentId!=null ? (tree.firstWhere((e) => e['id'] == parentId, orElse: () => tree.first)) : tree.first)['children']) as List?) ?? [];
-                      final ch = cs.firstWhere((e) => e['id'] == childId, orElse: () => null);
+                      final cs = (((parentId != null
+                              ? (tree.firstWhere((e) => e['id'] == parentId,
+                                  orElse: () => tree.first))
+                              : tree.first)['children']) as List?) ??
+                          [];
+                      final ch = cs.firstWhere((e) => e['id'] == childId,
+                          orElse: () => null);
                       if (ch == null) return items;
                       final gs = (ch['children'] as List?) ?? [];
                       items.addAll(
                         gs.map<DropdownMenuItem<int?>>(
-                          (g) => DropdownMenuItem(value: g['id'] as int, child: Text('${g['name']}')),
+                          (g) => DropdownMenuItem(
+                              value: g['id'] as int,
+                              child: Text('${g['name']}')),
                         ),
                       );
                       return items;
@@ -370,7 +392,10 @@ class _SolveScreenState extends State<SolveScreen> {
 
             // 本体
             if (loading)
-              const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
+              const Center(
+                  child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: CircularProgressIndicator())),
 
             if (!loading && prob == null) const Text('この条件の問題はありません'),
 
@@ -393,8 +418,10 @@ class _SolveScreenState extends State<SolveScreen> {
                         if (ok) {
                           setState(() {
                             prob!['liked'] = false;
-                            prob!['like_count'] = ((prob!['like_count'] ?? 0) as int) - 1;
-                            if (prob!['like_count'] < 0) prob!['like_count'] = 0;
+                            prob!['like_count'] =
+                                ((prob!['like_count'] ?? 0) as int) - 1;
+                            if (prob!['like_count'] < 0)
+                              prob!['like_count'] = 0;
                           });
                         }
                       } else {
@@ -402,15 +429,19 @@ class _SolveScreenState extends State<SolveScreen> {
                         if (ok) {
                           setState(() {
                             prob!['liked'] = true;
-                            prob!['like_count'] = (prob!['like_count'] ?? 0) + 1;
+                            prob!['like_count'] =
+                                (prob!['like_count'] ?? 0) + 1;
                           });
                         }
                       }
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: (prob!['liked'] ?? false) == true ? Colors.green : Colors.white,
+                        color: (prob!['liked'] ?? false) == true
+                            ? Colors.green
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(color: Colors.green, width: 1.5),
                       ),
@@ -420,7 +451,9 @@ class _SolveScreenState extends State<SolveScreen> {
                           Text(
                             'いいね',
                             style: TextStyle(
-                              color: (prob!['liked'] ?? false) == true ? Colors.white : Colors.green,
+                              color: (prob!['liked'] ?? false) == true
+                                  ? Colors.white
+                                  : Colors.green,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -428,7 +461,9 @@ class _SolveScreenState extends State<SolveScreen> {
                           Text(
                             '${prob!['like_count'] ?? 0}',
                             style: TextStyle(
-                              color: (prob!['liked'] ?? false) == true ? Colors.white : Colors.green,
+                              color: (prob!['liked'] ?? false) == true
+                                  ? Colors.white
+                                  : Colors.green,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -449,7 +484,8 @@ class _SolveScreenState extends State<SolveScreen> {
 
               // 画像（安全抽出）— あっても以降のフォームは必ず表示される
               Builder(builder: (_) {
-                final imageUrls = _extractImageUrls(prob!['images'], base: Api.base);
+                final imageUrls =
+                    _extractImageUrls(prob!['images'], base: Api.base);
                 if (imageUrls.isEmpty) return const SizedBox.shrink();
                 return _ImagesPager(urls: imageUrls);
               }),
@@ -468,7 +504,8 @@ class _SolveScreenState extends State<SolveScreen> {
                       }
                       return o?.toString() ?? '';
                     })();
-                    final optionId = (o is Map && o['id'] is int) ? (o['id'] as int) : null;
+                    final optionId =
+                        (o is Map && o['id'] is int) ? (o['id'] as int) : null;
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8),
@@ -478,8 +515,12 @@ class _SolveScreenState extends State<SolveScreen> {
                           SizedBox(
                             width: 56,
                             child: OutlinedButton(
-                              onPressed: optionId == null ? null : () => _answerMcq(optionId),
-                              child: Text(_kanaOf(i), style: const TextStyle(fontWeight: FontWeight.w700)),
+                              onPressed: optionId == null
+                                  ? null
+                                  : () => _answerMcq(optionId),
+                              child: Text(_kanaOf(i),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700)),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -507,18 +548,24 @@ class _SolveScreenState extends State<SolveScreen> {
                           final pid = prob!['id'] as int;
                           final selId = (() {
                             final o = opts[_mcqSelectedIndex!];
-                            return (o is Map && o['id'] is int) ? (o['id'] as int) : null;
+                            return (o is Map && o['id'] is int)
+                                ? (o['id'] as int)
+                                : null;
                           })();
                           if (selId == null) {
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('選択肢IDの取得に失敗しました'), backgroundColor: Colors.red),
+                              const SnackBar(
+                                  content: Text('選択肢IDの取得に失敗しました'),
+                                  backgroundColor: Colors.red),
                             );
                             return;
                           }
-                          await Api.answer(pid, selectedOptionId: selId, isCorrect: true);
+                          await Api.answer(pid,
+                              selectedOptionId: selId, isCorrect: true);
                           if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('正解として記録しました')));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('正解として記録しました')));
                         },
                         child: const Text('正解として記録'),
                       ),
@@ -530,18 +577,24 @@ class _SolveScreenState extends State<SolveScreen> {
                           final pid = prob!['id'] as int;
                           final selId = (() {
                             final o = opts[_mcqSelectedIndex!];
-                            return (o is Map && o['id'] is int) ? (o['id'] as int) : null;
+                            return (o is Map && o['id'] is int)
+                                ? (o['id'] as int)
+                                : null;
                           })();
                           if (selId == null) {
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('選択肢IDの取得に失敗しました'), backgroundColor: Colors.red),
+                              const SnackBar(
+                                  content: Text('選択肢IDの取得に失敗しました'),
+                                  backgroundColor: Colors.red),
                             );
                             return;
                           }
-                          await Api.answer(pid, selectedOptionId: selId, isCorrect: false);
+                          await Api.answer(pid,
+                              selectedOptionId: selId, isCorrect: false);
                           if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('不正解として記録しました')));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('不正解として記録しました')));
                         },
                         child: const Text('不正解として記録'),
                       ),
@@ -586,8 +639,10 @@ class _SolveScreenState extends State<SolveScreen> {
                           _modelAnswersByUser[uid] =
                               _modelAnswerToKana(c.trim());
                         }
-                        if ((uid == null || (it is Map && it['is_ai'] == true)) &&
-                            c is String && c.trim().isNotEmpty) {
+                        if ((uid == null ||
+                                (it is Map && it['is_ai'] == true)) &&
+                            c is String &&
+                            c.trim().isNotEmpty) {
                           _aiModelAnswer = _modelAnswerToKana(c.trim());
                         }
                       }
@@ -610,9 +665,12 @@ class _SolveScreenState extends State<SolveScreen> {
                         onPressed: () async {
                           if (prob == null) return;
                           final pid = prob!['id'] as int;
-                          await Api.answer(pid, freeText: _freeUserAnswer ?? freeCtrl.text, isCorrect: true);
+                          await Api.answer(pid,
+                              freeText: _freeUserAnswer ?? freeCtrl.text,
+                              isCorrect: true);
                           if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('正解として記録しました')));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('正解として記録しました')));
                         },
                         child: const Text('正解として記録'),
                       ),
@@ -621,9 +679,12 @@ class _SolveScreenState extends State<SolveScreen> {
                         onPressed: () async {
                           if (prob == null) return;
                           final pid = prob!['id'] as int;
-                          await Api.answer(pid, freeText: _freeUserAnswer ?? freeCtrl.text, isCorrect: false);
+                          await Api.answer(pid,
+                              freeText: _freeUserAnswer ?? freeCtrl.text,
+                              isCorrect: false);
                           if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('不正解として記録しました')));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('不正解として記録しました')));
                         },
                         child: const Text('不正解として記録'),
                       ),
@@ -641,13 +702,17 @@ class _SolveScreenState extends State<SolveScreen> {
                     if (Navigator.canPop(context)) {
                       Navigator.pop(context);
                     } else {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const SolvePickerScreen()));
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const SolvePickerScreen()));
                     }
                   },
                   child: const Text('戻る'),
                 )
               else
-                OutlinedButton(onPressed: _loadProblem, child: const Text('次の問題へ')),
+                OutlinedButton(
+                    onPressed: _loadProblem, child: const Text('次の問題へ')),
             ],
           ],
         ),
@@ -672,12 +737,15 @@ class _SolveScreenState extends State<SolveScreen> {
           'repId': null,
           'likeSum': 0,
           'repLiked': false,
+          'images': <String>{},
         },
       );
       final txt = (e['content'] ?? '').toString();
       final oi = e['option_index'];
       if (isMcq && oi is int) {
-        (g['perOpt'] as Map<int, List<String>>).putIfAbsent(oi, () => []).add(txt);
+        (g['perOpt'] as Map<int, List<String>>)
+            .putIfAbsent(oi, () => [])
+            .add(txt);
       } else {
         (g['overall'] as List<String>).add(txt);
       }
@@ -690,6 +758,8 @@ class _SolveScreenState extends State<SolveScreen> {
           g['repLiked'] = (e['liked'] == true);
         }
       }
+      final urls = _extractImageUrls(e['images'], base: Api.base);
+      (g['images'] as Set<String>).addAll(urls);
     }
 
     final opts = _optionsOf(prob);
@@ -701,7 +771,8 @@ class _SolveScreenState extends State<SolveScreen> {
       final section = <Widget>[];
 
       // 「〇〇の解答」
-      section.add(Text(by == 'AI' ? 'AIの解答' : '$by さんの解答', style: const TextStyle(fontWeight: FontWeight.w600)));
+      section.add(Text(by == 'AI' ? 'AIの解答' : '$by さんの解答',
+          style: const TextStyle(fontWeight: FontWeight.w600)));
       if (by == 'AI' && _aiModelAnswer != null && _aiModelAnswer!.isNotEmpty) {
         section.add(const SizedBox(height: 4));
         section.add(Text(_aiModelAnswer!));
@@ -712,15 +783,19 @@ class _SolveScreenState extends State<SolveScreen> {
       }
 
       section.add(const SizedBox(height: 8));
-      section.add(Text(by == 'AI' ? 'AIの解説' : '$by さんの解説', style: const TextStyle(fontWeight: FontWeight.w600)));
+      section.add(Text(by == 'AI' ? 'AIの解説' : '$by さんの解説',
+          style: const TextStyle(fontWeight: FontWeight.w600)));
 
       if (isMcq) {
         // MCQ: 選択肢ごと
         final bool isAiGroup = by == 'AI';
-        final List<int> indices =
-            (isAiGroup && opts.isNotEmpty) ? List<int>.generate(opts.length, (i) => i) : (perOpt.keys.toList()..sort());
+        final List<int> indices = (isAiGroup && opts.isNotEmpty)
+            ? List<int>.generate(opts.length, (i) => i)
+            : (perOpt.keys.toList()..sort());
         for (final k in indices) {
-          final merged = (perOpt[k] == null || perOpt[k]!.isEmpty) ? '' : perOpt[k]!.join('\n');
+          final merged = (perOpt[k] == null || perOpt[k]!.isEmpty)
+              ? ''
+              : perOpt[k]!.join('\n');
           section.add(Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text('${_kanaOf(k)}：$merged'),
@@ -731,7 +806,8 @@ class _SolveScreenState extends State<SolveScreen> {
       if (overall.isNotEmpty) {
         if (isMcq) {
           section.add(const SizedBox(height: 8));
-          section.add(const Text('全体の解説', style: TextStyle(fontWeight: FontWeight.w600)));
+          section.add(const Text('全体の解説',
+              style: TextStyle(fontWeight: FontWeight.w600)));
           section.add(const SizedBox(height: 4));
         }
         section.add(Text(overall.join('\n')));
@@ -747,6 +823,17 @@ class _SolveScreenState extends State<SolveScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     ...section,
+                    Builder(builder: (_) {
+                      final imgs = (g['images'] as Set<String>).toList();
+                      if (imgs.isEmpty) return const SizedBox.shrink();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const SizedBox(height: 8),
+                          _ImagesPager(urls: imgs), // ← 既存の問題画像と同じコンポーネントを再利用
+                        ],
+                      );
+                    }),
                     const SizedBox(height: 8),
                     Align(
                       alignment: Alignment.bottomRight,
@@ -759,32 +846,45 @@ class _SolveScreenState extends State<SolveScreen> {
                           bool ok = false;
                           if (groupLiked) {
                             ok = await Api.unlikeExplanation(repId);
-                            if (ok) setCard(() {
-                              g['repLiked'] = false;
-                              if (likeSum > 0) g['likeSum'] = likeSum - 1;
-                            });
+                            if (ok)
+                              setCard(() {
+                                g['repLiked'] = false;
+                                if (likeSum > 0) g['likeSum'] = likeSum - 1;
+                              });
                           } else {
                             ok = await Api.likeExplanation(repId);
-                            if (ok) setCard(() {
-                              g['repLiked'] = true;
-                              g['likeSum'] = likeSum + 1;
-                            });
+                            if (ok)
+                              setCard(() {
+                                g['repLiked'] = true;
+                                g['likeSum'] = likeSum + 1;
+                              });
                           }
                         },
                         child: Builder(builder: (_) {
                           final bool liked = (g['repLiked'] == true);
                           final int count = (g['likeSum'] as int);
                           return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
                               color: liked ? Colors.green : Colors.white,
                               borderRadius: BorderRadius.circular(24),
-                              border: Border.all(color: Colors.green, width: 1.5),
+                              border:
+                                  Border.all(color: Colors.green, width: 1.5),
                             ),
-                            child: Row(mainAxisSize: MainAxisSize.min, children: [
-                              Text('いいね', style: TextStyle(color: liked ? Colors.white : Colors.green, fontWeight: FontWeight.w600)),
+                            child:
+                                Row(mainAxisSize: MainAxisSize.min, children: [
+                              Text('いいね',
+                                  style: TextStyle(
+                                      color:
+                                          liked ? Colors.white : Colors.green,
+                                      fontWeight: FontWeight.w600)),
                               const SizedBox(width: 6),
-                              Text('$count', style: TextStyle(color: liked ? Colors.white : Colors.green, fontWeight: FontWeight.w600)),
+                              Text('$count',
+                                  style: TextStyle(
+                                      color:
+                                          liked ? Colors.white : Colors.green,
+                                      fontWeight: FontWeight.w600)),
                             ]),
                           );
                         }),
@@ -847,7 +947,9 @@ class _ImagesPagerState extends State<_ImagesPager> {
           children: List.generate(widget.urls.length, (i) {
             final sel = i == _index;
             return GestureDetector(
-              onTap: () => _pc.animateToPage(i, duration: const Duration(milliseconds: 200), curve: Curves.easeOut),
+              onTap: () => _pc.animateToPage(i,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut),
               child: Container(
                 width: 10,
                 height: 10,
