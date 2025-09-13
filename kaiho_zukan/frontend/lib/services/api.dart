@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' show kReleaseMode;
@@ -19,25 +18,31 @@ class Api {
 
   static String? _token;
   static String? get token => _token;
-  static void setToken(String t){ _token = t; }
-  static void clearToken(){ _token = null; }
+  static void setToken(String t) {
+    _token = t;
+  }
 
-  static Map<String,String> get _jsonHeaders {
+  static void clearToken() {
+    _token = null;
+  }
+
+  static Map<String, String> get _jsonHeaders {
     final h = {'Content-Type': 'application/json'};
-    if(_token!=null) h['Authorization'] = 'Bearer $_token';
-    return h;
-  }
-  static Map<String,String> get _authHeader {
-    final h = <String,String>{};
-    if(_token!=null) h['Authorization'] = 'Bearer $_token';
+    if (_token != null) h['Authorization'] = 'Bearer $_token';
     return h;
   }
 
-  static Future<Map<String,dynamic>> _decode(http.Response r) async {
+  static Map<String, String> get _authHeader {
+    final h = <String, String>{};
+    if (_token != null) h['Authorization'] = 'Bearer $_token';
+    return h;
+  }
+
+  static Future<Map<String, dynamic>> _decode(http.Response r) async {
     try {
       final body = utf8.decode(r.bodyBytes);
       final obj = jsonDecode(body);
-      if(obj is Map<String,dynamic>) return obj;
+      if (obj is Map<String, dynamic>) return obj;
       return {'data': obj};
     } catch (_) {
       return {'status': r.statusCode};
@@ -45,62 +50,82 @@ class Api {
   }
 
   // ===== Auth =====
-  static Future<Map<String,dynamic>> register(String username, String password, String nickname) async {
+  static Future<Map<String, dynamic>> register(
+      String username, String password, String nickname) async {
     final r = await http.post(Uri.parse('$base/auth/register'),
-      headers: _jsonHeaders, body: jsonEncode({'username':username,'password':password,'nickname':nickname}));
+        headers: _jsonHeaders,
+        body: jsonEncode({
+          'username': username,
+          'password': password,
+          'nickname': nickname
+        }));
     final data = await _decode(r);
-    if(r.statusCode==200 && data['access_token']!=null) setToken(data['access_token']);
+    if (r.statusCode == 200 && data['access_token'] != null)
+      setToken(data['access_token']);
     return data;
   }
-  static Future<Map<String,dynamic>> login(String username, String password) async {
+
+  static Future<Map<String, dynamic>> login(
+      String username, String password) async {
     final r = await http.post(Uri.parse('$base/auth/login'),
-      headers: _jsonHeaders, body: jsonEncode({'username':username,'password':password}));
+        headers: _jsonHeaders,
+        body: jsonEncode({'username': username, 'password': password}));
     final data = await _decode(r);
-    if(r.statusCode==200 && data['access_token']!=null) setToken(data['access_token']);
+    if (r.statusCode == 200 && data['access_token'] != null)
+      setToken(data['access_token']);
     return data;
   }
-  static Future<Map<String,dynamic>> me() async {
+
+  static Future<Map<String, dynamic>> me() async {
     final r = await http.get(Uri.parse('$base/me'), headers: _authHeader);
     return _decode(r);
   }
+
   static Future<bool> updateNickname(String nickname) async {
     final t = token;
     final req = http.MultipartRequest('PUT', Uri.parse('$base/me'));
     req.fields['nickname'] = nickname;
-    if(t!=null) req.headers['Authorization'] = 'Bearer $t';
+    if (t != null) req.headers['Authorization'] = 'Bearer $t';
     final res = await req.send();
-    return res.statusCode==200;
+    return res.statusCode == 200;
   }
 
   // ===== Categories =====
   static Future<List<dynamic>> categoryTree() async {
-    final r = await http.get(Uri.parse('$base/categories/tree'), headers: _authHeader);
-    if(r.statusCode!=200) return [];
+    final r = await http.get(Uri.parse('$base/categories/tree'),
+        headers: _authHeader);
+    if (r.statusCode != 200) return [];
     final obj = jsonDecode(utf8.decode(r.bodyBytes));
     return (obj is List) ? obj : [];
   }
+
   static Future<bool> setMyCategories(List<int> ids) async {
     final r = await http.post(Uri.parse('$base/me/categories'),
-      headers: _jsonHeaders, body: jsonEncode(ids));
-    return r.statusCode==200;
+        headers: _jsonHeaders, body: jsonEncode(ids));
+    return r.statusCode == 200;
   }
 
   // ===== Problems =====
-  static Future<Map<String,dynamic>> problemDetail(int pid) async {
-    final r = await http.get(Uri.parse('$base/problems/$pid'), headers: _authHeader);
+  static Future<Map<String, dynamic>> problemDetail(int pid) async {
+    final r =
+        await http.get(Uri.parse('$base/problems/$pid'), headers: _authHeader);
     return _decode(r);
   }
-  static Future<Map<String,dynamic>> getProblem(int pid) => problemDetail(pid);
 
-  static Future<Map<String,dynamic>> nextProblem(int childId, int? grandId, {bool includeAnswered=false}) async {
-    final ga = (grandId!=null) ? '&grand_id=$grandId' : '';
+  static Future<Map<String, dynamic>> getProblem(int pid) => problemDetail(pid);
+
+  static Future<Map<String, dynamic>> nextProblem(int childId, int? grandId,
+      {bool includeAnswered = false}) async {
+    final ga = (grandId != null) ? '&grand_id=$grandId' : '';
     final extra = includeAnswered ? '&include_answered=true' : '';
-    final r = await http.get(Uri.parse('$base/problems/next?child_id=$childId$ga$extra'), headers: _authHeader);
+    final r = await http.get(
+        Uri.parse('$base/problems/next?child_id=$childId$ga$extra'),
+        headers: _authHeader);
     return _decode(r);
   }
 
   // Create problem with images (new helper to support multi-image upload)
-  static Future<Map<String,dynamic>> createProblemWithImages({
+  static Future<Map<String, dynamic>> createProblemWithImages({
     required String title,
     String? body,
     required String qtype,
@@ -117,28 +142,43 @@ class Api {
     final t = token;
     final req = http.MultipartRequest('POST', Uri.parse('$base/problems'));
     req.fields['title'] = title;
-    if(body!=null) req.fields['body']=body;
-    req.fields['qtype']=qtype;
-    req.fields['category_child_id']=childId.toString();
-    req.fields['category_grand_id']=grandId.toString();
-    if(qtype=='mcq' && optionsText!=null){
-      req.fields['options_text']=optionsText;
-      req.fields['correct_index']=(correctIndex??0).toString();
+    if (body != null) req.fields['body'] = body;
+    req.fields['qtype'] = qtype;
+    req.fields['category_child_id'] = childId.toString();
+    req.fields['category_grand_id'] = grandId.toString();
+    if (qtype == 'mcq' && optionsText != null) {
+      req.fields['options_text'] = optionsText;
+      req.fields['correct_index'] = (correctIndex ?? 0).toString();
     }
-    if(modelAnswer!=null && modelAnswer.trim().isNotEmpty){ req.fields['model_answer']=modelAnswer.trim(); }
-    if(initialExplanation!=null && initialExplanation.trim().isNotEmpty){ req.fields['initial_explanation']=initialExplanation.trim(); }
-    if(optionExplanationsJson!=null){ req.fields['option_explanations_json']=jsonEncode(optionExplanationsJson); }
-    else if(optionExplanationsText!=null){ req.fields['option_explanations_text']=optionExplanationsText; }
-    if(images!=null){
-      for(final f in images){ req.files.add(http.MultipartFile.fromBytes('images', f.bytes, filename: f.name)); }
+    if (modelAnswer != null && modelAnswer.trim().isNotEmpty) {
+      req.fields['model_answer'] = modelAnswer.trim();
     }
-    if(t!=null) req.headers['Authorization']='Bearer $t';
+    if (initialExplanation != null && initialExplanation.trim().isNotEmpty) {
+      req.fields['initial_explanation'] = initialExplanation.trim();
+    }
+    if (optionExplanationsJson != null) {
+      req.fields['option_explanations_json'] =
+          jsonEncode(optionExplanationsJson);
+    } else if (optionExplanationsText != null) {
+      req.fields['option_explanations_text'] = optionExplanationsText;
+    }
+    if (images != null) {
+      for (final f in images) {
+        req.files.add(
+            http.MultipartFile.fromBytes('images', f.bytes, filename: f.name));
+      }
+    }
+    if (t != null) req.headers['Authorization'] = 'Bearer $t';
     final res = await req.send();
     final bodyStr = await res.stream.bytesToString();
-    try { return jsonDecode(bodyStr); } catch(_){ return {'status': res.statusCode}; }
+    try {
+      return jsonDecode(bodyStr);
+    } catch (_) {
+      return {'status': res.statusCode};
+    }
   }
 
-  static Future<Map<String,dynamic>> updateProblemWithImages({
+  static Future<Map<String, dynamic>> updateProblemWithImages({
     required int id,
     String? title,
     String? body,
@@ -155,24 +195,44 @@ class Api {
   }) async {
     final t = token;
     final req = http.MultipartRequest('PUT', Uri.parse('$base/problems/$id'));
-    if(title!=null) req.fields['title']=title;
-    if(body!=null) req.fields['body']=body;
-    if(qtype!=null) req.fields['qtype']=qtype;
-    if(childId!=null) req.fields['category_child_id']=childId.toString();
-    if(grandId!=null) req.fields['category_grand_id']=grandId.toString();
-    if(optionsText!=null){ req.fields['options_text']=optionsText; req.fields['correct_index']=(correctIndex??0).toString(); }
-    if(modelAnswer!=null && modelAnswer.trim().isNotEmpty){ req.fields['model_answer']=modelAnswer.trim(); }
-    if(initialExplanation!=null && initialExplanation.trim().isNotEmpty){ req.fields['initial_explanation']=initialExplanation.trim(); }
-    if(optionExplanationsJson!=null){ req.fields['option_explanations_json']=jsonEncode(optionExplanationsJson); }
-    else if(optionExplanationsText!=null){ req.fields['option_explanations_text']=optionExplanationsText; }
-    if(images!=null){ for(final f in images){ req.files.add(http.MultipartFile.fromBytes('images', f.bytes, filename: f.name)); } }
-    if(t!=null) req.headers['Authorization']='Bearer $t';
+    if (title != null) req.fields['title'] = title;
+    if (body != null) req.fields['body'] = body;
+    if (qtype != null) req.fields['qtype'] = qtype;
+    if (childId != null) req.fields['category_child_id'] = childId.toString();
+    if (grandId != null) req.fields['category_grand_id'] = grandId.toString();
+    if (optionsText != null) {
+      req.fields['options_text'] = optionsText;
+      req.fields['correct_index'] = (correctIndex ?? 0).toString();
+    }
+    if (modelAnswer != null && modelAnswer.trim().isNotEmpty) {
+      req.fields['model_answer'] = modelAnswer.trim();
+    }
+    if (initialExplanation != null && initialExplanation.trim().isNotEmpty) {
+      req.fields['initial_explanation'] = initialExplanation.trim();
+    }
+    if (optionExplanationsJson != null) {
+      req.fields['option_explanations_json'] =
+          jsonEncode(optionExplanationsJson);
+    } else if (optionExplanationsText != null) {
+      req.fields['option_explanations_text'] = optionExplanationsText;
+    }
+    if (images != null) {
+      for (final f in images) {
+        req.files.add(
+            http.MultipartFile.fromBytes('images', f.bytes, filename: f.name));
+      }
+    }
+    if (t != null) req.headers['Authorization'] = 'Bearer $t';
     final res = await req.send();
     final bodyStr = await res.stream.bytesToString();
-    try { return jsonDecode(bodyStr);} catch(_){ return {'status': res.statusCode};}
+    try {
+      return jsonDecode(bodyStr);
+    } catch (_) {
+      return {'status': res.statusCode};
+    }
   }
 
-  static Future<Map<String,dynamic>> createProblem({
+  static Future<Map<String, dynamic>> createProblem({
     required String title,
     String? body,
     required String qtype, // 'mcq' | 'free'
@@ -185,24 +245,29 @@ class Api {
     final t = token;
     final req = http.MultipartRequest('POST', Uri.parse('$base/problems'));
     req.fields['title'] = title;
-    if(body!=null) req.fields['body'] = body;
+    if (body != null) req.fields['body'] = body;
     req.fields['qtype'] = qtype;
     req.fields['category_child_id'] = childId.toString();
     req.fields['category_grand_id'] = grandId.toString();
-    if(qtype=='mcq' && optionsText!=null){
+    if (qtype == 'mcq' && optionsText != null) {
       req.fields['options_text'] = optionsText;
-      req.fields['correct_index'] = (correctIndex??0).toString();
+      req.fields['correct_index'] = (correctIndex ?? 0).toString();
     }
-    if(initialExplanation!=null && initialExplanation.trim().isNotEmpty){
+    if (initialExplanation != null && initialExplanation.trim().isNotEmpty) {
       req.fields['initial_explanation'] = initialExplanation.trim();
     }
-    if(t!=null) req.headers['Authorization'] = 'Bearer $t';
+    if (t != null) req.headers['Authorization'] = 'Bearer $t';
     final res = await req.send();
     final bodyStr = await res.stream.bytesToString();
-    try { return jsonDecode(bodyStr); } catch(_) { return {'status': res.statusCode}; }
+    try {
+      return jsonDecode(bodyStr);
+    } catch (_) {
+      return {'status': res.statusCode};
+    }
   }
+
   // 互換: options (旧名) を受けるラッパ
-  static Future<Map<String,dynamic>> createProblemMultipart({
+  static Future<Map<String, dynamic>> createProblemMultipart({
     required String title,
     String? body,
     required String qtype,
@@ -219,28 +284,37 @@ class Api {
     final t = token;
     final req = http.MultipartRequest('POST', Uri.parse('$base/problems'));
     req.fields['title'] = title;
-    if(body!=null) req.fields['body'] = body;
+    if (body != null) req.fields['body'] = body;
     req.fields['qtype'] = qtype;
     req.fields['category_child_id'] = childId.toString();
     req.fields['category_grand_id'] = grandId.toString();
     final opt = optionsText ?? options;
-    if(qtype=='mcq' && opt!=null){
+    if (qtype == 'mcq' && opt != null) {
       req.fields['options_text'] = opt;
-      req.fields['correct_index'] = (correctIndex??0).toString();
+      req.fields['correct_index'] = (correctIndex ?? 0).toString();
     }
-    if(initialExplanation!=null && initialExplanation.trim().isNotEmpty){
+    if (initialExplanation != null && initialExplanation.trim().isNotEmpty) {
       req.fields['initial_explanation'] = initialExplanation.trim();
     }
-    if(modelAnswer!=null && modelAnswer.trim().isNotEmpty){
+    if (modelAnswer != null && modelAnswer.trim().isNotEmpty) {
       req.fields['model_answer'] = modelAnswer.trim();
     }
-    if(optionExplanationsJson!=null){ req.fields['option_explanations_json'] = jsonEncode(optionExplanationsJson); }
-    else if(optionExplanationsText!=null){ req.fields['option_explanations_text'] = optionExplanationsText; }
-    if(t!=null) req.headers['Authorization'] = 'Bearer $t';
+    if (optionExplanationsJson != null) {
+      req.fields['option_explanations_json'] =
+          jsonEncode(optionExplanationsJson);
+    } else if (optionExplanationsText != null) {
+      req.fields['option_explanations_text'] = optionExplanationsText;
+    }
+    if (t != null) req.headers['Authorization'] = 'Bearer $t';
     final res = await req.send();
     final bodyStr = await res.stream.bytesToString();
-    try { return jsonDecode(bodyStr); } catch(_) { return {'status': res.statusCode}; }
+    try {
+      return jsonDecode(bodyStr);
+    } catch (_) {
+      return {'status': res.statusCode};
+    }
   }
+
   // bool を期待する旧コード互換
   static Future<bool> createProblemMultipartOk({
     required String title,
@@ -254,12 +328,19 @@ class Api {
     String? initialExplanation,
   }) async {
     final r = await createProblemMultipart(
-      title:title, body:body, qtype:qtype, childId:childId, grandId:grandId,
-      optionsText:optionsText, options:options, correctIndex:correctIndex, initialExplanation:initialExplanation);
-    return (r['ok']??false)==true;
+        title: title,
+        body: body,
+        qtype: qtype,
+        childId: childId,
+        grandId: grandId,
+        optionsText: optionsText,
+        options: options,
+        correctIndex: correctIndex,
+        initialExplanation: initialExplanation);
+    return (r['ok'] ?? false) == true;
   }
 
-  static Future<Map<String,dynamic>> updateProblem({
+  static Future<Map<String, dynamic>> updateProblem({
     required int id,
     String? title,
     String? body,
@@ -272,21 +353,28 @@ class Api {
   }) async {
     final t = token;
     final req = http.MultipartRequest('PUT', Uri.parse('$base/problems/$id'));
-    if(title!=null) req.fields['title']=title;
-    if(body!=null) req.fields['body']=body;
-    if(qtype!=null) req.fields['qtype']=qtype;
-    if(childId!=null) req.fields['category_child_id']=childId.toString();
-    if(grandId!=null) req.fields['category_grand_id']=grandId.toString();
+    if (title != null) req.fields['title'] = title;
+    if (body != null) req.fields['body'] = body;
+    if (qtype != null) req.fields['qtype'] = qtype;
+    if (childId != null) req.fields['category_child_id'] = childId.toString();
+    if (grandId != null) req.fields['category_grand_id'] = grandId.toString();
     final opt = optionsText ?? options;
-    if(opt!=null){ req.fields['options_text']=opt; req.fields['correct_index']=(correctIndex??0).toString(); }
-    if(t!=null) req.headers['Authorization']='Bearer $t';
+    if (opt != null) {
+      req.fields['options_text'] = opt;
+      req.fields['correct_index'] = (correctIndex ?? 0).toString();
+    }
+    if (t != null) req.headers['Authorization'] = 'Bearer $t';
     final res = await req.send();
     final bodyStr = await res.stream.bytesToString();
-    try { return jsonDecode(bodyStr);} catch(_){ return {'status': res.statusCode};}
+    try {
+      return jsonDecode(bodyStr);
+    } catch (_) {
+      return {'status': res.statusCode};
+    }
   }
 
   // V2: with modelAnswer support (non-breaking alongside existing one)
-  static Future<Map<String,dynamic>> updateProblemV2({
+  static Future<Map<String, dynamic>> updateProblemV2({
     required int id,
     String? title,
     String? body,
@@ -303,52 +391,87 @@ class Api {
   }) async {
     final t = token;
     final req = http.MultipartRequest('PUT', Uri.parse('$base/problems/$id'));
-    if(title!=null) req.fields['title']=title;
-    if(body!=null) req.fields['body']=body;
-    if(qtype!=null) req.fields['qtype']=qtype;
-    if(childId!=null) req.fields['category_child_id']=childId.toString();
-    if(grandId!=null) req.fields['category_grand_id']=grandId.toString();
+    if (title != null) req.fields['title'] = title;
+    if (body != null) req.fields['body'] = body;
+    if (qtype != null) req.fields['qtype'] = qtype;
+    if (childId != null) req.fields['category_child_id'] = childId.toString();
+    if (grandId != null) req.fields['category_grand_id'] = grandId.toString();
     final opt = optionsText ?? options;
-    if(opt!=null){ req.fields['options_text']=opt; req.fields['correct_index']=(correctIndex??0).toString(); }
-    if(modelAnswer!=null && modelAnswer.trim().isNotEmpty){ req.fields['model_answer']=modelAnswer.trim(); }
-    if(initialExplanation!=null && initialExplanation.trim().isNotEmpty){ req.fields['initial_explanation']=initialExplanation.trim(); }
-    if(optionExplanationsJson!=null){ req.fields['option_explanations_json']=jsonEncode(optionExplanationsJson); }
-    else if(optionExplanationsText!=null){ req.fields['option_explanations_text']=optionExplanationsText; }
-    if(t!=null) req.headers['Authorization']='Bearer $t';
+    if (opt != null) {
+      req.fields['options_text'] = opt;
+      req.fields['correct_index'] = (correctIndex ?? 0).toString();
+    }
+    if (modelAnswer != null && modelAnswer.trim().isNotEmpty) {
+      req.fields['model_answer'] = modelAnswer.trim();
+    }
+    if (initialExplanation != null && initialExplanation.trim().isNotEmpty) {
+      req.fields['initial_explanation'] = initialExplanation.trim();
+    }
+    if (optionExplanationsJson != null) {
+      req.fields['option_explanations_json'] =
+          jsonEncode(optionExplanationsJson);
+    } else if (optionExplanationsText != null) {
+      req.fields['option_explanations_text'] = optionExplanationsText;
+    }
+    if (t != null) req.headers['Authorization'] = 'Bearer $t';
     final res = await req.send();
     final bodyStr = await res.stream.bytesToString();
-    try { return jsonDecode(bodyStr);} catch(_){ return {'status': res.statusCode};}
+    try {
+      return jsonDecode(bodyStr);
+    } catch (_) {
+      return {'status': res.statusCode};
+    }
   }
 
   // ===== Model Answers (multi-user) =====
   static Future<bool> upsertMyModelAnswer(int pid, String content) async {
+    final headers = <String, String>{
+      'Content-Type': 'application/x-www-form-urlencoded',
+    };
     final t = token;
-    final req = http.MultipartRequest('POST', Uri.parse('$base/problems/$pid/model-answer'));
-    req.fields['content'] = content;
-    if(t!=null) req.headers['Authorization'] = 'Bearer $t';
-    final res = await req.send();
-    return res.statusCode==200;
+    if (t != null) headers['Authorization'] = 'Bearer $t';
+
+    final r = await http.post(
+      Uri.parse('$base/problems/$pid/model-answer'),
+      headers: headers,
+      body: {'content': content}, // ← フォームデータ（ファイルなし）
+    );
+    return r.statusCode == 200;
   }
+
   static Future<bool> deleteMyModelAnswer(int pid) async {
     // Use upsert with empty content to delete (backend treats empty as delete)
     return upsertMyModelAnswer(pid, '');
   }
+
   static Future<String?> myModelAnswer(int pid) async {
-    final r = await http.get(Uri.parse('$base/problems/$pid/model-answer'), headers: _authHeader);
-    if(r.statusCode!=200) return null;
-    try{
+    final r = await http.get(Uri.parse('$base/problems/$pid/model-answer'),
+        headers: _authHeader);
+    if (r.statusCode != 200) return null;
+    try {
       final obj = jsonDecode(utf8.decode(r.bodyBytes));
-      return (obj is Map && obj['content'] is String) ? (obj['content'] as String) : null;
-    }catch(_){ return null; }
+      return (obj is Map && obj['content'] is String)
+          ? (obj['content'] as String)
+          : null;
+    } catch (_) {
+      return null;
+    }
   }
+
   static Future<List<dynamic>> listModelAnswers(int pid) async {
-    final r = await http.get(Uri.parse('$base/problems/$pid/model-answers'), headers: _authHeader);
-    if(r.statusCode!=200) return [];
-    try{
+    final r = await http.get(Uri.parse('$base/problems/$pid/model-answers'),
+        headers: _authHeader);
+    if (r.statusCode != 200) return [];
+    try {
       final obj = jsonDecode(utf8.decode(r.bodyBytes));
-      return (obj is Map && obj['items'] is List) ? List.from(obj['items']) : <dynamic>[];
-    }catch(_){ return <dynamic>[]; }
+      return (obj is Map && obj['items'] is List)
+          ? List.from(obj['items'])
+          : <dynamic>[];
+    } catch (_) {
+      return <dynamic>[];
+    }
   }
+
   static Future<bool> updateProblemOk({
     required int id,
     String? title,
@@ -361,134 +484,232 @@ class Api {
     int? correctIndex,
   }) async {
     final r = await updateProblem(
-      id:id, title:title, body:body, qtype:qtype, childId:childId, grandId:grandId,
-      optionsText:optionsText, options:options, correctIndex:correctIndex);
-    return (r['ok']??false)==true;
+        id: id,
+        title: title,
+        body: body,
+        qtype: qtype,
+        childId: childId,
+        grandId: grandId,
+        optionsText: optionsText,
+        options: options,
+        correctIndex: correctIndex);
+    return (r['ok'] ?? false) == true;
   }
 
-  static Future<Map<String,dynamic>> myProblems(String sort) async {
-    final r = await http.get(Uri.parse('$base/my/problems?sort=$sort'), headers: _authHeader);
+  static Future<Map<String, dynamic>> myProblems(String sort) async {
+    final r = await http.get(Uri.parse('$base/my/problems?sort=$sort'),
+        headers: _authHeader);
     return _decode(r);
   }
 
   static Future<bool> likeProblem(int pid) async {
-    final r = await http.post(Uri.parse('$base/problems/$pid/like'), headers: _authHeader);
-    return r.statusCode==200;
-  }
-  static Future<bool> unlikeProblem(int pid) async {
-    final r = await http.delete(Uri.parse('$base/problems/$pid/like'), headers: _authHeader);
-    return r.statusCode==200;
-  }
-  static Future<bool> likeProblemExplanations(int pid) async {
-    final r = await http.post(Uri.parse('$base/problems/$pid/explanations/like'), headers: _authHeader);
-    return r.statusCode==200;
-  }
-  static Future<bool> unlikeProblemExplanations(int pid) async {
-    final r = await http.delete(Uri.parse('$base/problems/$pid/explanations/like'), headers: _authHeader);
-    return r.statusCode==200;
+    final r = await http.post(Uri.parse('$base/problems/$pid/like'),
+        headers: _authHeader);
+    return r.statusCode == 200;
   }
 
+  static Future<bool> unlikeProblem(int pid) async {
+    final r = await http.delete(Uri.parse('$base/problems/$pid/like'),
+        headers: _authHeader);
+    return r.statusCode == 200;
+  }
+
+  static Future<bool> likeProblemExplanations(int pid) async {
+    final r = await http.post(
+        Uri.parse('$base/problems/$pid/explanations/like'),
+        headers: _authHeader);
+    return r.statusCode == 200;
+  }
+
+  static Future<bool> unlikeProblemExplanations(int pid) async {
+    final r = await http.delete(
+        Uri.parse('$base/problems/$pid/explanations/like'),
+        headers: _authHeader);
+    return r.statusCode == 200;
+  }
+
+  static Future<bool> postExplanationWithImagesData({
+  required int problemId,
+  required String content,
+  List<({List<int> bytes, String name})>? images,
+}) async {
+  final t = token;
+  final req = http.MultipartRequest(
+    'POST',
+    Uri.parse('$base/problems/$problemId/explanations'),
+  );
+  // 必須：本文
+  req.fields['content'] = content;
+
+  // 任意：複数画像（同じフィールド名 'images' を繰り返し追加）
+  if (images != null && images.isNotEmpty) {
+    for (final f in images) {
+      req.files.add(
+        http.MultipartFile.fromBytes('images', f.bytes, filename: f.name),
+      );
+    }
+  }
+
+  if (t != null) req.headers['Authorization'] = 'Bearer $t';
+
+  final res = await req.send();
+  // 成功時は { ok: true, id: <explanation_id> } を返しているので 200 で判断
+  return res.statusCode == 200;
+}
+
   // ===== Answers =====
-  static Future<Map<String,dynamic>> answer(int pid, {int? selectedOptionId, int? optionId, String? freeText, bool? isCorrect}) async {
+  static Future<Map<String, dynamic>> answer(int pid,
+      {int? selectedOptionId,
+      int? optionId,
+      String? freeText,
+      bool? isCorrect}) async {
     final sel = optionId ?? selectedOptionId;
     final t = token;
-    final req = http.MultipartRequest('POST', Uri.parse('$base/problems/$pid/answer'));
-    if(sel!=null) req.fields['selected_option_id'] = sel.toString();
-    if(freeText!=null) req.fields['free_text'] = freeText;
-    if(isCorrect!=null) req.fields['is_correct'] = isCorrect.toString();
-    if(t!=null) req.headers['Authorization'] = 'Bearer $t';
+    final req =
+        http.MultipartRequest('POST', Uri.parse('$base/problems/$pid/answer'));
+    if (sel != null) req.fields['selected_option_id'] = sel.toString();
+    if (freeText != null) req.fields['free_text'] = freeText;
+    if (isCorrect != null) req.fields['is_correct'] = isCorrect.toString();
+    if (t != null) req.headers['Authorization'] = 'Bearer $t';
     final res = await req.send();
     final body = await res.stream.bytesToString();
-    try { return jsonDecode(body); } catch(_) { return {'status': res.statusCode}; }
+    try {
+      return jsonDecode(body);
+    } catch (_) {
+      return {'status': res.statusCode};
+    }
   }
 
   // ===== Explanations =====
   static Future<List<dynamic>> explanations(int pid, String sort) async {
-    final r = await http.get(Uri.parse('$base/problems/$pid/explanations?sort=$sort'), headers: _authHeader);
-    if(r.statusCode!=200) return [];
+    final r = await http.get(
+        Uri.parse('$base/problems/$pid/explanations?sort=$sort'),
+        headers: _authHeader);
+    if (r.statusCode != 200) return [];
     final obj = jsonDecode(utf8.decode(r.bodyBytes));
-    return (obj is Map && obj['items'] is List) ? List.from(obj['items']) : <dynamic>[];
+    return (obj is Map && obj['items'] is List)
+        ? List.from(obj['items'])
+        : <dynamic>[];
   }
+
   static Future<bool> postExplanation(int pid, String content) async {
     final t = token;
-    final req = http.MultipartRequest('POST', Uri.parse('$base/problems/$pid/explanations'));
+    final req = http.MultipartRequest(
+        'POST', Uri.parse('$base/problems/$pid/explanations'));
     req.fields['content'] = content;
-    if(t!=null) req.headers['Authorization'] = 'Bearer $t';
+    if (t != null) req.headers['Authorization'] = 'Bearer $t';
     final res = await req.send();
-    return res.statusCode==200;
+    return res.statusCode == 200;
   }
-  static Future<bool> createExplanation(int pid, String content) => postExplanation(pid, content);
+
+  static Future<bool> createExplanation(int pid, String content) =>
+      postExplanation(pid, content);
   static Future<bool> likeExplanation(int eid) async {
-    final r = await http.post(Uri.parse('$base/explanations/$eid/like'), headers: _authHeader);
-    return r.statusCode==200;
+    final r = await http.post(Uri.parse('$base/explanations/$eid/like'),
+        headers: _authHeader);
+    return r.statusCode == 200;
   }
+
   static Future<bool> unlikeExplanation(int eid) async {
-    final r = await http.delete(Uri.parse('$base/explanations/$eid/like'), headers: _authHeader);
-    return r.statusCode==200;
+    final r = await http.delete(Uri.parse('$base/explanations/$eid/like'),
+        headers: _authHeader);
+    return r.statusCode == 200;
   }
-  static Future<List<dynamic>> problemsForExplain({required int childId, int? grandId, String sort='likes'}) async {
-    final q = 'child_id=$childId${grandId!=null ? '&grand_id=$grandId' : ''}&sort=$sort';
-    final r = await http.get(Uri.parse('$base/problems/for-explain?$q'), headers: _authHeader);
-    if(r.statusCode!=200) return [];
+
+  static Future<List<dynamic>> problemsForExplain(
+      {required int childId, int? grandId, String sort = 'likes'}) async {
+    final q =
+        'child_id=$childId${grandId != null ? '&grand_id=$grandId' : ''}&sort=$sort';
+    final r = await http.get(Uri.parse('$base/problems/for-explain?$q'),
+        headers: _authHeader);
+    if (r.statusCode != 200) return [];
     final obj = jsonDecode(utf8.decode(r.bodyBytes));
-    return (obj is Map && obj['items'] is List) ? List.from(obj['items']) : <dynamic>[];
+    return (obj is Map && obj['items'] is List)
+        ? List.from(obj['items'])
+        : <dynamic>[];
   }
+
   static Future<List<dynamic>> myExplanationProblems() async {
-    final r = await http.get(Uri.parse('$base/my/explanations/problems'), headers: _authHeader);
-    if(r.statusCode!=200) return [];
+    final r = await http.get(Uri.parse('$base/my/explanations/problems'),
+        headers: _authHeader);
+    if (r.statusCode != 200) return [];
     final obj = jsonDecode(utf8.decode(r.bodyBytes));
-    return (obj is Map && obj['items'] is List) ? List.from(obj['items']) : <dynamic>[];
+    return (obj is Map && obj['items'] is List)
+        ? List.from(obj['items'])
+        : <dynamic>[];
   }
-  static Future<Map<String,dynamic>> myExplanations(int pid) async {
-    final r = await http.get(Uri.parse('$base/problems/$pid/my-explanations'), headers: _authHeader);
+
+  static Future<Map<String, dynamic>> myExplanations(int pid) async {
+    final r = await http.get(Uri.parse('$base/problems/$pid/my-explanations'),
+        headers: _authHeader);
     return _decode(r);
   }
 
   // ===== Delete (owner) =====
   static Future<bool> deleteProblem(int id) async {
-    final r = await http.delete(Uri.parse('$base/problems/$id'), headers: _authHeader);
+    final r = await http.delete(Uri.parse('$base/problems/$id'),
+        headers: _authHeader);
     return r.statusCode == 200;
   }
+
   static Future<bool> deleteMyExplanations(int pid) async {
     // Expect backend to support deleting current user's explanations for the problem
-    final r = await http.delete(Uri.parse('$base/problems/$pid/my-explanations'), headers: _authHeader);
+    final r = await http.delete(
+        Uri.parse('$base/problems/$pid/my-explanations'),
+        headers: _authHeader);
     return r.statusCode == 200;
   }
 
   // ===== Leaderboard / Review =====
   // 旧: leaderboard(metric:'points') → 下の named 用に誘導
-  static Future<Map<String,dynamic>> leaderboard(String metric) async {
-    final r = await http.get(Uri.parse('$base/leaderboard?metric=$metric'), headers: _authHeader);
+  static Future<Map<String, dynamic>> leaderboard(String metric) async {
+    final r = await http.get(Uri.parse('$base/leaderboard?metric=$metric'),
+        headers: _authHeader);
     return _decode(r);
   }
+
   // named パラメータ互換
-  static Future<Map<String,dynamic>> leaderboardNamed({required String metric}) => leaderboard(metric);
+  static Future<Map<String, dynamic>> leaderboardNamed(
+          {required String metric}) =>
+      leaderboard(metric);
   // 引数なしで呼ばれても動く互換
-  static Future<Map<String,dynamic>> leaderboard0() => leaderboard('points');
+  static Future<Map<String, dynamic>> leaderboard0() => leaderboard('points');
 
-  static Future<Map<String,dynamic>> reviewStats(int categoryId, {int? grandId}) async {
-    final q = 'category_id=$categoryId${grandId!=null ? '&grand_id=$grandId' : ''}';
-    final r = await http.get(Uri.parse('$base/review/stats?$q'), headers: _authHeader);
+  static Future<Map<String, dynamic>> reviewStats(int categoryId,
+      {int? grandId}) async {
+    final q =
+        'category_id=$categoryId${grandId != null ? '&grand_id=$grandId' : ''}';
+    final r = await http.get(Uri.parse('$base/review/stats?$q'),
+        headers: _authHeader);
     return _decode(r);
   }
+
   // 旧名互換
-  static Future<Map<String,dynamic>> stats(int categoryId) => reviewStats(categoryId);
+  static Future<Map<String, dynamic>> stats(int categoryId) =>
+      reviewStats(categoryId);
 
-  static Future<Map<String,dynamic>> reviewHistory({required int categoryId, int? grandId}) async {
-    final q = 'category_id=$categoryId${grandId!=null ? '&grand_id=$grandId' : ''}';
-    final r = await http.get(Uri.parse('$base/review/history?$q'), headers: _authHeader);
+  static Future<Map<String, dynamic>> reviewHistory(
+      {required int categoryId, int? grandId}) async {
+    final q =
+        'category_id=$categoryId${grandId != null ? '&grand_id=$grandId' : ''}';
+    final r = await http.get(Uri.parse('$base/review/history?$q'),
+        headers: _authHeader);
     return _decode(r);
   }
-  static Future<Map<String,dynamic>> reviewItem(int pid) async {
-    final r = await http.get(Uri.parse('$base/review/item?pid=$pid'), headers: _authHeader);
+
+  static Future<Map<String, dynamic>> reviewItem(int pid) async {
+    final r = await http.get(Uri.parse('$base/review/item?pid=$pid'),
+        headers: _authHeader);
     return _decode(r);
   }
+
   static Future<bool> reviewMark(int pid, bool isCorrect) async {
     final req = http.MultipartRequest('POST', Uri.parse('$base/review/mark'));
     req.fields['pid'] = pid.toString();
     req.fields['is_correct'] = isCorrect.toString();
-    final t = token; if(t!=null) req.headers['Authorization'] = 'Bearer $t';
+    final t = token;
+    if (t != null) req.headers['Authorization'] = 'Bearer $t';
     final res = await req.send();
-    return res.statusCode==200;
+    return res.statusCode == 200;
   }
 }

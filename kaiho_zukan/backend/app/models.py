@@ -122,3 +122,11 @@ class ModelAnswer(Base):
     content: Mapped[str] = mapped_column(Text)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
     __table_args__ = (UniqueConstraint("problem_id", "user_id", name="uq_model_answer_per_user"),)
+
+class ExplanationImage(Base):
+    __tablename__ = "explanation_images"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    explanation_id: Mapped[int] = mapped_column(ForeignKey("explanations.id"))
+    # UPLOAD_DIR 下の相対パス/ファイル名を保存
+    filename: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)

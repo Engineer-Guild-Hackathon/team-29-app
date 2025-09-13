@@ -28,7 +28,7 @@ UPLOAD_DIR = os.getenv("UPLOAD_DIR", "/data/uploads")
 
 engine = create_engine(DATABASE_URL, pool_pre_ping=True, future=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
-from models import Base, User, Category, UserCategory, Problem, Option, Explanation, Answer, ProblemLike, ExplanationLike, ProblemExplLike, ProblemImage, ModelAnswer
+from models import Base, User, Category, UserCategory, Problem, Option, Explanation, Answer, ProblemLike, ExplanationLike, ProblemExplLike, ProblemImage, ModelAnswer, ExplanationImage
 
 """Models imported from app.models"""
     
@@ -89,6 +89,19 @@ def ensure_schema():
                 conn.execute(text("SELECT option_index FROM explanations LIMIT 1"))
             except Exception:
                 conn.execute(text("ALTER TABLE explanations ADD COLUMN option_index INT NULL"))
+        try:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS explanation_images (
+                  id INT AUTO_INCREMENT PRIMARY KEY,
+                  explanation_id INT NOT NULL,
+                  filename VARCHAR(255) NOT NULL,
+                  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                  CONSTRAINT fk_explimg_expl FOREIGN KEY (explanation_id) REFERENCES explanations(id) ON DELETE CASCADE,
+                  INDEX idx_explimg_expl (explanation_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """))
+        except Exception:
+            pass
 
 from auth import hash_pw, verify_pw, make_token, parse_token
 logger = logging.getLogger("uvicorn.error")
@@ -664,8 +677,6 @@ def problem_detail(pid: int, request: Request, authorization: Optional[str] = No
 @app.get("/problems/for-explain")
 def problems_for_explain(child_id: int, grand_id: Optional[int] = None, sort: str="likes", db: Session = Depends(get_db)):
     from sqlalchemy import func
-    # likes: sum of explanation likes
-    # ex_cnt: distinct authors (user-wise). AI(None) is treated as a single author via COALESCE(-1)
     q = select(Problem,
                func.coalesce(func.sum(Explanation.like_count),0).label("elikes"),
                func.count(func.distinct(func.coalesce(Explanation.user_id, -1))).label("ex_cnt")).outerjoin(Explanation, Explanation.problem_id==Problem.id)\
@@ -680,13 +691,54 @@ def problems_for_explain(child_id: int, grand_id: Optional[int] = None, sort: st
     return {"items": items}
 
 @app.post("/problems/{pid}/explanations")
-def create_explanation(pid: int, request: Request, authorization: Optional[str] = None, db: Session = Depends(get_db),
-                       content: str = Form(...)):
+def create_explanation(
+    pid: int,
+    request: Request,
+    authorization: Optional[str] = None,
+    db: Session = Depends(get_db),
+    content: str = Form(...),
+    images: List[UploadFile] = File(None),
+):
     user = get_user(db, authorization, request)
     p = db.get(Problem, pid)
-    if not p: raise HTTPException(404, "not found")
-    e = Explanation(problem_id=pid, user_id=user.id, content=content); db.add(e)
-    db.commit(); return {"ok": True, "id": e.id}
+    if not p:
+        raise HTTPException(404, "not found")
+
+    # 1) 解説行を先に作成
+    e = Explanation(problem_id=pid, user_id=user.id, content=content)
+    db.add(e)
+    db.flush()  # e.id が必要
+
+    # 2) 画像保存（任意）
+    if images:
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+        for f in images:
+            try:
+                blob = f.file.read()
+                if not blob:
+                    continue
+                base = os.path.basename(f.filename or "image")
+                name, ext = os.path.splitext(base)
+                ext = (ext or "").lower()
+                if ext not in (".png", ".jpg", ".jpeg", ".gif", ".webp"):
+                    ext = ".bin"
+                # ディレクトリ: /data/uploads/expl/<explanation_id>/
+                subdir = os.path.join(UPLOAD_DIR, "expl", str(e.id))
+                os.makedirs(subdir, exist_ok=True)
+                # ファイル名は(時刻ms + 乱数)
+                fn = f"e{e.id}_{int(time.time()*1000)}_{random.randint(1000,9999)}{ext}"
+                path = os.path.join(subdir, fn)
+                with open(path, "wb") as out:
+                    out.write(blob)
+                # DB には UPLOAD_DIR からの相対パスを保存（例: expl/123/e123_....png）
+                rel = os.path.relpath(path, UPLOAD_DIR).replace("\\", "/")
+                db.add(ExplanationImage(explanation_id=e.id, filename=rel))
+            except Exception:
+                # 壊れた画像はスキップ（解説自体は作成成功にする）
+                continue
+
+    db.commit()
+    return {"ok": True, "id": e.id}
 
 @app.get("/problems/{pid:int}/explanations")
 def list_explanations(pid: int, sort: str="likes", request: Request = None, authorization: Optional[str] = None, db: Session = Depends(get_db)):
@@ -719,6 +771,13 @@ def list_explanations(pid: int, sort: str="likes", request: Request = None, auth
         else:
             u = db.get(User, e.user_id)
             by = (u.nickname if u and u.nickname else (u.username if u else None))
+
+        # ← 追加: この解説の画像を取得
+        imgs = db.execute(
+            select(ExplanationImage).where(ExplanationImage.explanation_id==e.id).order_by(ExplanationImage.id.asc())
+        ).scalars().all()
+        img_urls = [f"/uploads/{im.filename}" for im in imgs]
+
         items.append({
             "id": e.id,
             "content": e.content,
@@ -728,7 +787,9 @@ def list_explanations(pid: int, sort: str="likes", request: Request = None, auth
             "user_id": e.user_id,
             "by": by,
             "liked": (e.id in liked_ids),
+            "images": img_urls,           
         })
+
     # if random requested, shuffle after enrichment
     if sort not in ("likes", "recent"):
         import random; random.shuffle(items)
@@ -803,9 +864,9 @@ def edit_problem(pid: int, request: Request, authorization: Optional[str] = None
     p = db.get(Problem, pid)
     if not p: raise HTTPException(404, "not found")
     is_owner = (p.created_by == user.id)
-    # Determine whether problem metadata/options were updated by owner (not just explanations)
+
     should_regen_ai = is_owner and any(v is not None for v in [title, body, qtype, category_child_id, category_grand_id, options_text, options, correct_index, model_answer])
-    # Only owners may change problem attributes/options. Non-owners may update ONLY their own explanations via this endpoint.
+
     if not is_owner:
         if any(v is not None for v in [title, body, qtype, category_child_id, category_grand_id, options_text, options, correct_index, model_answer]):
             raise HTTPException(403, "not owner")

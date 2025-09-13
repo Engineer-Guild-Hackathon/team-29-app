@@ -49,6 +49,27 @@ class _ReviewScreenState extends State<ReviewScreen> {
     });
   }
 
+  List<String> _extractImageUrls(dynamic images) {
+    if (images is! List) return const [];
+    final urls = <String>[];
+    for (final e in images) {
+      String? u;
+      if (e is String) {
+        u = e;
+      } else if (e is Map) {
+        final cands = [e['url'], e['path'], e['src'], e['image']]
+            .whereType<String>()
+            .toList();
+        if (cands.isNotEmpty) u = cands.first;
+      } else {
+        u = e?.toString();
+      }
+      if (u == null || u.isEmpty) continue;
+      urls.add(u);
+    }
+    return urls;
+  }
+
   List<DropdownMenuItem<int>> _parentItems() => parents
       .map<DropdownMenuItem<int>>((p) =>
           DropdownMenuItem(value: p['id'] as int, child: Text(p['name'])))
@@ -152,6 +173,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 'repId': null,
                 'likeSum': 0,
                 'repLiked': false,
+                'images': <String>{},
               });
       final txt = (e['content'] ?? '').toString();
       final oi = e['option_index'];
@@ -169,6 +191,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
           g['repLiked'] = (e['liked'] == true);
         }
       }
+      final urls = _extractImageUrls(e['images']);
+      (g['images'] as Set<String>).addAll(urls);
       final lc = (e['likes'] is int) ? e['likes'] as int : 0;
       g['likeSum'] = (g['likeSum'] as int) + lc;
     }
@@ -254,7 +278,6 @@ class _ReviewScreenState extends State<ReviewScreen> {
                         final widgets = <Widget>[];
 
                         if ((problem?['qtype']) == 'mcq') {
- 
                           int? selIdx;
                           final selId = latest?['selected_option_id'];
                           if (selId is int) {
@@ -386,6 +409,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                   fontWeight: FontWeight.w600)));
                           children.add(const SizedBox(height: 6));
                           children.addAll(explanationWidgets);
+                          final imgs = (g['images'] as Set<String>).toList();
+                          if (imgs.isNotEmpty) {
+                            children.add(const SizedBox(height: 8));
+                            children.add(_ImagesPager(
+                                urls: imgs)); // _ImagesPager は既存のものを再利用
+                          }
                           children.add(const SizedBox(height: 8));
 
                           children.add(
