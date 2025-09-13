@@ -1176,17 +1176,25 @@ def leaderboard(metric: str = "points", db: Session = Depends(get_db)):
 @app.get("/review/stats")
 def review_stats(category_id: int, request: Request, authorization: Optional[str] = None, db: Session = Depends(get_db), grand_id: Optional[int] = None):
     user = get_user(db, authorization, request)
-    # answers joined with problems filtered by child category
-    base = select(func.count(Answer.id)).join(Problem, Problem.id==Answer.problem_id).where(Answer.user_id==user.id, Problem.child_id==category_id)
+    # latest answer per problem for this user under filters
+    base = select(func.max(Answer.id).label("aid")).join(
+        Problem, Problem.id == Answer.problem_id
+    ).where(
+        Answer.user_id == user.id, Problem.child_id == category_id
+    )
     if grand_id is not None:
-        base = base.where(Problem.grand_id==grand_id)
-    solved = db.execute(base).scalar_one()
-    base_correct = select(func.count(Answer.id)).join(Problem, Problem.id==Answer.problem_id).where(Answer.user_id==user.id, Problem.child_id==category_id, Answer.is_correct==True)
-    if grand_id is not None:
-        base_correct = base_correct.where(Problem.grand_id==grand_id)
-    correct = db.execute(base_correct).scalar_one()
+        base = base.where(Problem.grand_id == grand_id)
+    sub = base.group_by(Answer.problem_id).subquery()
+
+    solved = db.execute(select(func.count()).select_from(sub)).scalar_one()
+    correct = db.execute(
+        select(func.count())
+        .select_from(Answer)
+        .join(sub, Answer.id == sub.c.aid)
+        .where(Answer.is_correct == True)
+    ).scalar_one()
     solved = int(solved or 0); correct = int(correct or 0)
-    rate = int(round((correct/solved*100), 0)) if solved>0 else 0
+    rate = int(round((correct/solved*100), 0)) if solved > 0 else 0
     return {"solved": solved, "correct": correct, "rate": rate}
 
 # Review history: latest answer per problem for the user, filtered by child/grand

@@ -88,6 +88,13 @@ class _SolveScreenState extends State<SolveScreen> {
     return (i >= 0 && i < k.length) ? k[i] : '選択肢${i + 1}';
   }
 
+  String _modelAnswerToKana(String text) {
+    return text.replaceAllMapped(RegExp(r'\b([1-9]|10)\b'), (m) {
+      final idx = int.parse(m.group(1)!) - 1;
+      return _kanaOf(idx);
+    });
+  }
+
   // 「あなたの解答」セクション（MCQ 選択後/記述式送信後に表示）
   Widget _yourAnswerSection({required bool isMcq}) {
     if (prob == null) return const SizedBox.shrink();
@@ -233,11 +240,11 @@ class _SolveScreenState extends State<SolveScreen> {
         final uid = it is Map ? it['user_id'] : null;
         final c = it is Map ? it['content'] : null;
         if (uid is int && c is String && c.trim().isNotEmpty) {
-          _modelAnswersByUser[uid] = c.trim();
+          _modelAnswersByUser[uid] = _modelAnswerToKana(c.trim());
         }
         if ((uid == null || (it is Map && it['is_ai'] == true)) &&
             c is String && c.trim().isNotEmpty) {
-          _aiModelAnswer = c.trim();
+          _aiModelAnswer = _modelAnswerToKana(c.trim());
         }
       }
     });
@@ -576,11 +583,12 @@ class _SolveScreenState extends State<SolveScreen> {
                         final uid = it is Map ? it['user_id'] : null;
                         final c = it is Map ? it['content'] : null;
                         if (uid is int && c is String && c.trim().isNotEmpty) {
-                          _modelAnswersByUser[uid] = c.trim();
+                          _modelAnswersByUser[uid] =
+                              _modelAnswerToKana(c.trim());
                         }
                         if ((uid == null || (it is Map && it['is_ai'] == true)) &&
                             c is String && c.trim().isNotEmpty) {
-                          _aiModelAnswer = c.trim();
+                          _aiModelAnswer = _modelAnswerToKana(c.trim());
                         }
                       }
                     });
