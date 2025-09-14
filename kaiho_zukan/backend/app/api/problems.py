@@ -573,6 +573,12 @@ def delete_problem(pid: int, user: User = Depends(get_current_user), db: Session
     db.query(ProblemLike).filter(ProblemLike.problem_id == pid).delete(synchronize_session=False)
     db.query(ProblemExplLike).filter(ProblemExplLike.problem_id == pid).delete(synchronize_session=False)
     db.query(ModelAnswer).filter(ModelAnswer.problem_id == pid).delete(synchronize_session=False)
+    # 一部環境では ai_judgements のFKに ON DELETE CASCADE が効いていない場合があるため、明示削除
+    try:
+        from models import AiJudgement
+        db.query(AiJudgement).filter(AiJudgement.problem_id == pid).delete(synchronize_session=False)
+    except Exception:
+        pass
     imgs = db.execute(select(ProblemImage).where(ProblemImage.problem_id == pid)).scalars().all()
     for img in imgs:
         try:
