@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'post_problem_form.dart';
+import 'post_problem_subhub.dart';
 import 'explain_create.dart';
 
 class PostProblemHubScreen extends StatelessWidget {
@@ -18,9 +18,11 @@ class PostProblemHubScreen extends StatelessWidget {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const PostProblemForm())),
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PostProblemSubHubScreen(),
+                    ),
+                  ),
                   child: const Text('問題を投稿する'),
                 ),
               ),
