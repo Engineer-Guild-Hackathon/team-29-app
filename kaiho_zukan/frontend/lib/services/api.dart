@@ -222,6 +222,10 @@ class Api {
             http.MultipartFile.fromBytes('images', f.bytes, filename: f.name));
       }
     }
+    // If there is nothing to update, skip sending an empty multipart
+    if (req.fields.isEmpty && req.files.isEmpty) {
+      return {'ok': true, 'skipped': true};
+    }
     if (t != null) req.headers['Authorization'] = 'Bearer $t';
     final res = await req.send();
     final bodyStr = await res.stream.bytesToString();
@@ -425,16 +429,15 @@ class Api {
 
   // ===== Model Answers (multi-user) =====
   static Future<bool> upsertMyModelAnswer(int pid, String content) async {
-    final headers = <String, String>{
-      'Content-Type': 'application/x-www-form-urlencoded',
-    };
+    // Let http package set the proper Content-Type for form encoding
+    final headers = <String, String>{};
     final t = token;
     if (t != null) headers['Authorization'] = 'Bearer $t';
 
     final r = await http.post(
       Uri.parse('$base/problems/$pid/model-answer'),
       headers: headers,
-      body: {'content': content}, // ← フォームデータ（ファイルなし）
+      body: {'content': content}, // URL-encoded form body
     );
     return r.statusCode == 200;
   }
@@ -529,33 +532,33 @@ class Api {
   }
 
   static Future<bool> postExplanationWithImagesData({
-  required int problemId,
-  required String content,
-  List<({List<int> bytes, String name})>? images,
-}) async {
-  final t = token;
-  final req = http.MultipartRequest(
-    'POST',
-    Uri.parse('$base/problems/$problemId/explanations'),
-  );
-  // 必須：本文
-  req.fields['content'] = content;
+    required int problemId,
+    required String content,
+    List<({List<int> bytes, String name})>? images,
+  }) async {
+    final t = token;
+    final req = http.MultipartRequest(
+      'POST',
+      Uri.parse('$base/problems/$problemId/explanations'),
+    );
+    // 必須：本文
+    req.fields['content'] = content;
 
-  // 任意：複数画像（同じフィールド名 'images' を繰り返し追加）
-  if (images != null && images.isNotEmpty) {
-    for (final f in images) {
-      req.files.add(
-        http.MultipartFile.fromBytes('images', f.bytes, filename: f.name),
-      );
+    // 任意：複数画像（同じフィールド名 'images' を繰り返し追加）
+    if (images != null && images.isNotEmpty) {
+      for (final f in images) {
+        req.files.add(
+          http.MultipartFile.fromBytes('images', f.bytes, filename: f.name),
+        );
+      }
     }
+
+    if (t != null) req.headers['Authorization'] = 'Bearer $t';
+
+    final res = await req.send();
+    // 成功時は { ok: true, id: <explanation_id> } を返しているので 200 で判断
+    return res.statusCode == 200;
   }
-
-  if (t != null) req.headers['Authorization'] = 'Bearer $t';
-
-  final res = await req.send();
-  // 成功時は { ok: true, id: <explanation_id> } を返しているので 200 で判断
-  return res.statusCode == 200;
-}
 
   // ===== Answers =====
   static Future<Map<String, dynamic>> answer(int pid,
@@ -610,9 +613,62 @@ class Api {
     return r.statusCode == 200;
   }
 
+// 解説を編集（本文・画像の差し替え対応）
+  static Future<Map<String, dynamic>> updateExplanation({
+    required int id, // explanation id
+    String? content,
+    bool clearImages = false,
+    List<({List<int> bytes, String name})>? images,
+  }) async {
+    final t = token;
+    final req =
+        http.MultipartRequest('PUT', Uri.parse('$base/explanations/$id'));
+    if (content != null) req.fields['content'] = content;
+    if (clearImages) req.fields['clear_images'] = 'true';
+    if (images != null && images.isNotEmpty) {
+      for (final f in images) {
+        req.files.add(
+            http.MultipartFile.fromBytes('images', f.bytes, filename: f.name));
+      }
+    }
+    if (t != null) req.headers['Authorization'] = 'Bearer $t';
+
+    final res = await req.send();
+    final bodyStr = await res.stream.bytesToString();
+    try {
+      return jsonDecode(bodyStr);
+    } catch (_) {
+      return {'status': res.statusCode};
+    }
+  }
+
+// 文字だけ更新したいときの簡易版
+  static Future<bool> updateExplanationText(int id, String content) async {
+    final r = await updateExplanation(id: id, content: content);
+    return (r['ok'] ?? false) == true;
+  }
+
   static Future<bool> unlikeExplanation(int eid) async {
     final r = await http.delete(Uri.parse('$base/explanations/$eid/like'),
         headers: _authHeader);
+    return r.statusCode == 200;
+  }
+
+  static Future<bool> flagWrong(int eid) async {
+    // POST /explanations/{eid}/wrong-flags
+    final r = await http.post(
+      Uri.parse('$base/explanations/$eid/wrong-flags'),
+      headers: _authHeader,
+    );
+    return r.statusCode == 200;
+  }
+
+  static Future<bool> unflagWrong(int eid) async {
+    // DELETE /explanations/{eid}/wrong-flags
+    final r = await http.delete(
+      Uri.parse('$base/explanations/$eid/wrong-flags'),
+      headers: _authHeader,
+    );
     return r.statusCode == 200;
   }
 

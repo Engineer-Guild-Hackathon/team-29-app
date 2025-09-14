@@ -73,9 +73,7 @@ class Explanation(Base):
     content: Mapped[str] = mapped_column(Text)
     like_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
-    # For MCQ: when not null, indicates the index (0-based) of the option this explanation belongs to.
     option_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
-
 
 class Answer(Base):
     __tablename__ = "answers"
@@ -130,3 +128,29 @@ class ExplanationImage(Base):
     # UPLOAD_DIR 下の相対パス/ファイル名を保存
     filename: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
+
+class ExplanationWrongFlag(Base):
+    __tablename__ = "explanations_wrong_flags"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    explanation_id: Mapped[int] = mapped_column(ForeignKey("explanations.id"), index=True, nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("explanation_id", "user_id", name="uq_expl_wrongflag_user"),
+    )
+
+class AiJudgement(Base):
+    __tablename__ = "ai_judgements"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    problem_id: Mapped[int] = mapped_column(ForeignKey("problems.id"), index=True, nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
+    is_wrong: Mapped[bool | None] = mapped_column(Boolean, nullable=True)   # True=間違い, False=正しい, None=未判定
+    score: Mapped[int | None] = mapped_column(Integer, nullable=True)       # 0-100 信頼度
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
+    updated_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("problem_id", "user_id", name="uq_ai_judgement_pid_uid"),
+    )
