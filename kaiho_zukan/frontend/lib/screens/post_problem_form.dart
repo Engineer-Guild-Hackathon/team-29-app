@@ -45,6 +45,10 @@ class _PostProblemFormState extends State<PostProblemForm> {
   // 既存の解説画像URLはAPIが返していないため、ここでは新規選択分のみプレビューします
   // List<String> existingExplainImageUrls = []; // （必要になれば拡張）
 
+  // ガイドライン同意
+  bool agreeGeneral = false;
+  bool agreeImage = false;
+
   @override
   void initState() {
     super.initState();
@@ -216,6 +220,26 @@ class _PostProblemFormState extends State<PostProblemForm> {
   }
 
   Future<void> _submit() async {
+    // 共通: ガイドライン同意チェック
+    if (!agreeGeneral) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ガイドラインに同意してください'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    // 画像同意は、新規で画像をアップロードする場合のみ必須
+    final bool hasProblemImageUploads = !widget.explainOnly && newImages.isNotEmpty;
+    final bool hasExplainImageUploads = newExplainImages.any((f) => f.bytes != null);
+    final bool needsImageConsent = hasProblemImageUploads || hasExplainImageUploads;
+    if (needsImageConsent && !agreeImage) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('画像のガイドラインに同意してください'), backgroundColor: Colors.red),
+      );
+      return;
+    }
     // explainOnly: 解説投稿/編集モード
     if (widget.explainOnly) {
       if (widget.editId == null) {
@@ -883,6 +907,44 @@ class _PostProblemFormState extends State<PostProblemForm> {
                 ),
 
                 const SizedBox(height: 16),
+                // ===== ガイドライン同意（常時表示） =====
+                Builder(builder: (_) {
+                  final head = widget.explainOnly
+                      ? '私は投稿する解説において以下に同意します。'
+                      : '私は投稿する問題及び解説において以下に同意します。';
+                  final body = '1. 本・書籍・問題集・Webサイト・大学の過去問等の著作物を、許諾を得ず原文のまま転載していません。\n'
+                      '2. 必要に応じて自分の言葉で再構成・要約しており、著作権者の権利を侵害しません。\n'
+                      '3. 引用がある場合は公正な範囲で、出典を明記します。\n'
+                      '4. 第三者の個人情報や機密情報を含みません。\n'
+                      '5. 本サービスのガイドラインに反する投稿は非公開・削除されることに同意します。';
+                  return CheckboxListTile(
+                    value: agreeGeneral,
+                    onChanged: (v) => setState(() => agreeGeneral = (v ?? false)),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: Text(head),
+                    subtitle: Text(body),
+                  );
+                }),
+
+                // ===== 画像ガイドライン同意（新規アップロード時のみ表示） =====
+                Builder(builder: (_) {
+                  final hasProblemImageUploads = !widget.explainOnly && newImages.isNotEmpty;
+                  final hasExplainImageUploads = newExplainImages.any((f) => f.bytes != null);
+                  final needsImageConsent = hasProblemImageUploads || hasExplainImageUploads;
+                  if (!needsImageConsent) return const SizedBox.shrink();
+                  const head = '私は投稿する画像に関して以下に同意します。';
+                  const body = '1. 画像・図表は自作、許諾済み、またはライセンス条件を遵守しています（クレジット表記・リンク等が必要な場合は記載）。\n'
+                      '2. 教科書・問題集・過去問の紙面を撮影/スキャン/OCRした画像は掲載していません（必要なら自作図に描き直し、要点のみ記載）。\n'
+                      '3. 写真に人物・氏名・連絡先などの個人情報が写り込んでいません。';
+                  return CheckboxListTile(
+                    value: agreeImage,
+                    onChanged: (v) => setState(() => agreeImage = (v ?? false)),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: Text(head),
+                    subtitle: Text(body),
+                  );
+                }),
+
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
