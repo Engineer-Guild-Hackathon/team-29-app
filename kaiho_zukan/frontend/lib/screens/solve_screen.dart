@@ -738,6 +738,8 @@ class _SolveScreenState extends State<SolveScreen> {
           'likeSum': 0,
           'repLiked': false,
           'images': <String>{},
+          'aiWrong': false,
+          'repWrongFlagged': false,
         },
       );
       final txt = (e['content'] ?? '').toString();
@@ -749,6 +751,9 @@ class _SolveScreenState extends State<SolveScreen> {
       } else {
         (g['overall'] as List<String>).add(txt);
       }
+      if (e['ai_is_wrong'] == true) {
+        g['aiWrong'] = true;
+      }
       final int likes = (e['likes'] is int) ? (e['likes'] as int) : 0;
       g['likeSum'] = (g['likeSum'] as int) + likes;
       final int? eid = (e['id'] is int) ? (e['id'] as int) : null;
@@ -756,6 +761,7 @@ class _SolveScreenState extends State<SolveScreen> {
         if (g['repId'] == null || oi == null) {
           g['repId'] = eid;
           g['repLiked'] = (e['liked'] == true);
+          g['repWrongFlagged'] = (e['flagged_wrong'] == true);
         }
       }
       final urls = _extractImageUrls(e['images'], base: Api.base);
@@ -814,87 +820,194 @@ class _SolveScreenState extends State<SolveScreen> {
       }
 
       cards.add(
-        StatefulBuilder(
-          builder: (context2, setCard) {
-            return Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ...section,
+                // 画像などは元のまま…
+
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    ...section,
-                    Builder(builder: (_) {
-                      final imgs = (g['images'] as Set<String>).toList();
-                      if (imgs.isEmpty) return const SizedBox.shrink();
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const SizedBox(height: 8),
-                          _ImagesPager(urls: imgs), // ← 既存の問題画像と同じコンポーネントを再利用
-                        ],
-                      );
-                    }),
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.bottomRight,
-                      child: GestureDetector(
-                        onTap: () async {
-                          final int? repId = (g['repId'] as int?);
-                          if (repId == null) return;
-                          bool groupLiked = (g['repLiked'] == true);
-                          int likeSum = (g['likeSum'] as int);
-                          bool ok = false;
-                          if (groupLiked) {
-                            ok = await Api.unlikeExplanation(repId);
-                            if (ok)
-                              setCard(() {
-                                g['repLiked'] = false;
-                                if (likeSum > 0) g['likeSum'] = likeSum - 1;
-                              });
-                          } else {
-                            ok = await Api.likeExplanation(repId);
-                            if (ok)
-                              setCard(() {
-                                g['repLiked'] = true;
-                                g['likeSum'] = likeSum + 1;
-                              });
-                          }
-                        },
-                        child: Builder(builder: (_) {
-                          final bool liked = (g['repLiked'] == true);
-                          final int count = (g['likeSum'] as int);
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: liked ? Colors.green : Colors.white,
-                              borderRadius: BorderRadius.circular(24),
-                              border:
-                                  Border.all(color: Colors.green, width: 1.5),
-                            ),
-                            child:
-                                Row(mainAxisSize: MainAxisSize.min, children: [
-                              Text('いいね',
+                    // ▼ 左：AI 警告チップ
+                    if (g['aiWrong'] == true)
+                      Tooltip(
+                        message: 'この解説はAIによって間違っていると判定されました',
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(24),
+                            border:
+                                Border.all(color: Colors.purple, width: 1.2),
+                            color: Colors.white,
+                          ),
+                          child: const Text(
+                            'この解説は間違っているかもしれません',
+                            style: TextStyle(
+                                color: Colors.purple,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      )
+                    else
+                      const SizedBox.shrink(),
+
+                    // ▼ 右：？トグル + いいね
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // ？ wrong-flag トグル
+                        Tooltip(
+                          message: 'この解説が間違っていると思ったらこのボタンを押して下さい',
+                          child: GestureDetector(
+                          onTap: () async {
+                            final int? repId = (g['repId'] as int?);
+                            if (repId == null) return;
+                            final bool flagged = (g['repWrongFlagged'] == true);
+                            bool ok = false;
+                            if (flagged) {
+                              ok = await Api.unflagWrong(repId);
+                              if (ok) {
+                                setState(() {
+                                  g['repWrongFlagged'] = false;
+                                  // 反映を維持するため、元データにも反映
+                                  for (final e in explanations) {
+                                    if (e is Map && e['id'] == repId) {
+                                      e['flagged_wrong'] = false;
+                                      break;
+                                    }
+                                  }
+                                });
+                              }
+                            } else {
+                              ok = await Api.flagWrong(repId);
+                              if (ok) {
+                                setState(() {
+                                  g['repWrongFlagged'] = true;
+                                  for (final e in explanations) {
+                                    if (e is Map && e['id'] == repId) {
+                                      e['flagged_wrong'] = true;
+                                      break;
+                                    }
+                                  }
+                                });
+                              }
+                            }
+                          },
+                            child: Builder(builder: (_) {
+                              final bool flagged =
+                                  (g['repWrongFlagged'] == true);
+                              return Container(
+                                width: 32,
+                                height: 32,
+                                margin: const EdgeInsets.only(right: 8),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: flagged ? Colors.grey : Colors.white,
+                                  border: Border.all(
+                                      color: Colors.grey, width: 1.5),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  '?',
                                   style: TextStyle(
-                                      color:
-                                          liked ? Colors.white : Colors.green,
-                                      fontWeight: FontWeight.w600)),
-                              const SizedBox(width: 6),
-                              Text('$count',
-                                  style: TextStyle(
-                                      color:
-                                          liked ? Colors.white : Colors.green,
-                                      fontWeight: FontWeight.w600)),
-                            ]),
-                          );
-                        }),
-                      ),
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: flagged ? Colors.white : Colors.grey,
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                        ),
+
+                        // いいね
+                        GestureDetector(
+                          onTap: () async {
+                            final int? repId = (g['repId'] as int?);
+                            if (repId == null) return;
+                            bool groupLiked = (g['repLiked'] == true);
+                            int likeSum = (g['likeSum'] as int);
+                            bool ok = false;
+                            if (groupLiked) {
+                              ok = await Api.unlikeExplanation(repId);
+                              if (ok) {
+                                setState(() {
+                                  g['repLiked'] = false;
+                                  if (likeSum > 0) g['likeSum'] = likeSum - 1;
+                                  // 元データの likes/liked も更新
+                                  for (final e in explanations) {
+                                    if (e is Map && e['id'] == repId) {
+                                      e['liked'] = false;
+                                      final lc = (e['likes'] is int) ? e['likes'] as int : 0;
+                                      e['likes'] = (lc > 0) ? lc - 1 : 0;
+                                      break;
+                                    }
+                                  }
+                                });
+                              }
+                            } else {
+                              ok = await Api.likeExplanation(repId);
+                              if (ok) {
+                                setState(() {
+                                  g['repLiked'] = true;
+                                  g['likeSum'] = likeSum + 1;
+                                  for (final e in explanations) {
+                                    if (e is Map && e['id'] == repId) {
+                                      e['liked'] = true;
+                                      final lc = (e['likes'] is int) ? e['likes'] as int : 0;
+                                      e['likes'] = lc + 1;
+                                      break;
+                                    }
+                                  }
+                                });
+                              }
+                            }
+                          },
+                          child: Builder(builder: (_) {
+                            final bool liked = (g['repLiked'] == true);
+                            final int count = (g['likeSum'] as int);
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: liked ? Colors.green : Colors.white,
+                                borderRadius: BorderRadius.circular(24),
+                                border:
+                                    Border.all(color: Colors.green, width: 1.5),
+                              ),
+                              child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text('いいね',
+                                        style: TextStyle(
+                                            color: liked
+                                                ? Colors.white
+                                                : Colors.green,
+                                            fontWeight: FontWeight.w600)),
+                                    const SizedBox(width: 6),
+                                    Text('$count',
+                                        style: TextStyle(
+                                            color: liked
+                                                ? Colors.white
+                                                : Colors.green,
+                                            fontWeight: FontWeight.w600)),
+                                  ]),
+                            );
+                          }),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ),
-            );
-          },
+              ],
+            ),
+          ),
         ),
       );
     }

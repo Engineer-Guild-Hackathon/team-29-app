@@ -174,6 +174,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 'likeSum': 0,
                 'repLiked': false,
                 'images': <String>{},
+                'aiWrong': false,
+                'repWrongFlagged': false,
               });
       final txt = (e['content'] ?? '').toString();
       final oi = e['option_index'];
@@ -184,11 +186,15 @@ class _ReviewScreenState extends State<ReviewScreen> {
       } else {
         (g['overall'] as List<String>).add(txt);
       }
+      if (e['ai_is_wrong'] == true) {
+        g['aiWrong'] = true;
+      }
       final eid = (e['id'] is int) ? e['id'] as int : null;
       if (eid != null) {
         if (g['repId'] == null || oi == null) {
           g['repId'] = eid;
           g['repLiked'] = (e['liked'] == true);
+          g['repWrongFlagged'] = (e['flagged_wrong'] == true);
         }
       }
       final urls = _extractImageUrls(e['images']);
@@ -418,58 +424,157 @@ class _ReviewScreenState extends State<ReviewScreen> {
                           children.add(const SizedBox(height: 8));
 
                           children.add(
-                            Align(
-                              alignment: Alignment.bottomRight,
-                              child: GestureDetector(
-                                onTap: () async {
-                                  if (repId == null) return;
-                                  if (groupLiked) {
-                                    final ok =
-                                        await Api.unlikeExplanation(repId);
-                                    if (ok)
-                                      setCard(() {
-                                        groupLiked = false;
-                                        if (likeSum > 0) likeSum -= 1;
-                                      });
-                                  } else {
-                                    final ok = await Api.likeExplanation(repId);
-                                    if (ok)
-                                      setCard(() {
-                                        groupLiked = true;
-                                        likeSum += 1;
-                                      });
-                                  }
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: groupLiked
-                                        ? Colors.green
-                                        : Colors.white,
-                                    borderRadius: BorderRadius.circular(24),
-                                    border: Border.all(
-                                        color: Colors.green, width: 1.5),
-                                  ),
-                                  child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text('いいね',
-                                            style: TextStyle(
-                                                color: groupLiked
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // ▼ 左：AI 警告チップ（g['aiWrong'] が true のときだけ表示）
+                                if (g['aiWrong'] == true)
+                                  Tooltip(
+                                    message: 'この解説はAIによって間違っていると判定されました',
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(24),
+                                        border: Border.all(
+                                            color: Colors.purple, width: 1.2),
+                                        color: Colors.white,
+                                      ),
+                                      child: const Text(
+                                        'この解説は間違っているかもしれません',
+                                        style: TextStyle(
+                                          color: Colors.purple,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  const SizedBox.shrink(),
+
+                                // ▼ 右：？（wrong-flag）トグル + いいね
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // ？ wrong-flag トグル
+                                    Tooltip(
+                                      message: 'この解説が間違っていると思ったらこのボタンを押して下さい',
+                                      child: GestureDetector(
+                                        onTap: () async {
+                                          final int? repId =
+                                              (g['repId'] as int?);
+                                          if (repId == null) return;
+                                          final bool flagged =
+                                              (g['repWrongFlagged'] == true);
+                                          bool ok = false;
+                                          if (flagged) {
+                                            ok = await Api.unflagWrong(
+                                                repId); // DELETE /explanations/{id}/wrong-flags
+                                            if (ok)
+                                              setCard(() =>
+                                                  g['repWrongFlagged'] = false);
+                                          } else {
+                                            ok = await Api.flagWrong(
+                                                repId); // POST   /explanations/{id}/wrong-flags
+                                            if (ok)
+                                              setCard(() =>
+                                                  g['repWrongFlagged'] = true);
+                                          }
+                                        },
+                                        child: Builder(builder: (_) {
+                                          final bool flagged =
+                                              (g['repWrongFlagged'] == true);
+                                          return Container(
+                                            width: 32,
+                                            height: 32,
+                                            margin:
+                                                const EdgeInsets.only(right: 8),
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: flagged
+                                                  ? Colors.grey
+                                                  : Colors.white,
+                                              border: Border.all(
+                                                  color: Colors.grey,
+                                                  width: 1.5),
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              '?',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w800,
+                                                color: flagged
                                                     ? Colors.white
-                                                    : Colors.green,
-                                                fontWeight: FontWeight.w600)),
-                                        const SizedBox(width: 6),
-                                        Text('$likeSum',
-                                            style: TextStyle(
-                                                color: groupLiked
-                                                    ? Colors.white
-                                                    : Colors.green,
-                                                fontWeight: FontWeight.w600)),
-                                      ]),
+                                                    : Colors.grey,
+                                              ),
+                                            ),
+                                          );
+                                        }),
+                                      ),
+                                    ),
+
+                                    // いいね（既存処理そのまま）
+                                    GestureDetector(
+                                      onTap: () async {
+                                        if (repId == null) return;
+                                        if (groupLiked) {
+                                          final ok =
+                                              await Api.unlikeExplanation(
+                                                  repId);
+                                          if (ok) {
+                                            setCard(() {
+                                              groupLiked = false;
+                                              if (likeSum > 0) likeSum -= 1;
+                                            });
+                                          }
+                                        } else {
+                                          final ok =
+                                              await Api.likeExplanation(repId);
+                                          if (ok) {
+                                            setCard(() {
+                                              groupLiked = true;
+                                              likeSum += 1;
+                                            });
+                                          }
+                                        }
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: groupLiked
+                                              ? Colors.green
+                                              : Colors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(24),
+                                          border: Border.all(
+                                              color: Colors.green, width: 1.5),
+                                        ),
+                                        child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text('いいね',
+                                                  style: TextStyle(
+                                                      color: groupLiked
+                                                          ? Colors.white
+                                                          : Colors.green,
+                                                      fontWeight:
+                                                          FontWeight.w600)),
+                                              const SizedBox(width: 6),
+                                              Text('$likeSum',
+                                                  style: TextStyle(
+                                                      color: groupLiked
+                                                          ? Colors.white
+                                                          : Colors.green,
+                                                      fontWeight:
+                                                          FontWeight.w600)),
+                                            ]),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
+                              ],
                             ),
                           );
 

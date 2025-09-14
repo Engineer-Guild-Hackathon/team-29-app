@@ -168,8 +168,17 @@ class _PostProblemFormState extends State<PostProblemForm> {
       if (qtype == 'mcq' && d['model_answer'] is String) {
         final mine = (d['model_answer'] as String).trim();
         if (mine.isNotEmpty && optionCtrls.isNotEmpty) {
-          final idx = optionCtrls.indexWhere((c) => c.text.trim() == mine);
-          if (idx >= 0) myModelAnswerIndex = idx;
+          // 1) 選択肢テキスト一致でのマッピング
+          final idxByText = optionCtrls.indexWhere((c) => c.text.trim() == mine);
+          if (idxByText >= 0) {
+            myModelAnswerIndex = idxByText;
+          } else {
+            // 2) 数字（1始まり）で保存されている場合のマッピング
+            final num = int.tryParse(mine);
+            if (num != null && num >= 1 && num <= optionCtrls.length) {
+              myModelAnswerIndex = num - 1;
+            }
+          }
         }
       }
 

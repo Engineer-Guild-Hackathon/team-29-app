@@ -28,7 +28,7 @@ UPLOAD_DIR = os.getenv("UPLOAD_DIR", "/data/uploads")
 
 engine = create_engine(DATABASE_URL, pool_pre_ping=True, future=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
-from models import Base, User, Category, UserCategory, Problem, Option, Explanation, Answer, ProblemLike, ExplanationLike, ProblemExplLike, ProblemImage, ModelAnswer, ExplanationImage
+from models import Base, User, Category, UserCategory, Problem, Option, Explanation, Answer, ProblemLike, ExplanationLike, ProblemExplLike, ProblemImage, ModelAnswer, ExplanationImage, ExplanationWrongFlag, AiJudgement
 
 """Models imported from app.models"""
     
@@ -102,6 +102,42 @@ def ensure_schema():
             """))
         except Exception:
             pass
+        try:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS ai_judgements (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    problem_id INT NOT NULL,
+                    user_id INT NOT NULL,
+                    is_wrong TINYINT NULL,
+                    score INT NULL,
+                    reason TEXT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE KEY uq_ai_judgement_pid_uid (problem_id, user_id),
+                    KEY idx_pid (problem_id),
+                    KEY idx_uid (user_id),
+                    CONSTRAINT fk_aij_prob FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE,
+                    CONSTRAINT fk_aij_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """))
+        except Exception:
+            pass
+
+        conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS explanations_wrong_flags (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            explanation_id INT NOT NULL,
+            user_id INT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_expl_wrongflag_user (explanation_id, user_id),
+            KEY idx_expl (explanation_id),
+            KEY idx_user (user_id),
+            CONSTRAINT fk_expl_wrongflag_expl FOREIGN KEY (explanation_id) REFERENCES explanations(id)
+                ON DELETE CASCADE,
+            CONSTRAINT fk_expl_wrongflag_user FOREIGN KEY (user_id) REFERENCES users(id)
+                ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        """))
 
 from auth import hash_pw, verify_pw, make_token, parse_token
 logger = logging.getLogger("uvicorn.error")
@@ -240,6 +276,297 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     except Exception:
         simple = [{"msg": "validation error"}]
     return JSONResponse(status_code=422, content={"detail": simple})
+
+def judge_problem_for_user(problem_id: int, target_user_id: int):
+    """(pid, uid) 単位で、ユーザの模範解答 + 全体解説 + 選択肢別解説をまとめて AI 判定し ai_judgements に保存"""
+    if not (OPENAI_ENABLED and OPENAI_API_KEY):
+        return
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=OPENAI_API_KEY)
+        with SessionLocal() as db:
+            p = db.get(Problem, problem_id)
+            if not p:
+                return
+
+            # 該当ユーザの model answer（任意）
+            ma = db.execute(
+                select(ModelAnswer).where(
+                    ModelAnswer.problem_id == problem_id,
+                    ModelAnswer.user_id == target_user_id
+                )
+            ).scalar_one_or_none()
+            user_model_answer = getattr(ma, "content", None)
+
+            # 該当ユーザの「全体解説」と「選択肢ごとの解説」を収集
+            rows = db.execute(
+                select(Explanation).where(
+                    Explanation.problem_id == problem_id,
+                    Explanation.user_id == target_user_id
+                ).order_by(Explanation.id.asc())
+            ).scalars().all()
+            overall = None
+            per_options: dict[int, str] = {}
+            for e in rows:
+                if e.option_index is None:
+                    overall = e.content
+                else:
+                    per_options[int(e.option_index)] = e.content
+
+            # 問題の選択肢
+            opts = list(db.execute(
+                select(Option).where(Option.problem_id == problem_id).order_by(Option.id.asc())
+            ).scalars().all())
+            kana = ['ア','イ','ウ','エ','オ','カ','キ','ク','ケ','コ']
+            opt_lines = []
+            for i, o in enumerate(opts):
+                label = kana[i] if i < len(kana) else f"選択肢{i+1}"
+                opt_lines.append(f"{label}: {o.text}")
+
+            # プロンプト組み立て（JSON限定）
+            prompt = (
+                "あなたは厳密な答案レビューアです。次の情報に基づき、"
+                "ユーザが投稿した『模範解答・全体解説・選択肢ごとの解説』が、問題設定に照らして"
+                "誤りを含むかどうかを1回の判定でまとめて評価してください。\n"
+                "ただし解説が不十分でも模範解答があっていれば正解判定にしてください。\n"
+                "出力は必ずJSONのみ：{is_wrong: true|false, score: 0..100, reason: string}\n"
+                "- is_wrong: 内容に事実誤認や重大な誤解がある場合 true、そうでなければ false\n"
+                "- score: 判定の確信度（0-100）\n"
+                "- reason: 2〜3文で簡潔に（代表的な誤りや懸念点を要約）\n\n"
+                f"[問題タイトル]\n{p.title}\n"
+                f"[問題文]\n{p.body or ''}\n"
+            )
+            if opt_lines:
+                prompt += "[選択肢]\n" + "\n".join(opt_lines) + "\n"
+            if user_model_answer:
+                # MCQ の場合、1..10 の数値だけを書いた模範解答はカナ表記（ア/イ/ウ/エ...）へ変換して明示
+                user_model_answer_disp = user_model_answer
+                try:
+                    if (p.qtype or '').lower() == 'mcq':
+                        def _repl(m):
+                            try:
+                                idx = int(m.group(1)) - 1
+                                return kana[idx] if 0 <= idx < len(kana) else m.group(0)
+                            except Exception:
+                                return m.group(0)
+                        import re as _re
+                        user_model_answer_disp = _re.sub(r"\b([1-9]|10)\b", _repl, user_model_answer)
+                except Exception:
+                    pass
+                prompt += f"[ユーザの模範解答]\n{user_model_answer_disp}\n"
+            # 全体解説／選択肢別（欠けているものは空でよい）
+            prompt += f"[ユーザの全体解説]\n{overall or ''}\n"
+            if opts:
+                prompt += "[ユーザの選択肢ごとの解説]\n"
+                for i, _o in enumerate(opts):
+                    txt = per_options.get(i, "")
+                    label = kana[i] if i < len(kana) else f"選択肢{i+1}"
+                    prompt += f"{label}: {txt}\n"
+
+            message_content = [{"type": "text", "text": prompt}]
+
+            # 問題画像も添付（最大4枚）
+            try:
+                import base64, os
+                pimgs = list(db.execute(select(ProblemImage).where(ProblemImage.problem_id==p.id).order_by(ProblemImage.id.asc())).scalars().all())
+                for im in pimgs[:4]:
+                    fpath = os.path.join(UPLOAD_DIR, im.filename)
+                    if os.path.exists(fpath):
+                        with open(fpath, "rb") as fh:
+                            b64 = base64.b64encode(fh.read()).decode("ascii")
+                        ext = os.path.splitext(im.filename)[1].lower()
+                        mime = 'image/jpeg' if ext in ('.jpg', '.jpeg') else 'image/png' if ext=='.png' else 'image/webp' if ext=='.webp' else 'application/octet-stream'
+                        message_content.append({"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}})
+            except Exception:
+                pass
+
+            resp = client.chat.completions.create(
+                model=OPENAI_MODEL,
+                messages=[{"role": "user", "content": message_content}],
+                temperature=0.0,
+                max_tokens=400,
+            )
+            raw = (resp.choices[0].message.content or "").strip()
+            data_txt = extract_json_block(raw)  # 既存ユーティリティを再利用
+            try:
+                import json
+                data = json.loads(data_txt)
+            except Exception:
+                data = None
+
+            is_wrong = None; score = None; reason = None
+            if isinstance(data, dict):
+                v = str(data.get("is_wrong", "")).strip().lower()
+                if v in ("true", "false"):
+                    is_wrong = (v == "true")
+                elif isinstance(data.get("is_wrong"), bool):
+                    is_wrong = bool(data["is_wrong"])
+                if isinstance(data.get("score"), (int, float)):
+                    score = int(max(0, min(100, round(float(data["score"])))))
+                if isinstance(data.get("reason"), str):
+                    reason = data["reason"].strip()
+
+            # UPSERT
+            if (is_wrong is not None) or (score is not None) or reason:
+                # 既存行を検索
+                row = db.execute(
+                    select(AiJudgement).where(
+                        AiJudgement.problem_id == problem_id,
+                        AiJudgement.user_id == target_user_id
+                    )
+                ).scalar_one_or_none()
+                if row is None:
+                    row = AiJudgement(problem_id=problem_id, user_id=target_user_id)
+                    db.add(row)
+                if is_wrong is not None:
+                    row.is_wrong = is_wrong
+                if score is not None:
+                    row.score = score
+                if reason:
+                    row.reason = reason[:2000]
+                row.updated_at = dt.datetime.utcnow()
+                db.commit()
+    except Exception:
+        # 背景スレッドなので握りつぶす
+        pass
+
+
+def judge_explanation_ai(expl_id: int):
+    """指定の解説に対して、問題本文・選択肢・画像をコンテキストに AI で正誤判定（2値）する"""
+    if not (OPENAI_ENABLED and OPENAI_API_KEY):
+        return
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=OPENAI_API_KEY)
+
+        with SessionLocal() as db:
+            e = db.get(Explanation, expl_id)
+            if not e:
+                return
+            p = db.get(Problem, e.problem_id)
+            if not p:
+                return
+
+            # 問題の選択肢（MCQ）の収集と正解候補
+            opts = []
+            correct_labels = []
+            if p.qtype == "mcq":
+                kana = ['ア','イ','ウ','エ','オ','カ','キ','ク','ケ','コ']
+                rows = list(db.execute(select(Option).where(Option.problem_id==p.id).order_by(Option.id.asc())).scalars().all())
+                for i, o in enumerate(rows):
+                    label = kana[i] if i < len(kana) else f"選択肢{i+1}"
+                    opts.append(f"{label}: {o.text}")
+                    if o.is_correct:
+                        correct_labels.append(label)
+
+            # 画像: 問題の画像（最大4）＋ この解説に添付された画像（最大2）
+            message_content = []
+            # 1) テキスト（プロンプト）
+            prompt = (
+                "あなたは厳密な答案レビューアです。以下の“解説”が、与えられた問題設定に照らして"
+                "事実誤認や論理誤りを含むかを二値で判定してください。\n"
+                "ただし解説が不十分でも模範解答があっていれば正解と確信してください。\n"
+                "出力は必ずJSONのみ：{is_wrong: true|false, score: 0..100, reason: string}\n"
+                "- is_wrong: 解説が誤っている（または誤解を招く重大な欠陥がある）なら true、それ以外は false\n"
+                "- score: 判定の確信度（大きいほど自信が高い）\n"
+                "- reason: 最大2〜3文で簡潔に\n\n"
+                f"[問題タイトル]\n{p.title}\n"
+                f"[問題文]\n{p.body or ''}\n"
+            )
+            if opts:
+                prompt += f"[選択肢]\n" + "\n".join(opts) + "\n"
+                if correct_labels:
+                    # 正解を伝えることでファクトチェックの基準を固定
+                    prompt += f"[正解ラベル]\n{', '.join(correct_labels)}\n"
+            prompt += f"\n[レビュー対象の解説]\n{e.content}\n"
+            message_content.append({"type": "text", "text": prompt})
+
+            import base64, os
+            # 問題画像
+            try:
+                pimgs = list(db.execute(select(ProblemImage).where(ProblemImage.problem_id==p.id).order_by(ProblemImage.id.asc())).scalars().all())
+                for im in pimgs[:4]:
+                    fpath = os.path.join(UPLOAD_DIR, im.filename)
+                    if os.path.exists(fpath):
+                        with open(fpath, "rb") as fh:
+                            b64 = base64.b64encode(fh.read()).decode("ascii")
+                        ext = os.path.splitext(im.filename)[1].lower()
+                        mime = 'image/jpeg' if ext in ('.jpg', '.jpeg') else 'image/png' if ext=='.png' else 'image/webp' if ext=='.webp' else 'application/octet-stream'
+                        message_content.append({"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}})
+            except Exception:
+                pass
+
+            # 解説画像
+            try:
+                eimgs = list(db.execute(select(ExplanationImage).where(ExplanationImage.explanation_id==e.id).order_by(ExplanationImage.id.asc())).scalars().all())
+                for im in eimgs[:2]:
+                    fpath = os.path.join(UPLOAD_DIR, im.filename)
+                    if os.path.exists(fpath):
+                        with open(fpath, "rb") as fh:
+                            b64 = base64.b64encode(fh.read()).decode("ascii")
+                        ext = os.path.splitext(im.filename)[1].lower()
+                        mime = 'image/jpeg' if ext in ('.jpg', '.jpeg') else 'image/png' if ext=='.png' else 'image/webp' if ext=='.webp' else 'application/octet-stream'
+                        message_content.append({"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}})
+            except Exception:
+                pass
+
+            resp = client.chat.completions.create(
+                model=OPENAI_MODEL,
+                messages=[{"role":"user","content": message_content}],
+                temperature=0.0,
+                max_tokens=400,
+            )
+            raw = (resp.choices[0].message.content or "").strip()
+
+            # 既存の JSON 抽出ユーティリティを再利用
+            data_txt = extract_json_block(raw)
+            try:
+                data = json.loads(data_txt)
+            except Exception:
+                data = None
+
+            is_wrong = None
+            score = None
+            reason = None
+            if isinstance(data, dict):
+                v = str(data.get("is_wrong", "")).strip().lower()
+                if v in ("true", "false"):
+                    is_wrong = (v == "true")
+                elif isinstance(data.get("is_wrong"), bool):
+                    is_wrong = bool(data["is_wrong"])
+                if isinstance(data.get("score"), (int, float)):
+                    score = int(max(0, min(100, round(float(data["score"])))))
+                if isinstance(data.get("reason"), str):
+                    reason = data["reason"].strip()
+
+            # 保存（最低限 is_wrong が取れた時のみ）
+            changed = False
+            if is_wrong is not None:
+                e.ai_is_wrong = is_wrong
+                changed = True
+            if score is not None:
+                e.ai_judge_score = score
+                changed = True
+            if reason:
+                e.ai_judge_reason = reason[:2000]
+                changed = True
+            if changed:
+                db.commit()
+    except Exception:
+        # 背景スレッドなので握りつぶす
+        pass
+
+def judge_all_explanations(problem_id: int):
+    """指定問題のすべての解説に対して AI 誤り判定を順次実行（バックグラウンド利用前提）"""
+    try:
+        with SessionLocal() as db:
+            ids = [row[0] for row in db.execute(
+                select(Explanation.id).where(Explanation.problem_id==problem_id)
+            ).all()]
+        for eid in ids:
+            judge_explanation_ai(eid)
+    except Exception:
+        pass
 
 @app.on_event("startup")
 def on_start():
@@ -387,7 +714,13 @@ def create_problem(request: Request, authorization: Optional[str] = None, db: Se
     db.commit()
 
     if OPENAI_ENABLED and OPENAI_API_KEY:
-        threading.Thread(target=generate_ai_explanations, args=(p.id,), daemon=True).start()
+        def _gen_and_judge(pid: int):
+            try:
+                generate_ai_explanations(pid)
+                judge_all_explanations(pid)
+            except Exception:
+                pass
+        threading.Thread(target=_gen_and_judge, args=(p.id,), daemon=True).start()
 
     return {"id": p.id, "ok": True}
 
@@ -565,6 +898,7 @@ def generate_ai_explanations(problem_id: int):
                 if model_answer_txt and model_answer_txt.strip():
                     db.add(ModelAnswer(problem_id=p.id, user_id=None, content=model_answer_txt.strip()))
                 db.commit()
+                judge_all_explanations(problem_id)
     except Exception:
         # Do not raise in background thread
         pass
@@ -594,6 +928,7 @@ def regenerate_ai_explanations_preserve_likes(problem_id: int):
                         changed = True
             if changed:
                 db.commit()
+        judge_all_explanations(problem_id)
     except Exception:
         pass
 
@@ -617,66 +952,122 @@ def generate_ai_explanation(problem_id: int):
             db.add(Explanation(problem_id=p.id, user_id=None, content=content)); db.commit()
     except Exception: pass
 
-@app.get("/problems/{pid:int}")
-def problem_detail(pid: int, request: Request, authorization: Optional[str] = None, db: Session = Depends(get_db)):
-    p = db.get(Problem, pid)
-    if not p: raise HTTPException(404, "not found")
-    opts = db.execute(select(Option).where(Option.problem_id==pid)).scalars().all()
-    # options include aliases for frontend compatibility: text/content and is_correct
-    expl_liked = False
-    liked = False
-    try:
-        u = get_user(db, authorization, request)
-        if u:
-            liked = db.execute(select(ProblemExplLike).where(ProblemExplLike.problem_id==p.id, ProblemExplLike.user_id==u.id)).scalar_one_or_none()
-            expl_liked = (liked is not None)
-            pl = db.execute(select(ProblemLike).where(ProblemLike.problem_id==p.id, ProblemLike.user_id==u.id)).scalar_one_or_none()
-            liked = (pl is not None)
-    except Exception:
-        pass
-    data = {
-        "id": p.id,
-        "title": p.title,
-        "body": p.body,
-        "qtype": p.qtype,
-        "child_id": p.child_id,
-        "grand_id": p.grand_id,
-        "like_count": p.like_count,
-        "liked": liked,
-        "expl_like_count": p.expl_like_count,
-        "expl_liked": expl_liked,
-        "options": [
-            {
-                "id": o.id,
-                "text": o.text,
-                "content": o.text,
-                "is_correct": bool(o.is_correct),
-            }
-            for o in opts
-        ],
-        "images": [
-            f"/uploads/{im.filename}"
-            for im in db.execute(
-                select(ProblemImage)
-                .where(ProblemImage.problem_id == pid)
-                .order_by(ProblemImage.id.asc())
-            ).scalars().all()
-        ],
-    }
-    # Return current user's model_answer from model_answers table (if any)
-    try:
-        user = get_user(db, authorization, request)
-        if user:
-            ma = db.execute(select(ModelAnswer).where(ModelAnswer.problem_id==p.id, ModelAnswer.user_id==user.id).order_by(ModelAnswer.id.desc()).limit(1)).scalar_one_or_none()
-            if ma and ma.content is not None:
-                data["model_answer"] = ma.content
-    except HTTPException:
-        pass
-    return data
+@app.get("/problems/{pid:int}/explanations")
+def list_explanations(
+    pid: int,
+    sort: str = "likes",
+    request: Request = None,
+    authorization: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    # 並び替え（likes=いいね順 / recent=新しい順 / その他=ランダム）
+    q = select(Explanation).where(Explanation.problem_id == pid)
+    if sort == "likes":
+        q = q.order_by(Explanation.like_count.desc(), Explanation.id.asc())
+    elif sort == "recent":
+        q = q.order_by(Explanation.id.desc())
+    exps = db.execute(q).scalars().all()
 
+    # ===== wrong-flag（総数） =====
+    ex_ids = [e.id for e in exps]
+    wrong_flag_counts = {eid: 0 for eid in ex_ids}
+    if ex_ids:
+        rows = db.execute(
+            select(ExplanationWrongFlag.explanation_id, func.count())
+            .where(ExplanationWrongFlag.explanation_id.in_(ex_ids))
+            .group_by(ExplanationWrongFlag.explanation_id)
+        ).all()
+        for eid, cnt in rows:
+            wrong_flag_counts[int(eid)] = int(cnt or 0)
+
+    # ===== 自分が wrong-flag 済みか =====
+    flagged_ids = set()
+    try:
+        me = get_user(db, authorization, request)
+        if me and ex_ids:
+            flagged_rows = db.execute(
+                select(ExplanationWrongFlag.explanation_id)
+                .where(
+                    ExplanationWrongFlag.user_id == me.id,
+                    ExplanationWrongFlag.explanation_id.in_(ex_ids),
+                )
+            ).all()
+            flagged_ids = {int(r[0]) for r in flagged_rows}
+    except Exception:
+        flagged_ids = set()
+
+    # ===== 自分が「いいね」済みか =====
+    liked_ids = set()
+    try:
+        me = get_user(db, authorization, request)
+        if me and ex_ids:
+            liked_rows = db.execute(
+                select(ExplanationLike.explanation_id)
+                .where(
+                    ExplanationLike.user_id == me.id,
+                    ExplanationLike.explanation_id.in_(ex_ids),
+                )
+            ).all()
+            liked_ids = {int(r[0]) for r in liked_rows}
+    except Exception:
+        liked_ids = set()
+
+    # ===== (pid, uid) の AiJudgement を一括取得 =====
+    uids = list({e.user_id for e in exps if getattr(e, "user_id", None) is not None})
+    judgement_map = {}
+    if uids:
+        jrows = db.execute(
+            select(AiJudgement).where(
+                AiJudgement.problem_id == pid,
+                AiJudgement.user_id.in_(uids),
+            )
+        ).scalars().all()
+        judgement_map = {j.user_id: j for j in jrows}
+
+    # ===== レスポンス整形 =====
+    items = []
+    for e in exps:
+        # 表示名
+        if e.user_id is None:
+            by = "AI"
+        else:
+            u = db.get(User, e.user_id)
+            by = (u.nickname if u and u.nickname else (u.username if u else None))
+
+        # 画像
+        imgs = db.execute(
+            select(ExplanationImage).where(ExplanationImage.explanation_id == e.id).order_by(ExplanationImage.id.asc())
+        ).scalars().all()
+        img_urls = [f"/uploads/{im.filename}" for im in imgs]
+
+        # (pid, uid) 判定
+        j = judgement_map.get(getattr(e, "user_id", None))
+
+        items.append({
+            "id": e.id,
+            "content": e.content,
+            "likes": e.like_count,                 # ← like_count を使用
+            "is_ai": (e.user_id is None),
+            "option_index": e.option_index,
+            "user_id": e.user_id,
+            "by": by,
+            "liked": (e.id in liked_ids),
+            "images": img_urls,
+            # 旧 Explanation.ai_* は使わず、AiJudgement に置き換え
+            "ai_is_wrong": (j.is_wrong if j else None),
+            "ai_judge_score": (j.score if j else None),
+            "ai_judge_reason": (j.reason if j else None),
+            "wrong_flag_count": wrong_flag_counts.get(e.id, 0),
+            "flagged_wrong": (e.id in flagged_ids),
+        })
+
+    if sort not in ("likes", "recent"):
+        random.shuffle(items)
+
+    return {"items": items}
 @app.get("/problems/for-explain")
 def problems_for_explain(child_id: int, grand_id: Optional[int] = None, sort: str="likes", db: Session = Depends(get_db)):
-    from sqlalchemy import func
+
     q = select(Problem,
                func.coalesce(func.sum(Explanation.like_count),0).label("elikes"),
                func.count(func.distinct(func.coalesce(Explanation.user_id, -1))).label("ex_cnt")).outerjoin(Explanation, Explanation.problem_id==Problem.id)\
@@ -738,62 +1129,14 @@ def create_explanation(
                 continue
 
     db.commit()
+    if OPENAI_ENABLED and OPENAI_API_KEY:
+        threading.Thread(
+            target=judge_problem_for_user,
+            args=(pid, user.id),
+            daemon=True
+        ).start()
     return {"ok": True, "id": e.id}
 
-@app.get("/problems/{pid:int}/explanations")
-def list_explanations(pid: int, sort: str="likes", request: Request = None, authorization: Optional[str] = None, db: Session = Depends(get_db)):
-    q = select(Explanation).where(Explanation.problem_id==pid)
-    if sort=="likes":
-        q = q.order_by(Explanation.like_count.desc(), Explanation.id.asc())
-    elif sort=="recent":
-        q = q.order_by(Explanation.id.desc())
-    # fetch
-    ex = db.execute(q).scalars().all()
-    # determine liked ids by current user (optional)
-    liked_ids = set()
-    try:
-        u = get_user(db, authorization, request)
-        if u:
-            liked_rows = db.execute(
-                select(ExplanationLike.explanation_id)
-                .join(Explanation, Explanation.id==ExplanationLike.explanation_id)
-                .where(Explanation.problem_id==pid, ExplanationLike.user_id==u.id)
-            ).all()
-            liked_ids = {r[0] for r in liked_rows}
-    except Exception:
-        liked_ids = set()
-    # enrich with author nickname and user_id
-    items = []
-    for e in ex:
-        by = None
-        if e.user_id is None:
-            by = "AI"
-        else:
-            u = db.get(User, e.user_id)
-            by = (u.nickname if u and u.nickname else (u.username if u else None))
-
-        # ← 追加: この解説の画像を取得
-        imgs = db.execute(
-            select(ExplanationImage).where(ExplanationImage.explanation_id==e.id).order_by(ExplanationImage.id.asc())
-        ).scalars().all()
-        img_urls = [f"/uploads/{im.filename}" for im in imgs]
-
-        items.append({
-            "id": e.id,
-            "content": e.content,
-            "likes": e.like_count,
-            "is_ai": (e.user_id is None),
-            "option_index": e.option_index,
-            "user_id": e.user_id,
-            "by": by,
-            "liked": (e.id in liked_ids),
-            "images": img_urls,           
-        })
-
-    # if random requested, shuffle after enrichment
-    if sort not in ("likes", "recent"):
-        import random; random.shuffle(items)
-    return {"items": items}
 
 @app.get("/problems/{pid:int}/my-explanations")
 def my_explanations(pid: int, request: Request, authorization: Optional[str] = None, db: Session = Depends(get_db)):
@@ -843,7 +1186,7 @@ def unlike_explanation(eid: int, request: Request, authorization: Optional[str] 
 @app.get("/my/problems")
 def my_problems(request: Request, authorization: Optional[str] = None, db: Session = Depends(get_db), sort: str="new"):
     user = get_user(db, authorization, request)
-    from sqlalchemy import func
+
     # Count distinct authors (user-wise). Treat AI(None) as a single author via COALESCE(-1).
     ex_authors = func.count(func.distinct(func.coalesce(Explanation.user_id, -1))).label("ex_cnt")
     q = select(Problem, ex_authors).outerjoin(Explanation, Explanation.problem_id==Problem.id).where(Problem.created_by==user.id).group_by(Problem.id)
@@ -851,7 +1194,32 @@ def my_problems(request: Request, authorization: Optional[str] = None, db: Sessi
     elif sort=="ex_cnt": q = q.order_by(text("ex_cnt DESC"), Problem.id.desc())
     else: q = q.order_by(Problem.id.desc())
     rows = db.execute(q).all()
+ 
     return {"items":[{"id":r[0].id,"title":r[0].title,"qtype":r[0].qtype,"like_count":r[0].like_count,"ex_cnt":int(r[1])} for r in rows]}
+
+@app.get("/problems/{pid:int}")
+def get_problem(pid: int, request: Request, authorization: Optional[str] = None, db: Session = Depends(get_db)):
+    _ = get_user(db, authorization, request)  # 認証
+    p = db.get(Problem, pid)
+    if not p:
+        raise HTTPException(404, "not found")
+    opts = db.execute(select(Option).where(Option.problem_id==p.id).order_by(Option.id.asc())).scalars().all()
+    imgs = db.execute(select(ProblemImage).where(ProblemImage.problem_id==p.id).order_by(ProblemImage.id.asc())).scalars().all()
+    # 自分の model answer（あるなら）
+    ma = db.execute(select(ModelAnswer).where(ModelAnswer.problem_id==p.id, ModelAnswer.user_id==_.id)).scalar_one_or_none()
+    return {
+        "id": p.id,
+        "title": p.title,
+        "body": p.body,
+        "qtype": p.qtype,
+        "child_id": p.child_id,
+        "grand_id": p.grand_id,
+        "images": [f"/uploads/{im.filename}" for im in imgs],
+        "options": [{"id": o.id, "text": o.text, "is_correct": bool(o.is_correct)} for o in opts],
+        "model_answer": getattr(ma, "content", None),
+        "like_count": p.like_count,
+        "expl_like_count": p.expl_like_count,
+    }
 
 @app.put("/problems/{pid}")
 def edit_problem(pid: int, request: Request, authorization: Optional[str] = None, db: Session = Depends(get_db),
@@ -864,6 +1232,7 @@ def edit_problem(pid: int, request: Request, authorization: Optional[str] = None
     p = db.get(Problem, pid)
     if not p: raise HTTPException(404, "not found")
     is_owner = (p.created_by == user.id)
+    updated_explanations = False
 
     should_regen_ai = is_owner and any(v is not None for v in [title, body, qtype, category_child_id, category_grand_id, options_text, options, correct_index, model_answer])
 
@@ -902,7 +1271,17 @@ def edit_problem(pid: int, request: Request, authorization: Optional[str] = None
         # Any user may (re)write their own per-option explanations
         me = user.id
         if (option_explanations_json is not None) or (option_explanations_text is not None):
-            db.query(Explanation).filter(Explanation.problem_id==p.id, Explanation.user_id==me, Explanation.option_index!=None).delete()
+            updated_explanations = True
+            # Collect existing per-option explanations by this user to safely remove dependent rows
+            ex_ids = [row[0] for row in db.execute(
+                select(Explanation.id)
+                .where(Explanation.problem_id == p.id, Explanation.user_id == me, Explanation.option_index != None)
+            ).all()]
+            if ex_ids:
+                # Remove dependent rows first to avoid FK violations in environments without ON DELETE CASCADE
+                db.query(ExplanationImage).filter(ExplanationImage.explanation_id.in_(ex_ids)).delete(synchronize_session=False)
+                db.query(ExplanationLike).filter(ExplanationLike.explanation_id.in_(ex_ids)).delete(synchronize_session=False)
+                db.query(Explanation).filter(Explanation.id.in_(ex_ids)).delete(synchronize_session=False)
             if option_explanations_json is not None:
                 try:
                     arr = json.loads(option_explanations_json)
@@ -919,21 +1298,120 @@ def edit_problem(pid: int, request: Request, authorization: Optional[str] = None
                         db.add(Explanation(problem_id=p.id, user_id=me, content=line, option_index=i))
     # update overall explanation by this user if provided
     if initial_explanation is not None:
+        updated_explanations = True
         me = user.id
-        db.query(Explanation).filter(Explanation.problem_id==p.id, Explanation.user_id==me, Explanation.option_index==None).delete()
+        # Safely delete existing overall explanation (option_index is NULL) with dependents
+        ex_ids = [row[0] for row in db.execute(
+            select(Explanation.id)
+            .where(Explanation.problem_id == p.id, Explanation.user_id == me, Explanation.option_index == None)
+        ).all()]
+        if ex_ids:
+            db.query(ExplanationImage).filter(ExplanationImage.explanation_id.in_(ex_ids)).delete(synchronize_session=False)
+            db.query(ExplanationLike).filter(ExplanationLike.explanation_id.in_(ex_ids)).delete(synchronize_session=False)
+            db.query(Explanation).filter(Explanation.id.in_(ex_ids)).delete(synchronize_session=False)
         if initial_explanation.strip():
             db.add(Explanation(problem_id=p.id, user_id=me, content=initial_explanation.strip(), option_index=None))
-    # Free-text problems: model_answer remains optional
-    db.commit(); return {"ok": True}
+    db.commit()
+    if OPENAI_ENABLED and OPENAI_API_KEY:
+        if should_regen_ai:
+            threading.Thread(
+                target=judge_problem_for_user,
+                args=(p.id, user.id),
+                daemon=True
+            ).start()
+        elif updated_explanations:
+            threading.Thread(
+                target=judge_problem_for_user,
+                args=(p.id, user.id),
+                daemon=True
+            ).start()
+
+    return {"ok": True}
+
+@app.put("/explanations/{eid:int}")
+def edit_explanation(
+    eid: int,
+    request: Request,
+    authorization: Optional[str] = None,
+    db: Session = Depends(get_db),
+    content: Optional[str] = Form(None),
+    # 画像を差し替えたい場合用。差し替え不要なら送らない。
+    images: List[UploadFile] = File(None),
+    # 既存画像を全削除してから images を登録したいとき True
+    clear_images: Optional[bool] = Form(False),
+):
+    user = get_user(db, authorization, request)
+    e = db.get(Explanation, eid)
+    if not e:
+        raise HTTPException(404, "Explanation not found")
+    if e.user_id is None:
+        # AI解説は直接編集不可（必要なら別ポリシーで）
+        raise HTTPException(403, "AI explanation cannot be edited directly")
+    if e.user_id != user.id:
+        raise HTTPException(403, "forbidden")
+
+    changed = False
+    if content is not None:
+        e.content = content
+        changed = True
+
+    # 画像の扱い
+    if clear_images:
+        db.query(ExplanationImage).filter(ExplanationImage.explanation_id == eid).delete(synchronize_session=False)
+        changed = True
+
+    if images:
+        import os, time, random
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+        subdir = os.path.join(UPLOAD_DIR, "expl", str(e.id))
+        os.makedirs(subdir, exist_ok=True)
+        for f in images:
+            try:
+                blob = f.file.read()
+                if not blob:
+                    continue
+                base = os.path.basename(f.filename or "image")
+                name, ext = os.path.splitext(base)
+                ext = (ext or "").lower()
+                if ext not in (".png", ".jpg", ".jpeg", ".gif", ".webp"):
+                    ext = ".bin"
+                fn = f"e{e.id}_{int(time.time()*1000)}_{random.randint(1000,9999)}{ext}"
+                path = os.path.join(subdir, fn)
+                with open(path, "wb") as out:
+                    out.write(blob)
+                rel = os.path.relpath(path, UPLOAD_DIR).replace("\\", "/")
+                db.add(ExplanationImage(explanation_id=e.id, filename=rel))
+                changed = True
+            except Exception:
+                continue
+
+    if changed:
+        db.commit()
+        if OPENAI_ENABLED and OPENAI_API_KEY:
+            threading.Thread(
+                target=judge_problem_for_user,  # ← 新実装の関数
+                args=(e.problem_id, e.user_id),
+                daemon=True
+            ).start()
+
+    return {"ok": True, "id": e.id}
 
 # ModelAnswer: upsert current user's model answer for a problem
 @app.post("/problems/{pid:int}/model-answer")
-def upsert_model_answer(pid: int, request: Request, authorization: Optional[str] = None, db: Session = Depends(get_db), content: str = Form(...)):
+def upsert_model_answer(
+    pid: int,
+    request: Request,
+    authorization: Optional[str] = None,
+    db: Session = Depends(get_db),
+    # Be tolerant: accept missing form and allow query fallback
+    content: Optional[str] = Form(None),
+    content_q: Optional[str] = Query(None),
+):
     user = get_user(db, authorization, request)
     p = db.get(Problem, pid)
     if not p:
         raise HTTPException(404, "not found")
-    txt = (content or "").strip()
+    txt = (content if (content is not None) else content_q or "").strip()
     existing = db.execute(select(ModelAnswer).where(ModelAnswer.problem_id==pid, ModelAnswer.user_id==user.id)).scalar_one_or_none()
     if not txt:
         # empty => delete if present
@@ -1121,6 +1599,57 @@ def unlike_problem_explanations(pid: int, request: Request, authorization: Optio
         db.commit()
     return {"ok": True, "expl_like_count": p.expl_like_count}
 
+@app.post("/explanations/{expl_id:int}/wrong-flags")
+def add_wrong_flag(
+    expl_id: int,
+    request: Request,
+    authorization: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    user = get_user(db, authorization, request)
+    e = db.get(Explanation, expl_id)
+    if not e:
+        raise HTTPException(404, "Explanation not found")
+
+    exists = db.execute(
+        select(ExplanationWrongFlag)
+        .where(
+            ExplanationWrongFlag.explanation_id == expl_id,
+            ExplanationWrongFlag.user_id == user.id
+        )
+    ).scalar_one_or_none()
+
+    if not exists:
+        db.add(ExplanationWrongFlag(explanation_id=expl_id, user_id=user.id))
+        db.commit()
+
+    count = db.execute(
+        select(func.count(ExplanationWrongFlag.id))
+        .where(ExplanationWrongFlag.explanation_id == expl_id)
+    ).scalar_one()
+    return {"ok": True, "flagged": True, "count": int(count)}
+
+@app.delete("/explanations/{expl_id:int}/wrong-flags")
+def remove_wrong_flag(
+    expl_id: int,
+    request: Request,
+    authorization: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    user = get_user(db, authorization, request)
+    # ORMの一括削除でOK（FK制約的にも問題なし）
+    db.query(ExplanationWrongFlag).filter(
+        ExplanationWrongFlag.explanation_id == expl_id,
+        ExplanationWrongFlag.user_id == user.id
+    ).delete(synchronize_session=False)
+    db.commit()
+
+    count = db.execute(
+        select(func.count(ExplanationWrongFlag.id))
+        .where(ExplanationWrongFlag.explanation_id == expl_id)
+    ).scalar_one()
+    return {"ok": True, "flagged": False, "count": int(count)}
+
 # Leaderboard
 @app.get("/leaderboard")
 def leaderboard(metric: str = "points", db: Session = Depends(get_db)):
@@ -1131,7 +1660,7 @@ def leaderboard(metric: str = "points", db: Session = Depends(get_db)):
         items = [{"user_id": r.id, "username": r.username, "nickname": r.nickname, "value": int(r.val or 0), "score": int(r.val or 0)} for r in rows]
     elif metric in ("created_problem", "created_problems", "problems_created"):
         # Count of problems created per user
-        from sqlalchemy import func
+    
         rows = db.execute(
             select(User.id, User.username, User.nickname, func.count(Problem.id).label("val"))
             .outerjoin(Problem, Problem.created_by==User.id)
@@ -1141,7 +1670,7 @@ def leaderboard(metric: str = "points", db: Session = Depends(get_db)):
         items = [{"user_id": r.id, "username": r.username, "nickname": r.nickname, "value": int(r.val or 0), "score": int(r.val or 0)} for r in rows]
     elif metric in ("created_expl", "created_explanation", "explanations_created"):
         # Count explanations by distinct problem per user (avoid counting per-option multiples)
-        from sqlalchemy import func
+    
         rows = db.execute(
             select(User.id, User.username, User.nickname, func.count(func.distinct(Explanation.problem_id)).label("val"))
             .outerjoin(Explanation, Explanation.user_id==User.id)
@@ -1151,7 +1680,7 @@ def leaderboard(metric: str = "points", db: Session = Depends(get_db)):
         items = [{"user_id": r.id, "username": r.username, "nickname": r.nickname, "value": int(r.val or 0), "score": int(r.val or 0)} for r in rows]
     elif metric == "likes":
         # Sum of likes on explanations written by the user
-        from sqlalchemy import func
+    
         rows = db.execute(
             select(User.id, User.username, User.nickname, func.coalesce(func.sum(Explanation.like_count), 0).label("val"))
             .outerjoin(Explanation, Explanation.user_id==User.id)
@@ -1161,7 +1690,7 @@ def leaderboard(metric: str = "points", db: Session = Depends(get_db)):
         items = [{"user_id": r.id, "username": r.username, "nickname": r.nickname, "value": int(r.val or 0), "score": int(r.val or 0)} for r in rows]
     elif metric in ("likes_problem", "likes_problems"):
         # Sum of likes on problems the user created
-        from sqlalchemy import func
+    
         rows = db.execute(
             select(User.id, User.username, User.nickname, func.coalesce(func.sum(Problem.like_count), 0).label("val"))
             .outerjoin(Problem, Problem.created_by==User.id)
@@ -1171,7 +1700,7 @@ def leaderboard(metric: str = "points", db: Session = Depends(get_db)):
         items = [{"user_id": r.id, "username": r.username, "nickname": r.nickname, "value": int(r.val or 0), "score": int(r.val or 0)} for r in rows]
     elif metric in ("likes_expl", "likes_explanations"):
         # Sum likes for explanations per problem per user, then aggregate per user (avoid per-option inflation)
-        from sqlalchemy import func
+    
         sub = (
             select(Explanation.user_id.label("uid"), Explanation.problem_id.label("pid"), func.coalesce(func.sum(Explanation.like_count), 0).label("grp"))
             .group_by(Explanation.user_id, Explanation.problem_id)
@@ -1184,7 +1713,7 @@ def leaderboard(metric: str = "points", db: Session = Depends(get_db)):
         ).all()
         items = [{"user_id": r.id, "username": r.username, "nickname": r.nickname, "value": int(r.val or 0), "score": int(r.val or 0)} for r in rows]
     elif metric == "created":
-        from sqlalchemy import func
+    
         rows = db.execute(
             select(User.id, User.username, User.nickname, func.count(Problem.id).label("val"))
             .outerjoin(Problem, Problem.created_by==User.id)
@@ -1276,7 +1805,7 @@ def review_mark(pid: int, is_correct: bool, request: Request, authorization: Opt
 @app.get("/my/explanations/problems")
 def my_explanations_problems(request: Request, authorization: Optional[str] = None, db: Session = Depends(get_db)):
     user = get_user(db, authorization, request)
-    from sqlalchemy import func
+
     rows = db.execute(
         select(Problem.id, Problem.title, Problem.qtype, func.coalesce(func.sum(Explanation.like_count), 0).label("my_like"))
         .join(Explanation, Explanation.problem_id==Problem.id)
