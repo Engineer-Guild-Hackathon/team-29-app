@@ -186,7 +186,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
       } else {
         (g['overall'] as List<String>).add(txt);
       }
-      if (e['ai_is_wrong'] == true) {
+      if (e['ai_is_wrong'] == true || (e is Map && e['crowd_maybe_wrong'] == true)) {
         g['aiWrong'] = true;
       }
       final eid = (e['id'] is int) ? e['id'] as int : null;
@@ -203,6 +203,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
       g['likeSum'] = (g['likeSum'] as int) + lc;
     }
     final List<Map<String, dynamic>> groupList = groups.values.toList();
+    // フィルタ済み（著者単位で「間違っているかも」のグループを除外）
+    final List<Map<String, dynamic>> groupListAll = groupList;
+    final List<Map<String, dynamic>> groupListFiltered = groupList
+        .where((g) => (g['aiWrong'] == true) == false)
+        .toList();
 
     if (!mounted) return;
     int problemLikes = (pd['like_count'] is int)
@@ -213,6 +218,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
     await showDialog(
       context: context,
       builder: (c) {
+        bool showMaybeWrong = false; // keep state across setStateDlg rebuilds
         return StatefulBuilder(builder: (c, setStateDlg) {
           return AlertDialog(
             title: Row(
@@ -339,8 +345,20 @@ class _ReviewScreenState extends State<ReviewScreen> {
                         );
                       }),
 
+                      // 見出し
+                      const Text('解説'),
+                      // トグル（全幅で押しやすく）
+                      CheckboxListTile(
+                        value: showMaybeWrong,
+                        onChanged: (v) => setStateDlg(() => showMaybeWrong = (v ?? false)),
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        controlAffinity: ListTileControlAffinity.leading,
+                        title: const Text('間違っているかもしれない解説も表示'),
+                      ),
+
                       // ★ 解説カード（各著者ごと）：上に「〇〇の解答 → 解答」→ その下に「〇〇の解説」
-                      ...groupList.map((g) {
+                      ...((showMaybeWrong ? groupListAll : groupListFiltered)).map((g) {
                         final by = (g['by'] ?? 'ユーザー').toString();
                         final int? uid = g['uid'] as int?;
                         final Map<int, List<String>> perOpt =
