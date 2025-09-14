@@ -3,11 +3,10 @@ import '../services/api.dart';
 import 'login_register.dart';
 import 'subject_select.dart';
 import 'post_problem_hub.dart';
-import 'explain_create.dart';
-import 'solve_screen.dart';
+import 'solve_hub.dart';
 import 'ranking.dart';
-import 'solve_picker_screen.dart';
 import 'review_screen.dart';
+import 'user_info.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -38,17 +37,37 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('ホーム'),
         actions: [
-          IconButton(
-            tooltip: 'ログアウト',
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              Api.clearToken();
-              Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const LoginRegisterScreen()),
-                  (_) => false);
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.menu),
+            onSelected: (v) async {
+              switch (v) {
+                case 'user':
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const UserInfoScreen()));
+                  break;
+                case 'subjects':
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const SubjectSelectScreen(
+                                isOnboarding: false,
+                              )));
+                  break;
+                case 'logout':
+                  Api.clearToken();
+                  Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const LoginRegisterScreen()),
+                      (_) => false);
+                  break;
+              }
             },
+            itemBuilder: (c) => const [
+              PopupMenuItem(value: 'user', child: Text('ユーザ情報')),
+              PopupMenuItem(value: 'subjects', child: Text('教材を選びなおす')),
+              PopupMenuItem(value: 'logout', child: Text('ログアウト')),
+            ],
           ),
         ],
       ),
@@ -58,31 +77,18 @@ class HomeScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(children: [
-            menuTile(context, '問題をランダムに解く', () => Navigator.push(
+            menuTile(context, '問題を解く', () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const SolveScreen()))),
-            menuTile(context, '問題を選んで解く', () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SolvePickerScreen()))),
-            menuTile(context, '問題を管理する', () => Navigator.push(
+                MaterialPageRoute(builder: (_) => const SolveHubScreen()))),
+            menuTile(context, '問題・解答・解説を投稿する', () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const PostProblemHubScreen()))),
-            menuTile(context, '解説を作る', () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ExplainCreateScreen()))),
             menuTile(context, '振り返る', () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const ReviewScreen()))),
             menuTile(context, 'ランキングを見る', () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const RankingScreen()))),
-            const SizedBox(height: 8),
-            menuTile(context, '教科を選択しなおす', () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const SubjectSelectScreen(
-                          isOnboarding: false,
-                        )))),
           ]),
         ),
       )),
