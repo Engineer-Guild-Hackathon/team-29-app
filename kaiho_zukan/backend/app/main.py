@@ -329,6 +329,7 @@ def judge_problem_for_user(problem_id: int, target_user_id: int):
                 "ユーザが投稿した『模範解答・全体解説・選択肢ごとの解説』が、問題設定に照らして"
                 "誤りを含むかどうかを1回の判定でまとめて評価してください。\n"
                 "ただし解説が不十分でも模範解答があっていれば正解判定にしてください。\n"
+                "問題及び解答解説が難しく正解かどうか判定できない場合は，正解判定としてください。\n"
                 "出力は必ずJSONのみ：{is_wrong: true|false, score: 0..100, reason: string}\n"
                 "- is_wrong: 内容に事実誤認や重大な誤解がある場合 true、そうでなければ false\n"
                 "- score: 判定の確信度（0-100）\n"
@@ -1025,6 +1026,13 @@ def list_explanations(
         judgement_map = {j.user_id: j for j in jrows}
 
     # ===== レスポンス整形 =====
+    # exposure (distinct solvers)
+    try:
+        solvers = db.execute(
+            select(func.count(func.distinct(Answer.user_id))).where(Answer.problem_id == pid)
+        ).scalar_one() or 0
+    except Exception:
+        solvers = 0
     items = []
     for e in exps:
         # 表示名
@@ -1042,6 +1050,8 @@ def list_explanations(
 
         # (pid, uid) 判定
         j = judgement_map.get(getattr(e, "user_id", None))
+        wrong_cnt = wrong_flag_counts.get(e.id, 0)
+        crowd_maybe_wrong = (solvers >= 10 and (wrong_cnt / max(1, solvers)) > 0.3)
 
         items.append({
             "id": e.id,
@@ -1057,8 +1067,10 @@ def list_explanations(
             "ai_is_wrong": (j.is_wrong if j else None),
             "ai_judge_score": (j.score if j else None),
             "ai_judge_reason": (j.reason if j else None),
-            "wrong_flag_count": wrong_flag_counts.get(e.id, 0),
+            "wrong_flag_count": wrong_cnt,
             "flagged_wrong": (e.id in flagged_ids),
+            "solvers_count": int(solvers),
+            "crowd_maybe_wrong": bool(crowd_maybe_wrong),
         })
 
     if sort not in ("likes", "recent"):

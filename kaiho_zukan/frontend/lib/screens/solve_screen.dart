@@ -37,6 +37,8 @@ class _SolveScreenState extends State<SolveScreen> {
 
   // 選択式補助
   int? _mcqSelectedIndex; // 直近にユーザーが選んだ選択肢の index
+  // 表示制御: 群衆フラグで「間違っているかも」の解説を表示
+  bool _showMaybeWrong = false;
 
   @override
   void initState() {
@@ -535,7 +537,17 @@ class _SolveScreenState extends State<SolveScreen> {
                 if (_mcqSelectedIndex != null) ...[
                   const SizedBox(height: 12),
                   _yourAnswerSection(isMcq: true),
-                  const Text('解説'),
+                  Row(
+                    children: [
+                      const Text('解説'),
+                      const Spacer(),
+                      Checkbox(
+                        value: _showMaybeWrong,
+                        onChanged: (v) => setState(() => _showMaybeWrong = (v ?? false)),
+                      ),
+                      const Text('間違っているかもしれない解説も表示'),
+                    ],
+                  ),
                   const SizedBox(height: 8),
                   ..._groupedByUserExplanationCards(isMcq: true),
                   const SizedBox(height: 12),
@@ -655,7 +667,17 @@ class _SolveScreenState extends State<SolveScreen> {
                 if (_freeSubmitted) ...[
                   const SizedBox(height: 12),
                   _yourAnswerSection(isMcq: false),
-                  const Text('解説'),
+                  Row(
+                    children: [
+                      const Text('解説'),
+                      const Spacer(),
+                      Checkbox(
+                        value: _showMaybeWrong,
+                        onChanged: (v) => setState(() => _showMaybeWrong = (v ?? false)),
+                      ),
+                      const Text('間違っているかもしれない解説も表示'),
+                    ],
+                  ),
                   const SizedBox(height: 8),
                   ..._groupedByUserExplanationCards(isMcq: false),
                   const SizedBox(height: 12),
@@ -724,6 +746,8 @@ class _SolveScreenState extends State<SolveScreen> {
   List<Widget> _groupedByUserExplanationCards({required bool isMcq}) {
     final Map<String, Map<String, dynamic>> groups = {};
     for (final e in explanations) {
+      final crowdWrong = (e is Map && e['crowd_maybe_wrong'] == true);
+      final aiWrong = (e is Map && e['ai_is_wrong'] == true);
       final isAi = e['is_ai'] == true;
       final key = isAi ? 'ai' : 'u${e['user_id']}';
       final by = isAi ? 'AI' : (e['by'] ?? 'ユーザー');
@@ -751,7 +775,7 @@ class _SolveScreenState extends State<SolveScreen> {
       } else {
         (g['overall'] as List<String>).add(txt);
       }
-      if (e['ai_is_wrong'] == true) {
+      if (e['ai_is_wrong'] == true || crowdWrong) {
         g['aiWrong'] = true;
       }
       final int likes = (e['likes'] is int) ? (e['likes'] as int) : 0;
@@ -771,6 +795,10 @@ class _SolveScreenState extends State<SolveScreen> {
     final opts = _optionsOf(prob);
     final cards = <Widget>[];
     for (final g in groups.values) {
+      // グループ単位でフィルタ: トグルOFFなら「間違っているかも」の著者は丸ごと非表示
+      if (!_showMaybeWrong && (g['aiWrong'] == true)) {
+        continue;
+      }
       final by = (g['by'] ?? 'ユーザー').toString();
       final perOpt = (g['perOpt'] as Map<int, List<String>>);
       final overall = (g['overall'] as List<String>);
