@@ -13,20 +13,22 @@ class HomeScreen extends StatelessWidget {
 
   Widget menuTile(BuildContext context, String title, VoidCallback onTap) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: InkWell(
           onTap: onTap,
           child: Container(
-            height: 56,
-            alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            height: 68,
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
                 color: Colors.teal.shade50,
                 border: Border.all(color: Colors.teal.shade200),
-                borderRadius: BorderRadius.circular(12)),
-            child: Text(title,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                borderRadius: BorderRadius.circular(14)),
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
           )),
     );
   }
