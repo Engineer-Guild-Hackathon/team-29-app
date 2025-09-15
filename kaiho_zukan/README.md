@@ -9,7 +9,6 @@ This is a split of your monolithic backend into packages:
 - `app/services`: background tasks (e.g., AI explanations)
 - `app/utils`: helpers (file saving, JSON extraction)
 - `app/main.py`: application factory and router registration
-
 ## How to run
 
 ```bash
