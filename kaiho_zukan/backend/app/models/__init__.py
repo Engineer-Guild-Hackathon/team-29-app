@@ -9,6 +9,7 @@ from .answer import Answer
 from .like import ProblemLike, ExplanationLike, ProblemExplLike
 from .assets import ProblemImage
 from .ai import ModelAnswer, AiJudgement
+from .notification import Notification
 
 __all__ = [
     "Base",
@@ -27,5 +28,5 @@ __all__ = [
     "ProblemImage",
     "ModelAnswer",
     "AiJudgement",
+    "Notification",
 ]
-

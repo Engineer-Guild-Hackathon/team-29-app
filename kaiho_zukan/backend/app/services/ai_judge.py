@@ -3,7 +3,7 @@ from sqlalchemy import select
 from core.config import get_settings
 from core.db import SessionLocal
 from models import (
-    Problem, Option, Explanation, ExplanationImage, ProblemImage, ModelAnswer, AiJudgement
+    Problem, Option, Explanation, ExplanationImage, ProblemImage, ModelAnswer, AiJudgement, Notification
 )
 from services.util import extract_json_block
 
@@ -253,6 +253,31 @@ def judge_explanation_ai(expl_id: int):
             changed = True
         if changed:
             db.commit()
+            try:
+                # notify (upsert) author if AI judged wrong
+                if (is_wrong is True) and (e.user_id is not None):
+                    existing = db.execute(
+                        select(Notification).where(
+                            Notification.user_id == e.user_id,
+                            Notification.type == "explanation_wrong",
+                            Notification.problem_id == e.problem_id,
+                        )
+                    ).scalar_one_or_none()
+                    if existing:
+                        existing.ai_judged_wrong = True
+                        # keep crowd_judged_wrong as is (might be set elsewhere)
+                    else:
+                        db.add(Notification(
+                            user_id=e.user_id,
+                            type="explanation_wrong",
+                            problem_id=e.problem_id,
+                            actor_user_id=None,
+                            ai_judged_wrong=True,
+                            crowd_judged_wrong=False,
+                        ))
+                    db.commit()
+            except Exception:
+                pass
 
 def judge_all_explanations(problem_id: int):
     """指定問題の全解説に対して順次AI誤り判定"""
