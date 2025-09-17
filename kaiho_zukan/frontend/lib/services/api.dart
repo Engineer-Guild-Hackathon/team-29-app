@@ -4,6 +4,7 @@ import 'api/category_service.dart';
 import 'api/explanation_service.dart';
 import 'api/leaderboard_service.dart';
 import 'api/notification_service.dart';
+import 'api/profile_service.dart';
 import 'api/model_answer_service.dart';
 import 'api/ocr_service.dart';
 import 'api/problem_service.dart';
@@ -28,6 +29,7 @@ class Api {
   static final review = ReviewService();
   static final leaderboard = LeaderboardService();
   static final ocr = OcrService();
+  static final profile = ProfileService();
   static final _notifications = NotificationService();
 
   static Future<List<dynamic>> notifications({bool unseenOnly = false, int limit = 50}) {
@@ -42,6 +44,7 @@ class Api {
     return leaderboard.fetchNamed(metric: metric);
   }
 }
+
 
 
 
