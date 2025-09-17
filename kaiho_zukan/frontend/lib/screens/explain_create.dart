@@ -10,7 +10,7 @@ class ExplainCreateScreen extends StatefulWidget {
 
 class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
   List<dynamic> parents = [], children = [], grands = [];
-  int? parentId, childId, grandId;
+  int? parentId, childId, grandId; // grandId=null で「すべて」
   String sort = 'likes';
   List<dynamic> problems = [];
   List<dynamic> myProblems = [];
@@ -29,7 +29,8 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
         if (children.isNotEmpty) {
           childId = children.first['id'];
           grands = children.first['children'] ?? [];
-          if (grands.isNotEmpty) grandId = grands.first['id'];
+          // 既定は「すべて」
+          grandId = null;
         }
       }
     });
@@ -56,13 +57,18 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(children: [
-          Row(children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: [
             ChoiceChip(label: const Text('新規で作る'), selected: tab == 0, onSelected: (_) { setState(() => tab = 0); }),
             const SizedBox(width: 8),
             ChoiceChip(label: const Text('作成済みを見る'), selected: tab == 1, onSelected: (_) { setState(() { tab = 1; }); _loadMine(); }),
-          ]),
+            ]),
+          ),
           const SizedBox(height: 8),
-          Row(children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: [
             DropdownButton<int>(
               value: parentId,
               items: parents.map<DropdownMenuItem<int>>((p) => DropdownMenuItem(value: p['id'] as int, child: Text(p['name']))).toList(),
@@ -73,7 +79,8 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
                   children = p['children'] ?? [];
                   childId = children.isNotEmpty ? children.first['id'] : null;
                   grands = childId != null ? (children.firstWhere((c) => c['id'] == childId)['children'] ?? []) : [];
-                  grandId = grands.isNotEmpty ? grands.first['id'] : null;
+                  // 親変更時は「すべて」に戻す
+                  grandId = null;
                 });
                 _search();
               },
@@ -87,18 +94,24 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
                 setState(() {
                   childId = v;
                   grands = c['children'] ?? [];
-                  grandId = grands.isNotEmpty ? grands.first['id'] : null;
+                  // 子変更時も「すべて」に戻す
+                  grandId = null;
                 });
                 _search();
               },
             ),
             const SizedBox(width: 12),
-            DropdownButton<int>(
+            DropdownButton<int?>(
               value: grandId,
-              items: grands.map<DropdownMenuItem<int>>((g) => DropdownMenuItem(value: g['id'] as int, child: Text(g['name']))).toList(),
+              items: <DropdownMenuItem<int?>>[
+                const DropdownMenuItem<int?>(value: null, child: Text('全単元（すべて）')),
+                ...grands.map<DropdownMenuItem<int?>>((g) => DropdownMenuItem<int?>(value: g['id'] as int, child: Text(g['name'])))
+              ],
               onChanged: (v) { setState(() => grandId = v); _search(); },
             ),
-            const Spacer(),
+            // Spacer() は SingleChildScrollView(scrollDirection: Axis.horizontal) 配下だと
+            // 無限幅コンストレイントで例外になるため使用しない
+            const SizedBox(width: 12),
             DropdownButton<String>(
               value: sort,
               items: const [
@@ -108,7 +121,8 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
               ],
               onChanged: (v) { setState(() => sort = v ?? 'likes'); _search(); },
             ),
-          ]),
+            ]),
+          ),
           const SizedBox(height: 8),
           Expanded(
             child: tab == 0
@@ -140,8 +154,51 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
                       return Card(
                         child: ListTile(
                           title: Text(p['title'] ?? ''),
-                          subtitle: Text('種別: $kind / 自分のいいね: ${p['my_like_count'] ?? 0}'),
-                          trailing: const Icon(Icons.edit),
+                          subtitle: Text('解説のいいね: ${p['my_like_count'] ?? 0}'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                tooltip: '編集',
+                                icon: const Icon(Icons.edit),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => PostProblemForm(editId: p['id'] as int, explainOnly: true)),
+                                  );
+                                },
+                              ),
+                              IconButton(
+                                tooltip: '削除',
+                                icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                onPressed: () async {
+                                  final ok = await showDialog<bool>(
+                                    context: context,
+                                    builder: (c) => AlertDialog(
+                                      title: const Text('自分の解説を削除しますか？'),
+                                      content: const Text('この操作は元に戻せません。'),
+                                      actions: [
+                                        TextButton(onPressed: ()=>Navigator.pop(c,false), child: const Text('キャンセル')),
+                                        FilledButton(onPressed: ()=>Navigator.pop(c,true), child: const Text('削除')),
+                                      ],
+                                    ),
+                                  );
+                                  if (ok == true) {
+                                    final success = await Api.deleteMyExplanations(p['id'] as int);
+                                    if (success) {
+                                      if (!mounted) return;
+                                      await _loadMine();
+                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除しました')));
+                                    } else {
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除に失敗しました'), backgroundColor: Colors.red));
+                                    }
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
                           onTap: () {
                             Navigator.push(
                               context,
@@ -159,4 +216,3 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
     );
   }
 }
-

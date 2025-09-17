@@ -8,7 +8,7 @@ class RankingScreen extends StatefulWidget {
 }
 
 class _RankingScreenState extends State<RankingScreen> {
-  String metric = 'points';
+  String metric = 'created_problems';
   List<dynamic> items = [];
   @override
   void initState() { super.initState(); _load(); }
@@ -24,10 +24,16 @@ class _RankingScreenState extends State<RankingScreen> {
       body: Column(children: [
         Row(children: [
           const SizedBox(width: 12), const Text('指標:'),
-          DropdownButton<String>(value: metric, items: const [
-            DropdownMenuItem(value: 'points', child: Text('ポイント')),
-            DropdownMenuItem(value: 'likes', child: Text('いいね')),
-          ], onChanged: (v){ setState(()=> metric=v??'points'); _load(); }),
+          DropdownButton<String>(
+            value: metric,
+            items: const [
+              DropdownMenuItem(value: 'created_problems', child: Text('作問数')),
+              DropdownMenuItem(value: 'created_expl', child: Text('解説作成数')),
+              DropdownMenuItem(value: 'likes_problems', child: Text('問題いいね')),
+              DropdownMenuItem(value: 'likes_expl', child: Text('解説いいね')),
+            ],
+            onChanged: (v){ setState(()=> metric=v??'created_problems'); _load(); },
+          ),
         ]),
         Expanded(child: ListView.builder(
           itemCount: items.length,
