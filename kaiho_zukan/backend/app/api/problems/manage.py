@@ -32,7 +32,7 @@ settings = get_settings()
 router = APIRouter()
 
 
-@router.post("")
+@router.post("/")
 def create_problem(
     request: Request,
     title: str = Form(...),
@@ -407,3 +407,4 @@ def delete_problem(
     db.delete(p)
     db.commit()
     return {"ok": True}
+

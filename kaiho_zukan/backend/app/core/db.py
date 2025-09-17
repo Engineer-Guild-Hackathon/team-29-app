@@ -150,6 +150,27 @@ def ensure_schema():
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         """))
 
+        # notifications
+        conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            type VARCHAR(32) NOT NULL,
+            problem_id INT NULL,
+            actor_user_id INT NULL,
+            ai_judged_wrong TINYINT NULL,
+            crowd_judged_wrong TINYINT NULL,
+            seen TINYINT NOT NULL DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_notification_unique_event (user_id, type, problem_id, actor_user_id, ai_judged_wrong, crowd_judged_wrong),
+            KEY idx_user (user_id),
+            KEY idx_type (type),
+            CONSTRAINT fk_notif_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            CONSTRAINT fk_notif_problem FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE,
+            CONSTRAINT fk_notif_actor FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        """))
+
 def seed_categories():
     """IT資格/中学/高校/大学カテゴリを冪等投入"""
     from models import Category
