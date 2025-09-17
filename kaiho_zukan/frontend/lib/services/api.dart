@@ -81,6 +81,12 @@ class Api {
     return _decode(r);
   }
 
+  // ===== User Profile =====
+  static Future<Map<String, dynamic>> userProfile() async {
+    final r = await http.get(Uri.parse('$base/user/profile'), headers: _authHeader);
+    return _decode(r);
+  }
+
   static Future<bool> updateNickname(String nickname) async {
     final t = token;
     final req = http.MultipartRequest('PUT', Uri.parse('$base/me'));
