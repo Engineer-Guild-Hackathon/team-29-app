@@ -24,11 +24,17 @@ class AppIcon extends StatelessWidget {
 
     Widget image;
     try {
+      final dpr = MediaQuery.of(context).devicePixelRatio;
       image = Image.network(
         '${Api.base}${_iconPath}',
         width: size,
         height: size,
-        fit: BoxFit.cover,
+        fit: BoxFit.contain, // アイコンはトリミングしない
+        cacheWidth:  (size * dpr).round(),   // ← 重要：DPRぶん確保
+        cacheHeight: (size * dpr).round(),
+        // Web(特にHTMLレンダラ)だと high がかえって滲むことがある
+        filterQuality: FilterQuality.medium,
+        isAntiAlias: true,
         errorBuilder: (context, error, stack) => Icon(
           Icons.school,
           size: size,
@@ -51,8 +57,11 @@ class AppIcon extends StatelessWidget {
         color: bg,
         borderRadius: radius,
       ),
-      clipBehavior: Clip.antiAlias,
-      child: image,
+      child: ClipRRect(
+        borderRadius: radius,
+        clipBehavior: Clip.antiAlias,
+        child: image,
+      ),
     );
   }
 }
