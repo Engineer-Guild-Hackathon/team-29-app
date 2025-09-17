@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api.dart';
+import '../widgets/app_icon.dart';
 import 'my_problems.dart';
 import 'explain_my_list.dart';
 import 'explain_fix_wrong.dart';
@@ -38,7 +39,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ホーム'),
+        title: const IconAppBarTitle(title: 'ホーム'),
         actions: [
           const _NotificationBell(),
           PopupMenuButton<String>(
@@ -81,6 +82,9 @@ class HomeScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(children: [
+            const SizedBox(height: 16),
+            const AppIcon(size: 120),
+            const SizedBox(height: 24),
             menuTile(context, '問題を解く', () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const SolveHubScreen()))),

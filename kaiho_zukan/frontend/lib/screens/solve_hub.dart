@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'solve_screen.dart';
 import 'solve_picker_screen.dart';
+import '../widgets/app_icon.dart';
 
 class SolveHubScreen extends StatelessWidget {
   const SolveHubScreen({super.key});
@@ -8,7 +9,7 @@ class SolveHubScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('問題を解く')),
+      appBar: AppBar(title: const IconAppBarTitle(title: '問題を解く')),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
@@ -45,4 +46,3 @@ class SolveHubScreen extends StatelessWidget {
     );
   }
 }
-

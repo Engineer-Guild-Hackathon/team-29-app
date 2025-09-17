@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api.dart';
 import 'solve_screen.dart';
+import '../widgets/app_icon.dart';
 
 class SolvePickerScreen extends StatefulWidget {
   const SolvePickerScreen({super.key});
@@ -60,7 +61,7 @@ class _S extends State<SolvePickerScreen> {
   @override
   Widget build(BuildContext c) {
     return Scaffold(
-      appBar: AppBar(title: const Text('問題を選んで解く')),
+      appBar: AppBar(title: const IconAppBarTitle(title: '問題を選んで解く')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -143,4 +144,3 @@ class _S extends State<SolvePickerScreen> {
     );
   }
 }
-

@@ -7,6 +7,7 @@ import '../services/api.dart';
 import 'login_register.dart';
 import 'subject_select.dart';
 import 'user_info.dart';
+import '../widgets/app_icon.dart';
 
 class RankingScreen extends StatefulWidget {
   const RankingScreen({super.key, this.myName});
@@ -265,7 +266,7 @@ class _RankingScreenState extends State<RankingScreen>
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
-      title: const Text('ランキング'),
+      title: const IconAppBarTitle(title: 'ランキング'),
       actions: [
         PopupMenuButton<String>(
           icon: const Icon(Icons.menu),
