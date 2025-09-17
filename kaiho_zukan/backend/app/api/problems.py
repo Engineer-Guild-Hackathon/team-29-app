@@ -460,6 +460,50 @@ def answer_problem(
     ex = db.execute(select(Explanation).where(Explanation.problem_id==pid).order_by(Explanation.like_count.desc(), Explanation.id.asc())).scalars().all()
     return {"is_correct": correct, "explanations":[{"id":e.id,"content":e.content,"likes":e.like_count, "is_ai": (e.user_id is None)} for e in ex]}
 
+# Alias: create explanation under a problem
+@router.post("/{pid:int}/explanations")
+def create_explanation_under_problem(
+    pid: int,
+    content: str = Form(...),
+    images: List[UploadFile] = File(None),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    p = db.get(Problem, pid)
+    if not p:
+        raise HTTPException(404, "not found")
+
+    e = Explanation(problem_id=pid, user_id=user.id, content=content)
+    db.add(e); db.flush()
+
+    if images:
+        os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+        subdir = os.path.join(settings.UPLOAD_DIR, "expl", str(e.id))
+        os.makedirs(subdir, exist_ok=True)
+        for f in images:
+            try:
+                blob = f.file.read()
+                if not blob:
+                    continue
+                base = os.path.basename(f.filename or "image")
+                name, ext = os.path.splitext(base)
+                ext = (ext or "").lower()
+                if ext not in (".png", ".jpg", ".jpeg", ".gif", ".webp"):
+                    ext = ".bin"
+                fn = f"e{e.id}_{int(time.time()*1000)}_{random.randint(1000,9999)}{ext}"
+                path = os.path.join(subdir, fn)
+                with open(path, "wb") as out:
+                    out.write(blob)
+                rel = os.path.relpath(path, settings.UPLOAD_DIR).replace("\\", "/")
+                db.add(ExplanationImage(explanation_id=e.id, filename=rel))
+            except Exception:
+                continue
+
+    db.commit()
+    if settings.OPENAI_ENABLED and settings.OPENAI_API_KEY:
+        threading.Thread(target=judge_problem_for_user, args=(pid, user.id), daemon=True).start()
+    return {"ok": True, "id": e.id}
+
 # Problem like / unlike
 @router.post("/{pid:int}/like")
 def like_problem(pid: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):

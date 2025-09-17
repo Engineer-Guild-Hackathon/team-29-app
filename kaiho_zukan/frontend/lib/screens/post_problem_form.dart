@@ -50,6 +50,65 @@ class _PostProblemFormState extends State<PostProblemForm> {
   bool agreeGeneral = false;
   bool agreeImage = false;
 
+  // OCR progress flags
+  bool _ocrProblemLoading = false;
+  bool _ocrExplainLoading = false;
+
+  Future<void> _runOcrForProblemImages() async {
+    final imgs = newImages.where((f) => f.bytes != null && (f.bytes!.isNotEmpty)).toList();
+    if (imgs.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文字起こし対象の画像がありません')));
+      return;
+    }
+    setState(() => _ocrProblemLoading = true);
+    try {
+      final texts = <String>[];
+      for (final f in imgs) {
+        final t = await Api.ocrBytes(f.bytes!);
+        if (t != null && t.trim().isNotEmpty) texts.add(t.trim());
+      }
+      final joined = texts.join('\n\n');
+      if (joined.isNotEmpty) {
+        final before = body.text;
+        final after = before.isEmpty ? joined : (before.trimRight() + '\n' + joined);
+        setState(() => body.text = after);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('問題文に文字起こしを追加しました')));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文字を抽出できませんでした')));
+      }
+    } finally {
+      if (mounted) setState(() => _ocrProblemLoading = false);
+    }
+  }
+
+  Future<void> _runOcrForExplainImages() async {
+    final imgs = newExplainImages.where((f) => f.bytes != null && (f.bytes!.isNotEmpty)).toList();
+    if (imgs.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文字起こし対象の画像がありません')));
+      return;
+    }
+    setState(() => _ocrExplainLoading = true);
+    try {
+      final texts = <String>[];
+      for (final f in imgs) {
+        final t = await Api.ocrBytes(f.bytes!);
+        if (t != null && t.trim().isNotEmpty) texts.add(t.trim());
+      }
+      final joined = texts.join('\n\n');
+      if (joined.isNotEmpty) {
+        // 解説画像のOCRは、MCQも記述式も initialExplain に追記
+        final before = initialExplain.text;
+        final after = before.isEmpty ? joined : (before.trimRight() + '\n' + joined);
+        setState(() => initialExplain.text = after);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('解説に文字起こしを追加しました')));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文字を抽出できませんでした')));
+      }
+    } finally {
+      if (mounted) setState(() => _ocrExplainLoading = false);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -673,7 +732,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
-                      const Text('画像'),
+                      const Text('問題画像'),
                       const SizedBox(width: 8),
                       if (!widget.explainOnly)
                         OutlinedButton.icon(
@@ -736,6 +795,24 @@ class _PostProblemFormState extends State<PostProblemForm> {
                             ),
                       ],
                     ),
+                    // OCR button under problem image preview (only when new images exist)
+                    Builder(builder: (_) {
+                      final hasTargets = newImages.any((f) => f.bytes != null && f.bytes!.isNotEmpty);
+                      if (!hasTargets) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: OutlinedButton.icon(
+                            onPressed: _ocrProblemLoading ? null : _runOcrForProblemImages,
+                            icon: _ocrProblemLoading
+                                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                : const Icon(Icons.text_fields),
+                            label: const Text('文字起こしする（問題文に追加）'),
+                          ),
+                        ),
+                      );
+                    }),
                   ],
                 ),
 
@@ -901,9 +978,29 @@ class _PostProblemFormState extends State<PostProblemForm> {
                                   ),
                                 ],
                               ),
-                            ),
+                        ),
                       ],
                     ),
+                    // OCR button under explanation image preview
+                    Builder(builder: (_) {
+                      final hasTargets = newExplainImages.any((f) => f.bytes != null && f.bytes!.isNotEmpty);
+                      if (!hasTargets) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: OutlinedButton.icon(
+                            onPressed: _ocrExplainLoading ? null : _runOcrForExplainImages,
+                            icon: _ocrExplainLoading
+                                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                : const Icon(Icons.text_fields),
+                            label: Text(qtype == 'mcq'
+                                ? '文字起こしする（全体の解説に追加）'
+                                : '文字起こしする（解説に追加）'),
+                          ),
+                        ),
+                      );
+                    }),
                   ],
                 ),
 
