@@ -12,7 +12,7 @@ from models import (
     ProblemExplLike, ProblemImage, ModelAnswer, ExplanationImage, AiJudgement, ExplanationWrongFlag, Notification
 )
 from services.ai_explain import generate_ai_explanations, regenerate_ai_explanations_preserve_likes
-from services.ai_judge import judge_all_explanations, judge_problem_for_user
+from services.ai_judge import judge_all_explanations, judge_problem_for_user, judge_explanation_ai
 from services.util import extract_json_block
 
 settings = get_settings()
@@ -502,6 +502,7 @@ def create_explanation_under_problem(
     db.commit()
     if settings.OPENAI_ENABLED and settings.OPENAI_API_KEY:
         threading.Thread(target=judge_problem_for_user, args=(pid, user.id), daemon=True).start()
+        threading.Thread(target=judge_explanation_ai, args=(e.id,), daemon=True).start()
     return {"ok": True, "id": e.id}
 
 # Problem like / unlike
