@@ -24,7 +24,7 @@ class _S extends State<SolvePickerScreen> {
   }
 
   Future<void> _loadCats() async {
-    final t = await Api.categoryTree();
+    final t = await Api.categories.tree();
     setState(() {
       parents = t;
       if (t.isNotEmpty) {
@@ -43,7 +43,8 @@ class _S extends State<SolvePickerScreen> {
   Future<void> _search() async {
     if (childId == null) return;
     setState(() => loading = true);
-    final list = await Api.problemsForExplain(childId: childId!, grandId: grandId, sort: sort);
+    final list = await Api.problems
+        .problemsForExplain(childId: childId!, grandId: grandId, sort: sort);
     setState(() { items = list; loading = false; });
   }
 

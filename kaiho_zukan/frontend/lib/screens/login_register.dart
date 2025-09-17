@@ -37,12 +37,12 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                 ElevatedButton(onPressed: () async {
                   setState(()=> msg='');
                   if(isLogin){
-                    final r = await Api.login(u.text.trim(), p.text);
+                    final r = await Api.auth.login(u.text.trim(), p.text);
                     if(r['access_token']!=null && mounted){
                       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_)=> const HomeScreen()));
                     } else { setState(()=> msg='ログイン失敗'); }
                   } else {
-                    final r = await Api.register(u.text.trim(), p.text, n.text.trim().isEmpty? u.text.trim() : n.text.trim());
+                    final r = await Api.auth.register(u.text.trim(), p.text, n.text.trim().isEmpty? u.text.trim() : n.text.trim());
                     if(r['access_token']!=null && mounted){
                       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_)=> const SubjectSelectScreen(isOnboarding: true)));
                     } else { setState(()=> msg='登録失敗'); }

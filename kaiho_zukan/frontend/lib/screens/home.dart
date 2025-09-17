@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../services/api.dart';
 import 'my_problems.dart';
 import 'explain_my_list.dart';
@@ -11,26 +11,133 @@ import 'ranking.dart';
 import 'review_screen.dart';
 import 'user_info.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
-  Widget menuTile(BuildContext context, String title, VoidCallback onTap) {
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  // 0: プロフィール詳細, 1: 問題を解く, 2: 投稿, 3: 振り返り, 4: ランキング
+  int _selected = 0;
+  Map<String, dynamic>? _profile;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final data = await Api.profile.fetch();
+      if (!mounted) return;
+      setState(() {
+        _profile = data;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _profile = null;
+        _loading = false;
+      });
+    }
+  }
+
+  Widget _menuButton(String title, VoidCallback onTap) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: InkWell(
-          onTap: onTap,
-          child: Container(
-            height: 56,
-            alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-                color: Colors.teal.shade50,
-                border: Border.all(color: Colors.teal.shade200),
-                borderRadius: BorderRadius.circular(12)),
-            child: Text(title,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-          )),
+        onTap: onTap,
+        child: Container(
+          height: 48,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.teal.shade50,
+            border: Border.all(color: Colors.teal.shade200),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            title,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _leftPane(BuildContext context) {
+    final p = _profile;
+    final iconUrl = p?['icon_url'] as String?;
+    final username = p?['username'] ?? '';
+    return Container(
+      width: 320,
+      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+      child: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 16),
+            // 上部画像
+            Container(
+              height: 100,
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.teal.shade100,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // プロフィールアイコン（押すと右側にプロフィール表示）
+            InkWell(
+              onTap: () => setState(() => _selected = 0),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 36,
+                    backgroundColor: Colors.grey.shade300,
+                    backgroundImage: iconUrl != null ? NetworkImage(iconUrl) : null,
+                    child: iconUrl == null ? const Icon(Icons.person, size: 36) : null,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    username.toString(),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            _menuButton('問題を解く', () => setState(() => _selected = 1)),
+            _menuButton('問題・解答・解説を投稿する', () => setState(() => _selected = 2)),
+            _menuButton('振り返り', () => setState(() => _selected = 3)),
+            _menuButton('ランキングを見る', () => setState(() => _selected = 4)),
+            const Spacer(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _rightPane() {
+    return Expanded(
+      child: IndexedStack(
+        index: _selected,
+        children: [
+          _ProfileDetailView(
+            profile: _profile,
+            loading: _loading,
+            onRefresh: _loadProfile,
+          ),
+          const SolveHubScreen(),
+          const PostProblemHubScreen(),
+          const ReviewScreen(),
+          const RankingScreen(),
+        ],
+      ),
     );
   }
 
@@ -46,56 +153,152 @@ class HomeScreen extends StatelessWidget {
             onSelected: (v) async {
               switch (v) {
                 case 'user':
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const UserInfoScreen()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const UserInfoScreen()),
+                  );
                   break;
                 case 'subjects':
                   Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const SubjectSelectScreen(
-                                isOnboarding: false,
-                              )));
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SubjectSelectScreen(
+                        isOnboarding: false,
+                      ),
+                    ),
+                  );
                   break;
                 case 'logout':
                   Api.clearToken();
+                  if (!mounted) return;
                   Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const LoginRegisterScreen()),
-                      (_) => false);
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const LoginRegisterScreen(),
+                    ),
+                    (_) => false,
+                  );
                   break;
               }
             },
             itemBuilder: (c) => const [
-              PopupMenuItem(value: 'user', child: Text('ユーザ情報')),
+              PopupMenuItem(value: 'user', child: Text('ユーザー情報')),
               PopupMenuItem(value: 'subjects', child: Text('教材を選びなおす')),
               PopupMenuItem(value: 'logout', child: Text('ログアウト')),
             ],
           ),
         ],
       ),
-      body: Center(
-          child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 640),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(children: [
-            menuTile(context, '問題を解く', () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SolveHubScreen()))),
-            menuTile(context, '問題・解答・解説を投稿する', () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const PostProblemHubScreen()))),
-            menuTile(context, '振り返る', () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ReviewScreen()))),
-            menuTile(context, 'ランキングを見る', () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const RankingScreen()))),
-          ]),
+      body: Row(
+        children: [
+          _leftPane(context),
+          _rightPane(),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileDetailView extends StatelessWidget {
+  const _ProfileDetailView({
+    this.profile,
+    this.loading = false,
+    this.onRefresh,
+    super.key,
+  });
+
+  final Map<String, dynamic>? profile;
+  final bool loading;
+  final Future<void> Function()? onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final p = profile;
+    if (p == null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('プロフィールを取得できませんでした'),
+            const SizedBox(height: 8),
+            if (onRefresh != null)
+              ElevatedButton(onPressed: onRefresh, child: const Text('再読み込み')),
+          ],
         ),
-      )),
+      );
+    }
+
+    final items = <MapEntry<String, String>>[
+      MapEntry('ユーザー名', p['username'].toString()),
+      MapEntry('解答数', p['answer_count'].toString()),
+      MapEntry('正解数', p['correct_count'].toString()),
+      MapEntry('正答率', p['accuracy'].toString() + '%'),
+      MapEntry('作問数', p['question_count'].toString()),
+      MapEntry('解説作成数', p['answer_creation_count'].toString()),
+      MapEntry('問題いいね数', p['question_likes'].toString()),
+      MapEntry('解説いいね数', p['explanation_likes'].toString()),
+      MapEntry('ランク', p['rank'].toString()),
+    ];
+
+    return RefreshIndicator(
+      onRefresh: onRefresh ?? () async {},
+      child: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 36,
+                backgroundColor: Colors.grey.shade300,
+                backgroundImage:
+                    p['icon_url'] != null ? NetworkImage(p['icon_url']) : null,
+                child: p['icon_url'] == null
+                    ? const Icon(Icons.person, size: 36)
+                    : null,
+              ),
+              const SizedBox(width: 16),
+              Text(
+                p['username'].toString(),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade100,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text('ランク: ' + p['rank'].toString(),
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: items
+                    .map((e) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(e.key),
+                              Text(e.value,
+                                  style: const TextStyle(fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        ))
+                    .toList(),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -118,7 +321,6 @@ class _NotificationBellState extends State<_NotificationBell> {
 
   Future<void> _refresh() async {
     try {
-      // fetch all, compute unseen count locally
       final list = await Api.notifications(unseenOnly: false, limit: 200);
       if (!mounted) return;
       setState(() {
@@ -128,13 +330,16 @@ class _NotificationBellState extends State<_NotificationBell> {
     } catch (_) {}
   }
 
-  void _openMenu() async {
-    // Take a snapshot for display
-    final snapshot = List<Map<String, dynamic>>.from(_items.map((e) => Map<String, dynamic>.from(e)));
+  Future<void> _openMenu() async {
+    final snapshot = List<Map<String, dynamic>>.from(
+      _items.map((e) => Map<String, dynamic>.from(e)),
+    );
 
-    // Immediately mark current unseen as seen (server-side)
     try {
-      final unseenIds = snapshot.where((e) => (e['seen'] == false)).map<int>((e) => e['id'] as int).toList();
+      final unseenIds = snapshot
+          .where((e) => (e['seen'] == false))
+          .map<int>((e) => e['id'] as int)
+          .toList();
       if (unseenIds.isNotEmpty) {
         await Api.notificationsMarkSeen(unseenIds);
       }
@@ -142,11 +347,9 @@ class _NotificationBellState extends State<_NotificationBell> {
     if (!mounted) return;
     setState(() => _count = 0);
 
-    // Separate unseen and seen
     final unseen = snapshot.where((e) => (e['seen'] == false)).toList();
     final seen = snapshot.where((e) => (e['seen'] == true)).toList();
 
-    // Group unseen likes and wrongs
     final unseenLikes = <String, List<dynamic>>{}; // key: type:pid
     final unseenWrongs = <int, List<dynamic>>{}; // pid -> items
     for (final it in unseen) {
@@ -161,8 +364,6 @@ class _NotificationBellState extends State<_NotificationBell> {
     }
 
     final entries = <Widget>[];
-
-    // Unseen header (optional)
     if (unseen.isNotEmpty) {
       entries.add(const Padding(
         padding: EdgeInsets.symmetric(vertical: 4),
@@ -178,8 +379,8 @@ class _NotificationBellState extends State<_NotificationBell> {
       final actor = (first['actor_name'] ?? '誰か').toString();
       final extra = arr.length > 1 ? ' さんと他${arr.length - 1}人' : '';
       final text = type == 'problem_like'
-          ? '$actor$extra さんが「$title」にいいねしました。'
-          : '$actor$extra さんが「$title」の解説にいいねしました。';
+          ? '$actor$extra さんが「$title」にいいねしました'
+          : '$actor$extra さんが「$title」の解説にいいねしました';
       entries.add(Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         decoration: BoxDecoration(
@@ -192,21 +393,26 @@ class _NotificationBellState extends State<_NotificationBell> {
           title: Text(text),
           onTap: () {
             if (type == 'problem_like') {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const MyProblemsScreen()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MyProblemsScreen()),
+              );
             } else {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const ExplainMyListScreen()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ExplainMyListScreen()),
+              );
             }
           },
         ),
       ));
     });
+
     unseenWrongs.forEach((pid, arr) {
       if (arr.isEmpty) return;
       final first = arr.first;
       final title = (first['problem_title'] ?? '').toString();
-      final text = '「$title」に投稿した解説が間違っているかもしれません。';
+      final text = '「$title」に投稿した解説が間違っているかもしれません';
       entries.add(Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         decoration: BoxDecoration(
@@ -218,14 +424,15 @@ class _NotificationBellState extends State<_NotificationBell> {
           dense: true,
           title: Text(text),
           onTap: () {
-            Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const ExplainFixWrongScreen()));
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ExplainFixWrongScreen()),
+            );
           },
         ),
       ));
     });
 
-    // Seen header
     if (seen.isNotEmpty) {
       entries.add(const Padding(
         padding: EdgeInsets.only(top: 8, bottom: 4),
@@ -239,12 +446,12 @@ class _NotificationBellState extends State<_NotificationBell> {
       String text;
       if (type == 'problem_like') {
         final actor = (it['actor_name'] ?? '誰か').toString();
-        text = '$actor さんが「$title」にいいねしました。';
+        text = '$actor さんが「$title」にいいねしました';
       } else if (type == 'explanation_like') {
         final actor = (it['actor_name'] ?? '誰か').toString();
-        text = '$actor さんが「$title」の解説にいいねしました。';
+        text = '$actor さんが「$title」の解説にいいねしました';
       } else {
-        text = '「$title」に投稿した解説が間違っているかもしれません。';
+        text = '「$title」に投稿した解説が間違っているかもしれません';
       }
       entries.add(Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
@@ -258,14 +465,20 @@ class _NotificationBellState extends State<_NotificationBell> {
           title: Text(text),
           onTap: () {
             if (type == 'problem_like') {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const MyProblemsScreen()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MyProblemsScreen()),
+              );
             } else if (type == 'explanation_like') {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const ExplainMyListScreen()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ExplainMyListScreen()),
+              );
             } else {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const ExplainFixWrongScreen()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ExplainFixWrongScreen()),
+              );
             }
           },
         ),
@@ -276,7 +489,6 @@ class _NotificationBellState extends State<_NotificationBell> {
       entries.add(const ListTile(dense: true, title: Text('通知はありません')));
     }
 
-    // Show as dialog-like popup
     showDialog(
       context: context,
       builder: (c) => AlertDialog(

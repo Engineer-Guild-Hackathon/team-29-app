@@ -20,7 +20,7 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
   void initState() { super.initState(); _loadCats(); }
 
   Future<void> _loadCats() async {
-    final t = await Api.categoryTree();
+    final t = await Api.categories.tree();
     setState((){
       parents = t;
       if (t.isNotEmpty) {
@@ -39,14 +39,14 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
 
   Future<void> _search() async {
     if (childId == null) return;
-    final list = await Api.problemsForExplain(childId: childId!, grandId: grandId, sort: sort);
-    final mine = await Api.myExplanationProblems();
+    final list = await Api.problems.problemsForExplain(childId: childId!, grandId: grandId, sort: sort);
+    final mine = await Api.explanations.myProblems();
     final mineIds = mine.map<int>((e) => e['id'] as int).toSet();
     setState(() => problems = list.where((p) => !mineIds.contains(p['id'] as int)).toList());
   }
 
   Future<void> _loadMine() async {
-    final list = await Api.myExplanationProblems();
+    final list = await Api.explanations.myProblems();
     setState(() => myProblems = list);
   }
 
@@ -185,7 +185,7 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
                                     ),
                                   );
                                   if (ok == true) {
-                                    final success = await Api.deleteMyExplanations(p['id'] as int);
+                                    final success = await Api.explanations.deleteMine(p['id'] as int);
                                     if (success) {
                                       if (!mounted) return;
                                       await _loadMine();
