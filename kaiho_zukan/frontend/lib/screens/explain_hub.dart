@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'post_problem_subhub.dart';
-import 'explain_hub.dart';
+import 'explain_create_new.dart';
+import 'explain_my_list.dart';
 
-class PostProblemHubScreen extends StatelessWidget {
-  const PostProblemHubScreen({super.key});
+class ExplainHubScreen extends StatelessWidget {
+  const ExplainHubScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('投稿する')),
+      appBar: AppBar(title: const Text('解説の投稿/編集')),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
@@ -20,10 +21,10 @@ class PostProblemHubScreen extends StatelessWidget {
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const PostProblemSubHubScreen(),
+                      builder: (_) => const ExplainCreateNewScreen(),
                     ),
                   ),
-                  child: const Text('問題を投稿する'),
+                  child: const Text('新規で解説を投稿する'),
                 ),
               ),
               const SizedBox(height: 12),
@@ -31,10 +32,12 @@ class PostProblemHubScreen extends StatelessWidget {
                 width: double.infinity,
                 child: OutlinedButton(
                   onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const ExplainHubScreen())),
-                  child: const Text('解答・解説を投稿する'),
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ExplainMyListScreen(),
+                    ),
+                  ),
+                  child: const Text('自分が作った解説を編集する'),
                 ),
               ),
             ]),
@@ -44,3 +47,4 @@ class PostProblemHubScreen extends StatelessWidget {
     );
   }
 }
+
