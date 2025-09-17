@@ -768,4 +768,25 @@ class Api {
     final res = await req.send();
     return res.statusCode == 200;
   }
+
+  // ===== OCR =====
+  // Send image bytes to backend /ocr and return extracted text (or null)
+  static Future<String?> ocrBytes(List<int> bytes, {String lang = 'jpn+eng'}) async {
+    final uri = Uri.parse('$base/ocr');
+    final req = http.MultipartRequest('POST', uri);
+    req.fields['lang'] = lang;
+    req.files.add(http.MultipartFile.fromBytes('file', bytes, filename: 'image.png'));
+    final t = token;
+    if (t != null) req.headers['Authorization'] = 'Bearer $t';
+    final res = await req.send();
+    final bodyStr = await res.stream.bytesToString();
+    try {
+      final obj = jsonDecode(bodyStr);
+      if (obj is Map && (obj['ok'] ?? false) == true) {
+        final text = obj['text']?.toString();
+        return text;
+      }
+    } catch (_) {}
+    return null;
+  }
 }
