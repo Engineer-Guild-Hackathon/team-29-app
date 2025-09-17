@@ -20,7 +20,7 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
   Future<void> _load() async {
     setState(() => loading = true);
     try {
-      final me = await Api.me();
+      final me = await Api.users.fetchMe();
       username = me['username']?.toString();
       nicknameCtrl.text = (me['nickname'] ?? '').toString();
     } catch (_) {}
@@ -50,7 +50,7 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
                     width: double.infinity,
                     child: FilledButton(
                       onPressed: () async {
-                        final ok = await Api.updateNickname(nicknameCtrl.text.trim());
+                        final ok = await Api.users.updateNickname(nicknameCtrl.text.trim());
                         if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                             content:

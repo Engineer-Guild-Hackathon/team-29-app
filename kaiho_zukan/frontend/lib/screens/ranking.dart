@@ -13,7 +13,7 @@ class _RankingScreenState extends State<RankingScreen> {
   @override
   void initState() { super.initState(); _load(); }
   Future<void> _load() async {
-    final r = await Api.leaderboardNamed(metric: metric);
+    final r = await Api.leaderboard.fetchNamed(metric: metric);
     final list = (r['items'] is List) ? List.from(r['items']) : <dynamic>[];
     setState(()=> items = list);
   }

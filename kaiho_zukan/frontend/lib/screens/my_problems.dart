@@ -19,7 +19,7 @@ class _MyProblemsScreenState extends State<MyProblemsScreen> {
   }
 
   Future<void> _load() async {
-    final r = await Api.myProblems(sort);
+    final r = await Api.problems.myProblems(sort);
     final list = (r['items'] is List) ? List.from(r['items']) : <dynamic>[];
     setState(() => items = list);
   }
@@ -88,7 +88,7 @@ class _MyProblemsScreenState extends State<MyProblemsScreen> {
                             ),
                           );
                           if (ok == true) {
-                            final success = await Api.deleteProblem(it['id'] as int);
+                            final success = await Api.problems.delete(it['id'] as int);
                             if (success) {
                               if (!mounted) return;
                               setState(() { items.removeAt(i); });

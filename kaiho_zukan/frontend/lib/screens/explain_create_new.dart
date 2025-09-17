@@ -22,7 +22,7 @@ class _ExplainCreateNewScreenState extends State<ExplainCreateNewScreen> {
   }
 
   Future<void> _loadCats() async {
-    final t = await Api.categoryTree();
+    final t = await Api.categories.tree();
     setState(() {
       parents = t;
       if (t.isNotEmpty) {
@@ -41,9 +41,9 @@ class _ExplainCreateNewScreenState extends State<ExplainCreateNewScreen> {
   Future<void> _search() async {
     if (childId == null) return;
     setState(() => loading = true);
-    final list = await Api.problemsForExplain(
+    final list = await Api.problems.problemsForExplain(
         childId: childId!, grandId: grandId, sort: sort);
-    final mine = await Api.myExplanationProblems();
+    final mine = await Api.explanations.myProblems();
     final mineIds = mine.map<int>((e) => e['id'] as int).toSet();
     setState(() {
       problems = list.where((p) => !mineIds.contains(p['id'] as int)).toList();
