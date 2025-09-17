@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from api.deps import get_current_user
 from core.db import get_db
-from models import User, Notification
+from models import User, Notification, Problem
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
@@ -22,19 +22,24 @@ def list_notifications(
         q = q.where(Notification.seen == False)  # noqa: E712 (SQLAlchemy boolean expr)
     rows = db.execute(q.limit(max(1, min(200, limit)))).scalars().all()
     items = [
-        {
+        (n, db.get(Problem, n.problem_id) if n.problem_id else None, db.get(User, n.actor_user_id) if n.actor_user_id else None)
+        for n in rows
+    ]
+    out = []
+    for n, prob, actor in items:
+        out.append({
             "id": n.id,
             "type": n.type,
             "problem_id": n.problem_id,
+            "problem_title": getattr(prob, "title", None),
             "actor_user_id": n.actor_user_id,
+            "actor_name": getattr(actor, "nickname", None) or getattr(actor, "username", None),
             "ai_judged_wrong": n.ai_judged_wrong,
             "crowd_judged_wrong": n.crowd_judged_wrong,
             "seen": bool(n.seen),
-            "created_at": n.created_at,
-        }
-        for n in rows
-    ]
-    return {"items": items}
+            "created_at": n.created_at.isoformat() if hasattr(n.created_at, 'isoformat') else n.created_at,
+        })
+    return {"items": out}
 
 
 @router.post("/seen")

@@ -153,6 +153,30 @@ def judge_problem_for_user(problem_id: int, target_user_id: int):
             if reason: row.reason = reason[:2000]
             row.updated_at = dt.datetime.utcnow()
             db.commit()
+            # Upsert notification for the explanation owner when AI flags as wrong
+            try:
+                if (is_wrong is True) and (target_user_id is not None):
+                    existing = db.execute(
+                        select(Notification).where(
+                            Notification.user_id == target_user_id,
+                            Notification.type == "explanation_wrong",
+                            Notification.problem_id == problem_id,
+                        )
+                    ).scalar_one_or_none()
+                    if existing:
+                        existing.ai_judged_wrong = True
+                    else:
+                        db.add(Notification(
+                            user_id=target_user_id,
+                            type="explanation_wrong",
+                            problem_id=problem_id,
+                            actor_user_id=None,
+                            ai_judged_wrong=True,
+                            crowd_judged_wrong=False,
+                        ))
+                    db.commit()
+            except Exception:
+                pass
 
 def judge_explanation_ai(expl_id: int):
     """指定の解説に対して、問題本文・選択肢・画像をコンテキストにAIで正誤二値判定"""

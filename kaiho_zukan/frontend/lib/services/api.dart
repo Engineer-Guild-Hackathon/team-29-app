@@ -789,4 +789,19 @@ class Api {
     } catch (_) {}
     return null;
   }
+
+  // ===== Notifications =====
+  static Future<List<dynamic>> notifications({bool unseenOnly = true, int limit = 50}) async {
+    final q = unseenOnly ? '?unseen_only=true&limit=$limit' : '?limit=$limit';
+    final r = await http.get(Uri.parse('$base/notifications$q'), headers: _authHeader);
+    if (r.statusCode != 200) return [];
+    final obj = jsonDecode(utf8.decode(r.bodyBytes));
+    return (obj is Map && obj['items'] is List) ? List.from(obj['items']) : <dynamic>[];
+  }
+
+  static Future<bool> notificationsMarkSeen(List<int> ids) async {
+    final r = await http.post(Uri.parse('$base/notifications/seen'),
+        headers: _jsonHeaders, body: jsonEncode(ids));
+    return r.statusCode == 200;
+  }
 }

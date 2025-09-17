@@ -11,7 +11,7 @@ from models import (
     User, Problem, Explanation, ExplanationLike, ExplanationImage, ExplanationWrongFlag,
     Option, Answer, ProblemImage, AiJudgement, Notification
 )
-from services.ai_judge import judge_problem_for_user
+from services.ai_judge import judge_problem_for_user, judge_explanation_ai
 
 settings = get_settings()
 router = APIRouter(prefix="/explanations", tags=["explanations"])
@@ -161,6 +161,7 @@ def create_explanation(
     db.commit()
     if settings.OPENAI_ENABLED and settings.OPENAI_API_KEY:
         threading.Thread(target=judge_problem_for_user, args=(pid, user.id), daemon=True).start()
+        threading.Thread(target=judge_explanation_ai, args=(e.id,), daemon=True).start()
     return {"ok": True, "id": e.id}
 
 @router.get("/problem/{pid:int}/mine")
@@ -230,11 +231,8 @@ def edit_explanation(
     if changed:
         db.commit()
         if settings.OPENAI_ENABLED and settings.OPENAI_API_KEY:
-            threading.Thread(
-                target=judge_problem_for_user,
-                args=(e.problem_id, e.user_id),
-                daemon=True
-            ).start()
+            threading.Thread(target=judge_problem_for_user, args=(e.problem_id, e.user_id), daemon=True).start()
+            threading.Thread(target=judge_explanation_ai, args=(e.id,), daemon=True).start()
 
     return {"ok": True, "id": e.id}
 
