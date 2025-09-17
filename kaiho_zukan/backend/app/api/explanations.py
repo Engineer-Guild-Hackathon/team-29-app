@@ -9,7 +9,7 @@ from core.db import get_db
 from core.config import get_settings
 from models import (
     User, Problem, Explanation, ExplanationLike, ExplanationImage, ExplanationWrongFlag,
-    Option, Answer, ProblemImage, AiJudgement
+    Option, Answer, ProblemImage, AiJudgement, Notification
 )
 from services.ai_judge import judge_problem_for_user
 
@@ -248,6 +248,28 @@ def like_explanation(eid: int, user: User = Depends(get_current_user), db: Sessi
     if not exists:
         db.add(ExplanationLike(explanation_id=eid, user_id=user.id))
         e.like_count += 1
+        # upsert notification for explanation owner
+        try:
+            if e.user_id and e.user_id != user.id:
+                exists_n = db.execute(
+                    select(Notification).where(
+                        Notification.user_id == e.user_id,
+                        Notification.type == "explanation_like",
+                        Notification.problem_id == e.problem_id,
+                        Notification.actor_user_id == user.id,
+                    )
+                ).scalar_one_or_none()
+                if not exists_n:
+                    db.add(Notification(
+                        user_id=e.user_id,
+                        type="explanation_like",
+                        problem_id=e.problem_id,
+                        actor_user_id=user.id,
+                        ai_judged_wrong=None,
+                        crowd_judged_wrong=None,
+                    ))
+        except Exception:
+            pass
         db.commit()
     return {"ok": True, "likes": e.like_count}
 
@@ -277,6 +299,34 @@ def add_wrong_flag(expl_id: int, user: User = Depends(get_current_user), db: Ses
     if not exists:
         db.add(ExplanationWrongFlag(explanation_id=expl_id, user_id=user.id))
         db.commit()
+        # If crowd judgement passes threshold (>=10 solvers and >30% flags), notify (upsert) the author
+        try:
+            # solvers count for the problem
+            solvers = db.execute(select(func.count(func.distinct(Answer.user_id))).where(Answer.problem_id == e.problem_id)).scalar_one() or 0
+            wrong_cnt = db.execute(select(func.count(ExplanationWrongFlag.id)).where(ExplanationWrongFlag.explanation_id == expl_id)).scalar_one() or 0
+            if solvers >= 10 and (wrong_cnt / max(1, solvers)) > 0.3:
+                if e.user_id and e.user_id != user.id:
+                    existing = db.execute(
+                        select(Notification).where(
+                            Notification.user_id == e.user_id,
+                            Notification.type == "explanation_wrong",
+                            Notification.problem_id == e.problem_id,
+                        )
+                    ).scalar_one_or_none()
+                    if existing:
+                        existing.crowd_judged_wrong = True
+                    else:
+                        db.add(Notification(
+                            user_id=e.user_id,
+                            type="explanation_wrong",
+                            problem_id=e.problem_id,
+                            actor_user_id=None,
+                            ai_judged_wrong=False,
+                            crowd_judged_wrong=True,
+                        ))
+                    db.commit()
+        except Exception:
+            pass
     count = db.execute(
         select(func.count(ExplanationWrongFlag.id))
         .where(ExplanationWrongFlag.explanation_id == expl_id)

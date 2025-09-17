@@ -9,7 +9,7 @@ from core.db import get_db
 from core.config import get_settings
 from models import (
     User, Problem, Option, Explanation, Answer, ProblemLike, ExplanationLike,
-    ProblemExplLike, ProblemImage, ModelAnswer, ExplanationImage, AiJudgement, ExplanationWrongFlag
+    ProblemExplLike, ProblemImage, ModelAnswer, ExplanationImage, AiJudgement, ExplanationWrongFlag, Notification
 )
 from services.ai_explain import generate_ai_explanations, regenerate_ai_explanations_preserve_likes
 from services.ai_judge import judge_all_explanations, judge_problem_for_user
@@ -514,6 +514,28 @@ def like_problem(pid: int, user: User = Depends(get_current_user), db: Session =
     if not exists:
         db.add(ProblemLike(problem_id=pid, user_id=user.id))
         p.like_count += 1
+        # upsert notification for problem owner (ignore if self-like)
+        try:
+            if p.created_by and p.created_by != user.id:
+                exists_n = db.execute(
+                    select(Notification).where(
+                        Notification.user_id == p.created_by,
+                        Notification.type == "problem_like",
+                        Notification.problem_id == p.id,
+                        Notification.actor_user_id == user.id,
+                    )
+                ).scalar_one_or_none()
+                if not exists_n:
+                    db.add(Notification(
+                        user_id=p.created_by,
+                        type="problem_like",
+                        problem_id=p.id,
+                        actor_user_id=user.id,
+                        ai_judged_wrong=None,
+                        crowd_judged_wrong=None,
+                    ))
+        except Exception:
+            pass
         db.commit()
     return {"ok": True, "like_count": p.like_count}
 

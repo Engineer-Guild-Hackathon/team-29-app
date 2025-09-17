@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from . import auth, me, categories, problems, explanations, review, leaderboard, ocr
+from . import auth, me, categories, problems, explanations, review, leaderboard, ocr, notifications
 
 api_router = APIRouter()
 api_router.include_router(auth.router)
@@ -10,3 +10,4 @@ api_router.include_router(explanations.router)
 api_router.include_router(review.router)
 api_router.include_router(leaderboard.router)
 api_router.include_router(ocr.router)
+api_router.include_router(notifications.router)
