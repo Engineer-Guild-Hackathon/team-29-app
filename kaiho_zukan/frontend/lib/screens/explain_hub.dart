@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'explain_create_new.dart';
 import 'explain_my_list.dart';
+import 'explain_fix_wrong.dart';
 
 class ExplainHubScreen extends StatelessWidget {
   const ExplainHubScreen({super.key});
@@ -40,6 +41,19 @@ class ExplainHubScreen extends StatelessWidget {
                   child: const Text('自分が作った解説を編集する'),
                 ),
               ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ExplainFixWrongScreen(),
+                    ),
+                  ),
+                  child: const Text('「間違っている」と判定された解説を修正'),
+                ),
+              ),
             ]),
           ),
         ),
@@ -47,4 +61,3 @@ class ExplainHubScreen extends StatelessWidget {
     );
   }
 }
-
