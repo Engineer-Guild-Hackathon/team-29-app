@@ -98,7 +98,7 @@ class _S extends State<SolvePickerScreen> {
             DropdownButton<int?>(
               value: grandId,
               items: <DropdownMenuItem<int?>>[
-                const DropdownMenuItem(value: null, child: Text('全単元')),
+                const DropdownMenuItem(value: null, child: Text('全単元（すべて）')),
                 ...grands.map<DropdownMenuItem<int?>>((g) => DropdownMenuItem(value: g['id'] as int, child: Text(g['name']))),
               ],
               onChanged: (v) { setState(() => grandId = v); _search(); },
