@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/illustrated_action_button.dart';
 import 'post_problem_subhub.dart';
 import 'explain_hub.dart';
 
@@ -13,31 +14,36 @@ class PostProblemHubScreen extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 480),
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(children: [
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () => Navigator.push(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                IllustratedActionButton(
+                  label: '問題を投稿する',
+                  icon: Icons.post_add,
+                  color: Colors.indigo,
+                  illustrationHeight: 120,
+                  onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => const PostProblemSubHubScreen(),
                     ),
                   ),
-                  child: const Text('問題を投稿する'),
                 ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const ExplainHubScreen())),
-                  child: const Text('解答・解説を投稿する'),
+                const SizedBox(height: 16),
+                IllustratedActionButton(
+                  label: '解答・解説を投稿する',
+                  icon: Icons.menu_book,
+                  color: Colors.teal,
+                  illustrationHeight: 120,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ExplainHubScreen(),
+                    ),
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
           ),
         ),
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/illustrated_action_button.dart';
 import 'explain_create_new.dart';
 import 'explain_my_list.dart';
 import 'explain_fix_wrong.dart';
@@ -15,46 +16,49 @@ class ExplainHubScreen extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 480),
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(children: [
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () => Navigator.push(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                IllustratedActionButton(
+                  label: '新規で解説を投稿する',
+                  icon: Icons.lightbulb,
+                  color: Colors.teal,
+                  illustrationHeight: 120,
+                  onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => const ExplainCreateNewScreen(),
                     ),
                   ),
-                  child: const Text('新規で解説を投稿する'),
                 ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.push(
+                const SizedBox(height: 16),
+                IllustratedActionButton(
+                  label: '自分が作った解説を編集する',
+                  icon: Icons.edit_note,
+                  color: Colors.deepPurple,
+                  illustrationHeight: 120,
+                  onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => const ExplainMyListScreen(),
                     ),
                   ),
-                  child: const Text('自分が作った解説を編集する'),
                 ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.push(
+                const SizedBox(height: 16),
+                IllustratedActionButton(
+                  label: '「間違っている」と判定された解説を修正',
+                  icon: Icons.build,
+                  color: Colors.orange,
+                  illustrationHeight: 120,
+                  onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => const ExplainFixWrongScreen(),
                     ),
                   ),
-                  child: const Text('「間違っている」と判定された解説を修正'),
                 ),
-              ),
-            ]),
+              ],
+            ),
           ),
         ),
       ),

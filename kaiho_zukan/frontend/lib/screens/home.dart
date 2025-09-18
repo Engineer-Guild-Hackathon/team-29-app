@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import '../services/api.dart';
+import '../widgets/illustrated_action_button.dart';
 import 'my_problems.dart';
 import 'explain_my_list.dart';
 import 'explain_fix_wrong.dart';
@@ -47,25 +48,22 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Widget _menuButton(String title, VoidCallback onTap) {
+  Widget _menuButton({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required int index,
+    double illustrationHeight = 108,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          height: 48,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: Colors.teal.shade50,
-            border: Border.all(color: Colors.teal.shade200),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            title,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            textAlign: TextAlign.center,
-          ),
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: IllustratedActionButton(
+        label: title,
+        icon: icon,
+        color: color,
+        isSelected: _selected == index,
+        illustrationHeight: illustrationHeight,
+        onTap: () => setState(() => _selected = index),
       ),
     );
   }
@@ -78,9 +76,9 @@ class _HomeScreenState extends State<HomeScreen> {
       width: 320,
       color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
       child: SafeArea(
-        child: Column(
+        child: ListView(
+          padding: const EdgeInsets.symmetric(vertical: 16),
           children: [
-            const SizedBox(height: 16),
             // 上部画像
             Container(
               height: 100,
@@ -111,11 +109,35 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            _menuButton('問題を解く', () => setState(() => _selected = 1)),
-            _menuButton('問題・解答・解説を投稿する', () => setState(() => _selected = 2)),
-            _menuButton('振り返り', () => setState(() => _selected = 3)),
-            _menuButton('ランキングを見る', () => setState(() => _selected = 4)),
-            const Spacer(),
+            _menuButton(
+              title: '問題を解く',
+              icon: Icons.psychology_alt,
+              color: Colors.indigo,
+              index: 1,
+              illustrationHeight: 56,
+            ),
+            _menuButton(
+              title: '問題・解答・解説を投稿する',
+              icon: Icons.upload_file,
+              color: Colors.teal,
+              index: 2,
+              illustrationHeight: 56,
+            ),
+            _menuButton(
+              title: '振り返り',
+              icon: Icons.history_toggle_off,
+              color: Colors.deepOrange,
+              index: 3,
+              illustrationHeight: 56,
+            ),
+            _menuButton(
+              title: 'ランキングを見る',
+              icon: Icons.emoji_events,
+              color: Colors.purple,
+              index: 4,
+              illustrationHeight: 56,
+            ),
+            const SizedBox(height: 32),
           ],
         ),
       ),

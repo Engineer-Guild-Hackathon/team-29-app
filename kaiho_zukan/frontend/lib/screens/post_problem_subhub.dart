@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/illustrated_action_button.dart';
 import 'post_problem_form.dart';
 import 'my_problems.dart';
 
@@ -19,35 +20,36 @@ class PostProblemSubHubScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const PostProblemForm(),
-                        ),
-                      );
-                    },
-                    child: const Text('新規で問題を投稿する'),
-                  ),
+                IllustratedActionButton(
+                  label: '新規で問題を投稿する',
+                  icon: Icons.add_task,
+                  color: Colors.indigo,
+                  illustrationHeight: 120,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PostProblemForm(),
+                      ),
+                    );
+                  },
                 ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const MyProblemsScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text('自分が作った問題を編集する'),
-                  ),
+                const SizedBox(height: 16),
+                IllustratedActionButton(
+                  label: '自分が作った問題を編集する',
+                  icon: Icons.edit_note,
+                  color: Colors.deepPurple,
+                  illustrationHeight: 120,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MyProblemsScreen(),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -57,4 +59,3 @@ class PostProblemSubHubScreen extends StatelessWidget {
     );
   }
 }
-
