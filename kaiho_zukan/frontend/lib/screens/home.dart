@@ -1,6 +1,8 @@
 ﻿import 'package:flutter/material.dart';
-import '../services/api.dart';
 import '../constants/app_colors.dart';
+import '../services/api.dart';
+import '../widgets/app_icon.dart';
+import '../widgets/illustrated_action_button.dart';
 import 'my_problems.dart';
 import 'explain_my_list.dart';
 import 'explain_fix_wrong.dart';
@@ -48,76 +50,74 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Widget _menuButton(String title, VoidCallback onTap) {
+  Widget _menuButton({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required int index,
+    double illustrationHeight = 108,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          height: 48,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: AppColors.light,
-            border: Border.all(color: AppColors.info),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            title,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            textAlign: TextAlign.center,
-          ),
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: IllustratedActionButton(
+        label: title,
+        icon: icon,
+        color: color,
+        isSelected: _selected == index,
+        illustrationHeight: illustrationHeight,
+        onTap: () => setState(() => _selected = index),
       ),
     );
   }
 
   Widget _leftPane(BuildContext context) {
-    final p = _profile;
-    final iconUrl = p?['icon_url'] as String?;
-    final username = p?['username'] ?? '';
     return Container(
       width: 320,
       color: AppColors.surface,
       child: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 16),
-            // 上部画像
-            Container(
-              height: 100,
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: AppColors.light,
-                borderRadius: BorderRadius.circular(12),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              AppIcon(
+                size: 180,
+                borderRadius: BorderRadius.circular(32),
+                backgroundColor: Colors.transparent,
+                padding: EdgeInsets.zero,
               ),
-            ),
-            const SizedBox(height: 12),
-            // プロフィールアイコン（押すと右側にプロフィール表示）
-            InkWell(
-              onTap: () => setState(() => _selected = 0),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 36,
-                    backgroundColor: AppColors.border,
-                    backgroundImage: iconUrl != null ? NetworkImage(iconUrl) : null,
-                    child: iconUrl == null ? const Icon(Icons.person, size: 36) : null,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    username.toString(),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ],
+              const SizedBox(height: 12),
+              _menuButton(
+                title: '問題を解く',
+                icon: Icons.psychology_alt,
+                color: Colors.indigo,
+                index: 1,
+                illustrationHeight: 56,
               ),
-            ),
-            const SizedBox(height: 16),
-            _menuButton('問題を解く', () => setState(() => _selected = 1)),
-            _menuButton('問題・解答・解説を投稿する', () => setState(() => _selected = 2)),
-            _menuButton('振り返り', () => setState(() => _selected = 3)),
-            _menuButton('ランキングを見る', () => setState(() => _selected = 4)),
-            const Spacer(),
-          ],
+              _menuButton(
+                title: '問題・解答・解説を投稿する',
+                icon: Icons.upload_file,
+                color: Colors.teal,
+                index: 2,
+                illustrationHeight: 56,
+              ),
+              _menuButton(
+                title: '振り返り',
+                icon: Icons.history_toggle_off,
+                color: Colors.deepOrange,
+                index: 3,
+                illustrationHeight: 56,
+              ),
+              _menuButton(
+                title: 'ランキングを見る',
+                icon: Icons.emoji_events,
+                color: Colors.purple,
+                index: 4,
+                illustrationHeight: 56,
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
@@ -144,10 +144,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final iconUrl = _profile?['icon_url'] as String?;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ホーム'),
+        title: const IconAppBarTitle(title: 'ホーム'),
         actions: [
+          if (_profile != null)
+            InkWell(
+              onTap: () => setState(() => _selected = 0),
+              borderRadius: BorderRadius.circular(24),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.grey.shade300,
+                  backgroundImage:
+                      iconUrl != null ? NetworkImage(iconUrl) : null,
+                  child: iconUrl == null
+                      ? const Icon(Icons.person, size: 20)
+                      : null,
+                ),
+              ),
+            ),
           const _NotificationBell(),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
@@ -538,3 +556,4 @@ class _NotificationBellState extends State<_NotificationBell> {
     );
   }
 }
+

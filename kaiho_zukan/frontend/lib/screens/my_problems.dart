@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../services/api.dart';
 import 'post_problem_form.dart';
+import '../widgets/app_icon.dart';
 
 class MyProblemsScreen extends StatefulWidget {
   const MyProblemsScreen({super.key});
@@ -28,7 +29,7 @@ class _MyProblemsScreenState extends State<MyProblemsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('自分が作った問題')),
+      appBar: AppBar(title: const IconAppBarTitle(title: '自分が作った問題')),
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

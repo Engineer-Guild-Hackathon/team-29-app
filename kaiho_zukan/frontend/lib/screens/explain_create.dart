@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../services/api.dart';
 import 'post_problem_form.dart';
+import '../widgets/app_icon.dart';
 
 class ExplainCreateScreen extends StatefulWidget {
   const ExplainCreateScreen({super.key});
@@ -54,7 +55,7 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('解説を作る')),
+      appBar: AppBar(title: const IconAppBarTitle(title: '解説を作る')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(children: [
