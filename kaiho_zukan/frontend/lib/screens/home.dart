@@ -135,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SolveHubScreen(),
           const PostProblemHubScreen(),
           const ReviewScreen(),
-          const RankingScreen(),
+          const RankingScreen(showAppBar: false),
         ],
       ),
     );
