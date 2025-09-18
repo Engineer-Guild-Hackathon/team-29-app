@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import '../services/api.dart';
 import '../constants/app_colors.dart';
+import '../constants/app_colors.dart';
 import 'my_problems.dart';
 import 'explain_my_list.dart';
 import 'explain_fix_wrong.dart';
@@ -58,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: AppColors.light,
-            border: Border.all(color: AppColors.primary_dark),
+            border: Border.all(color: AppColors.info),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
@@ -77,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final username = p?['username'] ?? '';
     return Container(
       width: 320,
-      color: AppColors.warning,
+      color: AppColors.surface,
       child: SafeArea(
         child: Column(
           children: [
@@ -87,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 100,
               margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: AppColors.danger,
+                color: AppColors.light,
                 borderRadius: BorderRadius.circular(12),
               ),
             ),

@@ -105,7 +105,7 @@ class _RankingScreenState extends State<RankingScreen>
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = '読み込みに失敗しました。再試行';
+        _errorMessage = '読み込みに失敗しました。再試行してください';
         _isLoading = false;
         _entries = const [];
         _pendingScrollId = null;
@@ -352,7 +352,15 @@ class _RankingScreenState extends State<RankingScreen>
         dividerColor: AppColors.background,
         splashBorderRadius: BorderRadius.circular(16),
         labelPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+<<<<<<< HEAD
         // overlayColor removed to avoid white overlay; use Material default
+=======
+        overlayColor: MaterialStateProperty.resolveWith(
+          (states) => states.contains(MaterialState.pressed)
+              ? AppColors.surface
+              : AppColors.background,
+        ),
+>>>>>>> 504df208bab294ea93df1a7dd6ec9c34dc18d76f
         labelStyle: GoogleFonts.notoSans(
           fontSize: 16,
           fontWeight: FontWeight.w700,
@@ -579,7 +587,7 @@ class _RankingScreenState extends State<RankingScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            '読み込みに失敗しました。再試行',
+            '読み込みに失敗しました。再試行してください',
             style: GoogleFonts.notoSans(
               color: AppColors.textPrimary,
               fontSize: 16,
