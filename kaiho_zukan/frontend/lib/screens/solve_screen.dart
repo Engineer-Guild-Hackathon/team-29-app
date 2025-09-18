@@ -141,7 +141,7 @@ class _SolveScreenState extends State<SolveScreen> {
   // ===== Data Loaders =====
 
   Future<void> _loadTree() async {
-    final t = await Api.categoryTree();
+    final t = await Api.categories.tree();
     setState(() => tree = t);
     if (t.isNotEmpty) {
       final root = t.first;
@@ -171,7 +171,7 @@ class _SolveScreenState extends State<SolveScreen> {
       _mcqSelectedIndex = null;
     });
 
-    final r = await Api.nextProblem(childId!, grandId,
+    final r = await Api.problems.next(childId!, grandId,
         includeAnswered: includeAnswered);
     Map<String, dynamic>? p;
     if (r['id'] != null) {
@@ -202,7 +202,7 @@ class _SolveScreenState extends State<SolveScreen> {
       _modelAnswersByUser.clear();
       _mcqSelectedIndex = null;
     });
-    final p = await Api.problemDetail(pid);
+    final p = await Api.problems.detail(pid);
     setState(() {
       prob = p;
       explLikes =
@@ -219,7 +219,7 @@ class _SolveScreenState extends State<SolveScreen> {
     final pid = prob!['id'] as int;
 
     // 選択だけ記録（正誤は自分でボタンで）
-    await Api.answer(pid, optionId: optionId);
+    await Api.problems.answer(pid, optionId: optionId);
 
     final opts = _optionsOf(prob);
     final idx = opts.indexWhere((o) {
@@ -232,10 +232,10 @@ class _SolveScreenState extends State<SolveScreen> {
     });
 
     // 解説・模範解答を更新
-    final e = await Api.explanations(pid, 'likes');
+    final e = await Api.explanations.list(pid, 'likes');
     List<dynamic> mas = [];
     try {
-      mas = await Api.listModelAnswers(pid);
+      mas = await Api.modelAnswers.list(pid);
     } catch (_) {}
 
     setState(() {
@@ -417,7 +417,7 @@ class _SolveScreenState extends State<SolveScreen> {
                       if (prob == null) return;
                       final liked = (prob!['liked'] ?? false) == true;
                       if (liked) {
-                        final ok = await Api.unlikeProblem(prob!['id'] as int);
+                        final ok = await Api.problems.unlike(prob!['id'] as int);
                         if (ok) {
                           setState(() {
                             prob!['liked'] = false;
@@ -428,7 +428,7 @@ class _SolveScreenState extends State<SolveScreen> {
                           });
                         }
                       } else {
-                        final ok = await Api.likeProblem(prob!['id'] as int);
+                        final ok = await Api.problems.like(prob!['id'] as int);
                         if (ok) {
                           setState(() {
                             prob!['liked'] = true;
@@ -574,7 +574,7 @@ class _SolveScreenState extends State<SolveScreen> {
                             );
                             return;
                           }
-                          await Api.answer(pid,
+                          await Api.problems.answer(pid,
                               selectedOptionId: selId, isCorrect: true);
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -603,7 +603,7 @@ class _SolveScreenState extends State<SolveScreen> {
                             );
                             return;
                           }
-                          await Api.answer(pid,
+                          await Api.problems.answer(pid,
                               selectedOptionId: selId, isCorrect: false);
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -631,12 +631,12 @@ class _SolveScreenState extends State<SolveScreen> {
                     if (prob == null) return;
                     final pid = prob!['id'] as int;
 
-                    final e = await Api.explanations(pid, 'likes');
+                    final e = await Api.explanations.list(pid, 'likes');
 
                     // 模範解答（AI/ユーザー）一覧
                     List<dynamic> mas = [];
                     try {
-                      mas = await Api.listModelAnswers(pid);
+                      mas = await Api.modelAnswers.list(pid);
                     } catch (_) {}
 
                     setState(() {
@@ -688,7 +688,7 @@ class _SolveScreenState extends State<SolveScreen> {
                         onPressed: () async {
                           if (prob == null) return;
                           final pid = prob!['id'] as int;
-                          await Api.answer(pid,
+                          await Api.problems.answer(pid,
                               freeText: _freeUserAnswer ?? freeCtrl.text,
                               isCorrect: true);
                           if (!mounted) return;
@@ -702,7 +702,7 @@ class _SolveScreenState extends State<SolveScreen> {
                         onPressed: () async {
                           if (prob == null) return;
                           final pid = prob!['id'] as int;
-                          await Api.answer(pid,
+                          await Api.problems.answer(pid,
                               freeText: _freeUserAnswer ?? freeCtrl.text,
                               isCorrect: false);
                           if (!mounted) return;
@@ -900,7 +900,7 @@ class _SolveScreenState extends State<SolveScreen> {
                             final bool flagged = (g['repWrongFlagged'] == true);
                             bool ok = false;
                             if (flagged) {
-                              ok = await Api.unflagWrong(repId);
+                              ok = await Api.explanations.unflagWrong(repId);
                               if (ok) {
                                 setState(() {
                                   g['repWrongFlagged'] = false;
@@ -914,7 +914,7 @@ class _SolveScreenState extends State<SolveScreen> {
                                 });
                               }
                             } else {
-                              ok = await Api.flagWrong(repId);
+                              ok = await Api.explanations.flagWrong(repId);
                               if (ok) {
                                 setState(() {
                                   g['repWrongFlagged'] = true;
@@ -964,7 +964,7 @@ class _SolveScreenState extends State<SolveScreen> {
                             int likeSum = (g['likeSum'] as int);
                             bool ok = false;
                             if (groupLiked) {
-                              ok = await Api.unlikeExplanation(repId);
+                              ok = await Api.explanations.unlike(repId);
                               if (ok) {
                                 setState(() {
                                   g['repLiked'] = false;
@@ -981,7 +981,7 @@ class _SolveScreenState extends State<SolveScreen> {
                                 });
                               }
                             } else {
-                              ok = await Api.likeExplanation(repId);
+                              ok = await Api.explanations.like(repId);
                               if (ok) {
                                 setState(() {
                                   g['repLiked'] = true;

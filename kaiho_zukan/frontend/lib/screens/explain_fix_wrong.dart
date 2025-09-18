@@ -29,9 +29,9 @@ class _ExplainFixWrongScreenState extends State<ExplainFixWrongScreen> {
       loaded = 0;
       total = 0;
     });
-    final me = await Api.me();
+    final me = await Api.users.fetchMe();
     final uid = me['id'] as int?;
-    final mine = await Api.myExplanationProblems();
+    final mine = await Api.explanations.myProblems();
     setState(() {
       myUserId = uid;
       total = mine.length;
@@ -40,7 +40,7 @@ class _ExplainFixWrongScreenState extends State<ExplainFixWrongScreen> {
     for (final p in mine) {
       final pid = p['id'] as int;
       final title = (p['title'] ?? '').toString();
-      final list = await Api.explanations(pid, 'likes');
+      final list = await Api.explanations.list(pid, 'likes');
       for (final e in list) {
         final euid = e['user_id'];
         final aiWrong = e['ai_is_wrong'] == true;
@@ -134,7 +134,7 @@ class _ExplainFixWrongScreenState extends State<ExplainFixWrongScreen> {
                                       ),
                                     );
                                     if (ok == true) {
-                                      final success = await Api.deleteMyExplanations(it.problemId);
+                                      final success = await Api.explanations.deleteMine(it.problemId);
                                       if (!mounted) return;
                                       if (success) {
                                         setState(() {

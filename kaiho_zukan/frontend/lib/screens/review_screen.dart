@@ -26,7 +26,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
   }
 
   Future<void> _loadTree() async {
-    final t = await Api.categoryTree();
+    final t = await Api.categories.tree();
     setState(() {
       parents = t;
       parentId = t.isNotEmpty ? t.first['id'] as int : null;
@@ -41,8 +41,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
   Future<void> _load() async {
     if (childId == null) return;
     setState(() => loading = true);
-    final s = await Api.reviewStats(childId!, grandId: grandId);
-    final h = await Api.reviewHistory(categoryId: childId!, grandId: grandId);
+    final s = await Api.review.stats(childId!, grandId: grandId);
+    final h = await Api.review.history(categoryId: childId!, grandId: grandId);
     setState(() {
       stats = s;
       history = (h['items'] as List<dynamic>? ?? []).toList();
@@ -126,19 +126,19 @@ class _ReviewScreenState extends State<ReviewScreen> {
   }
 
   Future<void> _openDetail2(int pid) async {
-    final detail = await Api.reviewItem(pid);
+    final detail = await Api.review.item(pid);
     final Map<String, dynamic>? problem =
         detail['problem'] as Map<String, dynamic>?;
     final Map<String, dynamic>? latest =
         detail['latest_answer'] as Map<String, dynamic>?;
-    final pd = await Api.problemDetail(pid);
+    final pd = await Api.problems.detail(pid);
     final List<dynamic> opts = (pd['options'] as List<dynamic>? ?? []);
-    final List<dynamic> exAll = await Api.explanations(pid, 'likes');
+    final List<dynamic> exAll = await Api.explanations.list(pid, 'likes');
 
     // 模範解答（AI/ユーザー）一覧を取得
     List<dynamic> mas = [];
     try {
-      mas = await Api.listModelAnswers(pid);
+      mas = await Api.modelAnswers.list(pid);
     } catch (_) {}
     final Map<int, String> maByUser = {
       for (final it in mas)
@@ -228,7 +228,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 GestureDetector(
                   onTap: () async {
                     if (problemLiked) {
-                      final ok = await Api.unlikeProblem(pid);
+                      final ok = await Api.problems.unlike(pid);
                       if (ok) {
                         setStateDlg(() {
                           problemLiked = false;
@@ -237,7 +237,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                         });
                       }
                     } else {
-                      final ok = await Api.likeProblem(pid);
+                      final ok = await Api.problems.like(pid);
                       if (ok) {
                         setStateDlg(() {
                           problemLiked = true;
@@ -487,13 +487,13 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                               (g['repWrongFlagged'] == true);
                                           bool ok = false;
                                           if (flagged) {
-                                            ok = await Api.unflagWrong(
+                                            ok = await Api.explanations.unflagWrong(
                                                 repId); // DELETE /explanations/{id}/wrong-flags
                                             if (ok)
                                               setCard(() =>
                                                   g['repWrongFlagged'] = false);
                                           } else {
-                                            ok = await Api.flagWrong(
+                                            ok = await Api.explanations.flagWrong(
                                                 repId); // POST   /explanations/{id}/wrong-flags
                                             if (ok)
                                               setCard(() =>
@@ -539,7 +539,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                         if (repId == null) return;
                                         if (groupLiked) {
                                           final ok =
-                                              await Api.unlikeExplanation(
+                                              await Api.explanations.unlike(
                                                   repId);
                                           if (ok) {
                                             setCard(() {
@@ -549,7 +549,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                           }
                                         } else {
                                           final ok =
-                                              await Api.likeExplanation(repId);
+                                              await Api.explanations.like(repId);
                                           if (ok) {
                                             setCard(() {
                                               groupLiked = true;

@@ -21,7 +21,7 @@ class _ExplainMyListScreenState extends State<ExplainMyListScreen> {
 
   Future<void> _loadMine() async {
     setState(() => loading = true);
-    final list = await Api.myExplanationProblems();
+    final list = await Api.explanations.myProblems();
     setState(() {
       myProblems = list;
       loading = false;
@@ -77,7 +77,8 @@ class _ExplainMyListScreenState extends State<ExplainMyListScreen> {
                               ),
                             );
                             if (ok == true) {
-                              final success = await Api.deleteMyExplanations(p['id'] as int);
+                              final success =
+                                  await Api.explanations.deleteMine(p['id'] as int);
                               if (!mounted) return;
                               if (success) {
                                 await _loadMine();

@@ -65,7 +65,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
     try {
       final texts = <String>[];
       for (final f in imgs) {
-        final t = await Api.ocrBytes(f.bytes!);
+        final t = await Api.ocr.scanBytes(f.bytes!);
         if (t != null && t.trim().isNotEmpty) texts.add(t.trim());
       }
       final joined = texts.join('\n\n');
@@ -92,7 +92,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
     try {
       final texts = <String>[];
       for (final f in imgs) {
-        final t = await Api.ocrBytes(f.bytes!);
+        final t = await Api.ocr.scanBytes(f.bytes!);
         if (t != null && t.trim().isNotEmpty) texts.add(t.trim());
       }
       final joined = texts.join('\n\n');
@@ -132,7 +132,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
   }
 
   Future<void> _loadCats() async {
-    final t = await Api.categoryTree();
+    final t = await Api.categories.tree();
     // Initial defaults
     List<dynamic> parentsTmp = t;
     List<dynamic> childrenTmp =
@@ -146,7 +146,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
     int? grandIdTmp = grandsTmp.isNotEmpty ? grandsTmp.first['id'] as int? : null;
 
     if (widget.editId != null) {
-      final d = await Api.getProblem(widget.editId!);
+      final d = await Api.problems.get(widget.editId!);
       title.text = (d['title'] ?? '').toString();
       body.text = (d['body'] ?? '').toString();
       qtype = (d['qtype'] ?? 'mcq').toString();
@@ -211,7 +211,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
         _ensureOptionControllers(optionCount);
       }
       // 自分の解説をロード（本文のみ。画像の既存プレビューはAPI未対応のため省略）
-      final me = await Api.myExplanations(widget.editId!);
+      final me = await Api.explanations.mine(widget.editId!);
       if (me['overall'] is String) {
         initialExplain.text = (me['overall'] as String);
       }
@@ -249,7 +249,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
 
       // 自分の最新の解答（選択/記述）を取得してUIに反映（任意）
       try {
-        final ri = await Api.reviewItem(widget.editId!);
+        final ri = await Api.review.item(widget.editId!);
         if (ri['latest_answer'] is Map) {
           final la = Map<String, dynamic>.from(ri['latest_answer']);
           final selId = la['selected_option_id'];
@@ -320,12 +320,12 @@ class _PostProblemFormState extends State<PostProblemForm> {
           final idx = myModelAnswerIndex!;
           if (idx >= 0 && idx < optionIds.length) selId = optionIds[idx];
           if (selId != null && widget.editId != null) {
-            await Api.answer(widget.editId!, selectedOptionId: selId);
+            await Api.problems.answer(widget.editId!, selectedOptionId: selId);
           }
         } else if (qtype != 'mcq' &&
             myAnswerCtrl.text.trim().isNotEmpty &&
             widget.editId != null) {
-          await Api.answer(widget.editId!, freeText: myAnswerCtrl.text.trim());
+          await Api.problems.answer(widget.editId!, freeText: myAnswerCtrl.text.trim());
         }
       } catch (_) {}
 
@@ -335,16 +335,16 @@ class _PostProblemFormState extends State<PostProblemForm> {
           final idx = myModelAnswerIndex;
           if (idx != null) {
             final txt = (idx + 1).toString(); // 1-based
-            await Api.upsertMyModelAnswer(widget.editId!, txt);
+            await Api.modelAnswers.upsertMine(widget.editId!, txt);
           } else {
-            await Api.deleteMyModelAnswer(widget.editId!);
+            await Api.modelAnswers.deleteMine(widget.editId!);
           }
         } else {
           final txt = modelAnswerCtrl.text.trim();
           if (txt.isNotEmpty) {
-            await Api.upsertMyModelAnswer(widget.editId!, txt);
+            await Api.modelAnswers.upsertMine(widget.editId!, txt);
           } else {
-            await Api.deleteMyModelAnswer(widget.editId!);
+            await Api.modelAnswers.deleteMine(widget.editId!);
           }
         }
       } catch (_) {}
@@ -360,7 +360,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
       final initialTxt = initialExplain.text.trim();
 
       // 1) まずテキストの更新（※画像がある場合は initial_explanation は null にして重複を防ぐ）
-      final r = await Api.updateProblemWithImages(
+      final r = await Api.problems.updateWithImages(
         id: widget.editId!,
         initialExplanation: hasExplainImages
             ? null
@@ -391,7 +391,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
             .where((f) => f.bytes != null)
             .map((f) => (bytes: f.bytes!, name: f.name))
             .toList();
-        final ok = await Api.postExplanationWithImagesData(
+        final ok = await Api.explanations.createWithImages(
           problemId: widget.editId!,
           content: initialTxt,
           images: imgs,
@@ -445,7 +445,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
 
     if (widget.editId == null) {
       // 新規作成：画像付き解説を投げる場合は initial_explanation を作成時に送らず、後で images 付きで投稿
-      final r = await Api.createProblemWithImages(
+      final r = await Api.problems.createWithImages(
         title: title.text.trim(),
         body: body.text.trim().isEmpty ? null : body.text.trim(),
         qtype: qtype,
@@ -469,24 +469,24 @@ class _PostProblemFormState extends State<PostProblemForm> {
           final newId = (r['id'] is int) ? (r['id'] as int) : null;
           if (newId != null) {
             if (qtype == 'mcq' && myModelAnswerIndex != null) {
-              final d = await Api.getProblem(newId);
+              final d = await Api.problems.get(newId);
               if (d['options'] is List) {
                 final list = List.from(d['options']);
                 final idx = myModelAnswerIndex!.clamp(0, list.length - 1);
                 try {
-                  await Api.answer(newId, selectedOptionId: (list[idx]['id'] as int));
+                  await Api.problems.answer(newId, selectedOptionId: (list[idx]['id'] as int));
                 } catch (_) {}
               }
               final idx = myModelAnswerIndex!;
-              await Api.upsertMyModelAnswer(newId, (idx + 1).toString());
+              await Api.modelAnswers.upsertMine(newId, (idx + 1).toString());
             } else if (qtype != 'mcq') {
               final mine = myAnswerCtrl.text.trim();
               final alt = modelAnswerCtrl.text.trim();
               if (mine.isNotEmpty) {
-                await Api.answer(newId, freeText: mine);
+                await Api.problems.answer(newId, freeText: mine);
               }
               if (alt.isNotEmpty) {
-                await Api.upsertMyModelAnswer(newId, alt);
+                await Api.modelAnswers.upsertMine(newId, alt);
               }
             }
 
@@ -501,7 +501,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
                 );
                 return;
               }
-              final ok = await Api.postExplanationWithImagesData(
+              final ok = await Api.explanations.createWithImages(
                 problemId: newId,
                 content: initialTxt,
                 images: explainImgs,
@@ -527,7 +527,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
       }
     } else {
       // 既存編集：画像付き解説を投げる場合は initial_explanation はPUTで送らず、別APIで投稿
-      final r = await Api.updateProblemWithImages(
+      final r = await Api.problems.updateWithImages(
         id: widget.editId!,
         title: title.text.trim(),
         body: body.text.trim().isEmpty ? null : body.text.trim(),
@@ -554,19 +554,19 @@ class _PostProblemFormState extends State<PostProblemForm> {
             final idx = myModelAnswerIndex!;
             if (idx >= 0 && idx < optionIds.length) selId = optionIds[idx];
             if (selId != null) {
-              await Api.answer(widget.editId!, selectedOptionId: selId);
+              await Api.problems.answer(widget.editId!, selectedOptionId: selId);
             }
-            await Api.upsertMyModelAnswer(widget.editId!, (idx + 1).toString());
+            await Api.modelAnswers.upsertMine(widget.editId!, (idx + 1).toString());
           } else if (qtype != 'mcq') {
             final mine = myAnswerCtrl.text.trim();
             final alt = modelAnswerCtrl.text.trim();
             if (mine.isNotEmpty) {
-              await Api.answer(widget.editId!, freeText: mine);
+              await Api.problems.answer(widget.editId!, freeText: mine);
             }
             if (alt.isNotEmpty) {
-              await Api.upsertMyModelAnswer(widget.editId!, alt);
+              await Api.modelAnswers.upsertMine(widget.editId!, alt);
             } else {
-              await Api.deleteMyModelAnswer(widget.editId!);
+              await Api.modelAnswers.deleteMine(widget.editId!);
             }
           }
 
@@ -581,7 +581,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
               );
               return;
             }
-            final ok = await Api.postExplanationWithImagesData(
+            final ok = await Api.explanations.createWithImages(
               problemId: widget.editId!,
               content: initialTxt,
               images: explainImgs,

@@ -24,8 +24,8 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
   }
 
   Future<void> _load() async {
-    final t = await Api.categoryTree();
-    final me = await Api.me();
+    final t = await Api.categories.tree();
+    final me = await Api.users.fetchMe();
     final mine = (me['categories'] is List)
         ? List<int>.from((me['categories'] as List).map((e)=> e['id'] as int))
         : <int>[];
@@ -136,7 +136,7 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: () async {
-                    final ok = await Api.setMyCategories(selectedChildIds);
+                    final ok = await Api.users.setMyCategories(selectedChildIds);
                     if(!context.mounted) return;
                     if(ok){
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('登録しました')));
