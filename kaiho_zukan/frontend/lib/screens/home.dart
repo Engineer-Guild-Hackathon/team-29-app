@@ -72,51 +72,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _leftPane(BuildContext context) {
-    final p = _profile;
-    final iconUrl = p?['icon_url'] as String?;
-    final username = p?['username'] ?? '';
     return Container(
       width: 320,
       color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
       child: SafeArea(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const SizedBox(height: 16),
-            // 上部画像
-            Container(
-              height: 100,
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.teal.shade100,
-                borderRadius: BorderRadius.circular(12),
+            Center(
+              child: AppIcon(
+                size: 180,
+                borderRadius: BorderRadius.circular(32),
+                backgroundColor: Colors.transparent,
+                padding: EdgeInsets.zero,
               ),
             ),
             const SizedBox(height: 12),
-            // プロフィールアイコン（押すと右側にプロフィール表示）
-            InkWell(
-              onTap: () => setState(() => _selected = 0),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 36,
-                    backgroundColor: Colors.grey.shade300,
-                    backgroundImage: iconUrl != null ? NetworkImage(iconUrl) : null,
-                    child: iconUrl == null ? const Icon(Icons.person, size: 36) : null,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    username.toString(),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
             _menuButton('問題を解く', () => setState(() => _selected = 1)),
             _menuButton('問題・解答・解説を投稿する', () => setState(() => _selected = 2)),
             _menuButton('振り返り', () => setState(() => _selected = 3)),
             _menuButton('ランキングを見る', () => setState(() => _selected = 4)),
-            const Spacer(),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -144,10 +120,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final iconUrl = _profile?['icon_url'] as String?;
     return Scaffold(
       appBar: AppBar(
         title: const IconAppBarTitle(title: 'ホーム'),
         actions: [
+          if (_profile != null)
+            InkWell(
+              onTap: () => setState(() => _selected = 0),
+              borderRadius: BorderRadius.circular(24),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.grey.shade300,
+                  backgroundImage:
+                      iconUrl != null ? NetworkImage(iconUrl) : null,
+                  child: iconUrl == null
+                      ? const Icon(Icons.person, size: 20)
+                      : null,
+                ),
+              ),
+            ),
           const _NotificationBell(),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
