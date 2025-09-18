@@ -352,15 +352,11 @@ class _RankingScreenState extends State<RankingScreen>
         dividerColor: AppColors.background,
         splashBorderRadius: BorderRadius.circular(16),
         labelPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-<<<<<<< HEAD
-        // overlayColor removed to avoid white overlay; use Material default
-=======
         overlayColor: MaterialStateProperty.resolveWith(
           (states) => states.contains(MaterialState.pressed)
               ? AppColors.surface
-              : AppColors.background,
+              : Colors.transparent,
         ),
->>>>>>> 504df208bab294ea93df1a7dd6ec9c34dc18d76f
         labelStyle: GoogleFonts.notoSans(
           fontSize: 16,
           fontWeight: FontWeight.w700,

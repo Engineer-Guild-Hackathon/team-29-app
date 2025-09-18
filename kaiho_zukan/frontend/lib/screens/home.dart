@@ -1,7 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import '../services/api.dart';
 import '../constants/app_colors.dart';
-import '../constants/app_colors.dart';
 import 'my_problems.dart';
 import 'explain_my_list.dart';
 import 'explain_fix_wrong.dart';
@@ -59,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: AppColors.light,
-            border: Border.all(color: AppColors.info),
+            border: Border.all(color: AppColors.primary),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
@@ -100,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   CircleAvatar(
                     radius: 36,
-                    backgroundColor: AppColors.border,
+                    backgroundColor: AppColors.textSecondary,
                     backgroundImage: iconUrl != null ? NetworkImage(iconUrl) : null,
                     child: iconUrl == null ? const Icon(Icons.person, size: 36) : null,
                   ),
@@ -254,7 +253,7 @@ class _ProfileDetailView extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 36,
-                backgroundColor: AppColors.border,
+                backgroundColor: AppColors.textSecondary,
                 backgroundImage:
                     p['icon_url'] != null ? NetworkImage(p['icon_url']) : null,
                 child: p['icon_url'] == null
