@@ -74,68 +74,49 @@ class _HomeScreenState extends State<HomeScreen> {
       width: 320,
       color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
       child: SafeArea(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Center(
-              child: AppIcon(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              AppIcon(
                 size: 180,
                 borderRadius: BorderRadius.circular(32),
                 backgroundColor: Colors.transparent,
                 padding: EdgeInsets.zero,
               ),
-            ),
-            const SizedBox(height: 12),
-            // プロフィールアイコン（押すと右側にプロフィール表示）
-            InkWell(
-              onTap: () => setState(() => _selected = 0),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 36,
-                    backgroundColor: Colors.grey.shade300,
-                    backgroundImage: iconUrl != null ? NetworkImage(iconUrl) : null,
-                    child: iconUrl == null ? const Icon(Icons.person, size: 36) : null,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    username.toString(),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ],
+              const SizedBox(height: 12),
+              _menuButton(
+                title: '問題を解く',
+                icon: Icons.psychology_alt,
+                color: Colors.indigo,
+                index: 1,
+                illustrationHeight: 56,
               ),
-            ),
-            const SizedBox(height: 16),
-            _menuButton(
-              title: '問題を解く',
-              icon: Icons.psychology_alt,
-              color: Colors.indigo,
-              index: 1,
-              illustrationHeight: 56,
-            ),
-            _menuButton(
-              title: '問題・解答・解説を投稿する',
-              icon: Icons.upload_file,
-              color: Colors.teal,
-              index: 2,
-              illustrationHeight: 56,
-            ),
-            _menuButton(
-              title: '振り返り',
-              icon: Icons.history_toggle_off,
-              color: Colors.deepOrange,
-              index: 3,
-              illustrationHeight: 56,
-            ),
-            _menuButton(
-              title: 'ランキングを見る',
-              icon: Icons.emoji_events,
-              color: Colors.purple,
-              index: 4,
-              illustrationHeight: 56,
-            ),
-            const Spacer(),
-          ],
+              _menuButton(
+                title: '問題・解答・解説を投稿する',
+                icon: Icons.upload_file,
+                color: Colors.teal,
+                index: 2,
+                illustrationHeight: 56,
+              ),
+              _menuButton(
+                title: '振り返り',
+                icon: Icons.history_toggle_off,
+                color: Colors.deepOrange,
+                index: 3,
+                illustrationHeight: 56,
+              ),
+              _menuButton(
+                title: 'ランキングを見る',
+                icon: Icons.emoji_events,
+                color: Colors.purple,
+                index: 4,
+                illustrationHeight: 56,
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
