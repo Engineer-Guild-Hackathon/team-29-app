@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/app_colors.dart';
 import '../services/api.dart';
 import 'home.dart';
 
@@ -63,7 +64,7 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
                 ...selectedChildIds.map((id){
                   final c = parentList.expand((p)=> (p['children'] as List)).firstWhere((x)=> x['id']==id, orElse: ()=> null);
                   final name = c!=null ? c['name'] : 'ID:$id';
-                  return Chip(label: Text(name), deleteIcon: const Icon(Icons.close, color: Colors.red), onDeleted: (){
+                  return Chip(label: Text(name), deleteIcon: const Icon(Icons.close, color: AppColors.danger), onDeleted: (){
                     setState(()=> selectedChildIds.remove(id));
                   });
                 }),
@@ -103,11 +104,11 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
                     final id = c['id'] as int;
                     final bool sel = selectedChildIds.contains(id);
                     return Card(
-                      color: sel ? Colors.green.shade50 : null,
+                      color: sel ? AppColors.light : null,
                       child: ListTile(
                         title: Text(c['name'] ?? ''),
                         trailing: IconButton(
-                          icon: Icon(sel ? Icons.close : Icons.add, color: sel ? Colors.red : Colors.teal),
+                          icon: Icon(sel ? Icons.close : Icons.add, color: sel ? AppColors.danger : AppColors.info),
                           onPressed: (){
                             setState((){
                               if(sel) { selectedChildIds.remove(id); }
@@ -141,7 +142,7 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
                         Navigator.pop(context);
                       }
                     }else{
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('登録に失敗しました'), backgroundColor: Colors.red));
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('登録に失敗しました'), backgroundColor: AppColors.danger));
                     }
                   },
                   child: const Text('登録する'),

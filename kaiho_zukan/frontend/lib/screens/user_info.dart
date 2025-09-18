@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/app_colors.dart';
 import '../services/api.dart';
 
 class UserInfoScreen extends StatefulWidget {
@@ -55,7 +56,7 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                             content:
                                 Text(ok ? '更新しました' : '更新に失敗しました'),
-                            backgroundColor: ok ? null : Colors.red));
+                            backgroundColor: ok ? null : AppColors.danger));
                       },
                       child: const Text('保存'),
                     ),

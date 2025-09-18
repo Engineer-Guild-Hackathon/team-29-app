@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/app_colors.dart';
 import 'package:file_picker/file_picker.dart';
 import '../services/api.dart';
 import 'my_problems.dart';
@@ -284,7 +285,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
     if (!agreeGeneral) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ガイドラインに同意してください'), backgroundColor: Colors.red),
+        const SnackBar(content: Text('ガイドラインに同意してください'), backgroundColor: AppColors.danger),
       );
       return;
     }
@@ -296,7 +297,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
     if (needsImageConsent && !agreeImage) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('画像のガイドラインに同意してください'), backgroundColor: Colors.red),
+        const SnackBar(content: Text('画像のガイドラインに同意してください'), backgroundColor: AppColors.danger),
       );
       return;
     }
@@ -305,7 +306,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
       if (widget.editId == null) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('問題IDが不正です'), backgroundColor: Colors.red),
+          const SnackBar(content: Text('問題IDが不正です'), backgroundColor: AppColors.danger),
         );
         return;
       }
@@ -370,7 +371,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
       if (!mounted) return;
       if ((r['ok'] ?? false) != true) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('保存に失敗しました'), backgroundColor: Colors.red),
+          const SnackBar(content: Text('保存に失敗しました'), backgroundColor: AppColors.danger),
         );
         return;
       }
@@ -381,7 +382,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('画像を送る場合は、解説本文も入力してください'),
-              backgroundColor: Colors.orange,
+              backgroundColor: AppColors.warning,
             ),
           );
           return;
@@ -398,7 +399,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
         if (!ok) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('解説画像の投稿に失敗しました'), backgroundColor: Colors.red),
+            const SnackBar(content: Text('解説画像の投稿に失敗しました'), backgroundColor: AppColors.danger),
           );
           return;
         }
@@ -495,7 +496,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('画像を送る場合は、解説本文も入力してください'),
-                    backgroundColor: Colors.orange,
+                    backgroundColor: AppColors.warning,
                   ),
                 );
                 return;
@@ -508,7 +509,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
               if (!ok) {
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('解説画像の投稿に失敗しました'), backgroundColor: Colors.red),
+                  const SnackBar(content: Text('解説画像の投稿に失敗しました'), backgroundColor: AppColors.danger),
                 );
                 return;
               }
@@ -521,7 +522,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('作成に失敗しました'), backgroundColor: Colors.red),
+          const SnackBar(content: Text('作成に失敗しました'), backgroundColor: AppColors.danger),
         );
       }
     } else {
@@ -575,7 +576,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('画像を送る場合は、解説本文も入力してください'),
-                  backgroundColor: Colors.orange,
+                  backgroundColor: AppColors.warning,
                 ),
               );
               return;
@@ -588,7 +589,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
             if (!ok) {
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('解説画像の投稿に失敗しました'), backgroundColor: Colors.red),
+                const SnackBar(content: Text('解説画像の投稿に失敗しました'), backgroundColor: AppColors.danger),
               );
               return;
             }
@@ -600,7 +601,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('更新に失敗しました'), backgroundColor: Colors.red),
+          const SnackBar(content: Text('更新に失敗しました'), backgroundColor: AppColors.danger),
         );
       }
     }
@@ -782,11 +783,11 @@ class _PostProblemFormState extends State<PostProblemForm> {
                                         onTap: () => setState(() => newImages.remove(f)),
                                         child: Container(
                                           decoration: BoxDecoration(
-                                            color: Colors.black45,
+                                            color: AppColors.textSecondary,
                                             borderRadius: BorderRadius.circular(16),
                                           ),
                                           padding: const EdgeInsets.all(4),
-                                          child: const Icon(Icons.close, color: Colors.white),
+                                          child: const Icon(Icons.close, color: AppColors.background),
                                         ),
                                       ),
                                     ),
@@ -968,11 +969,11 @@ class _PostProblemFormState extends State<PostProblemForm> {
                                       onTap: () => setState(() => newExplainImages.remove(f)),
                                       child: Container(
                                         decoration: BoxDecoration(
-                                          color: Colors.black45,
+                                          color: AppColors.textSecondary,
                                           borderRadius: BorderRadius.circular(16),
                                         ),
                                         padding: const EdgeInsets.all(4),
-                                        child: const Icon(Icons.close, color: Colors.white),
+                                        child: const Icon(Icons.close, color: AppColors.background),
                                       ),
                                     ),
                                   ),
@@ -1081,7 +1082,7 @@ class _ImagesPagerState extends State<_ImagesPager> {
           onPageChanged: (i) => setState(() => _index = i),
           itemCount: widget.widgets.length,
           itemBuilder: (_, i) => Container(
-            color: Colors.black12,
+            color: AppColors.surface,
             alignment: Alignment.center,
             child: Padding(
               padding: const EdgeInsets.all(4),
@@ -1107,7 +1108,7 @@ class _ImagesPagerState extends State<_ImagesPager> {
               margin: const EdgeInsets.symmetric(horizontal: 4),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: sel ? Colors.teal : Colors.grey.shade400,
+                color: sel ? AppColors.info : AppColors.border,
               ),
             ),
           );

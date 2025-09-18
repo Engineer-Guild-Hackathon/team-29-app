@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/app_colors.dart';
 import '../services/api.dart';
 import 'post_problem_form.dart';
 
@@ -62,7 +63,7 @@ class _ExplainMyListScreenState extends State<ExplainMyListScreen> {
                         ),
                         IconButton(
                           tooltip: '削除',
-                          icon: const Icon(Icons.delete, color: Colors.redAccent),
+                          icon: const Icon(Icons.delete, color: AppColors.danger),
                           onPressed: () async {
                             final ok = await showDialog<bool>(
                               context: context,
@@ -83,7 +84,7 @@ class _ExplainMyListScreenState extends State<ExplainMyListScreen> {
                                 await _loadMine();
                                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除しました')));
                               } else {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除に失敗しました'), backgroundColor: Colors.red));
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除に失敗しました'), backgroundColor: AppColors.danger));
                               }
                             }
                           },
