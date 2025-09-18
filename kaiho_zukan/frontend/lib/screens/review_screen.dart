@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import '../services/api.dart';
+import '../constants/app_colors.dart';
 
 class ReviewScreen extends StatefulWidget {
   const ReviewScreen({super.key});
@@ -104,9 +105,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(children: [
-          Expanded(child: _metric('解答数', solved.toString(), Colors.blue)),
-          Expanded(child: _metric('正解数', correct.toString(), Colors.green)),
-          Expanded(child: _metric('正答率', '$rate%', Colors.deepPurple)),
+          Expanded(child: _metric('解答数', solved.toString(), AppColors.info)),
+          Expanded(child: _metric('正解数', correct.toString(), AppColors.success)),
+          Expanded(child: _metric('正答率', '$rate%', AppColors.secondary)),
         ]),
       ),
     );
@@ -249,19 +250,19 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: problemLiked ? Colors.green : Colors.white,
+                      color: problemLiked ? AppColors.success : AppColors.background,
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.green, width: 1.5),
+                      border: Border.all(color: AppColors.success, width: 1.5),
                     ),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Text('いいね',
                           style: TextStyle(
-                              color: problemLiked ? Colors.white : Colors.green,
+                              color: problemLiked ? AppColors.background : AppColors.success,
                               fontWeight: FontWeight.w600)),
                       const SizedBox(width: 6),
                       Text('$problemLikes',
                           style: TextStyle(
-                              color: problemLiked ? Colors.white : Colors.green,
+                              color: problemLiked ? AppColors.background : AppColors.success,
                               fontWeight: FontWeight.w600)),
                     ]),
                   ),
@@ -307,7 +308,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                             widgets.add(Text(_kanaOf(selIdx)));
                           } else {
                             widgets.add(const Text('（未回答）',
-                                style: TextStyle(color: Colors.grey)));
+                                style: TextStyle(color: AppColors.textSecondary)));
                           }
                         } else {
                           // 記述式
@@ -330,7 +331,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                             );
                           } else {
                             widgets.add(const Text('（未回答）',
-                                style: TextStyle(color: Colors.grey)));
+                                style: TextStyle(color: AppColors.textSecondary)));
                           }
                         }
 
@@ -455,13 +456,13 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(24),
                                         border: Border.all(
-                                            color: Colors.purple, width: 1.2),
-                                        color: Colors.white,
+                                            color: AppColors.secondary, width: 1.2),
+                                        color: AppColors.background,
                                       ),
                                       child: const Text(
                                         'この解説は間違っているかもしれません',
                                         style: TextStyle(
-                                          color: Colors.purple,
+                                          color: AppColors.secondary,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
@@ -510,10 +511,10 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                             decoration: BoxDecoration(
                                               shape: BoxShape.circle,
                                               color: flagged
-                                                  ? Colors.grey
-                                                  : Colors.white,
+                                                  ? AppColors.textSecondary
+                                                  : AppColors.background,
                                               border: Border.all(
-                                                  color: Colors.grey,
+                                                  color: AppColors.textSecondary,
                                                   width: 1.5),
                                             ),
                                             alignment: Alignment.center,
@@ -523,8 +524,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                                 fontSize: 18,
                                                 fontWeight: FontWeight.w800,
                                                 color: flagged
-                                                    ? Colors.white
-                                                    : Colors.grey,
+                                                    ? AppColors.background
+                                                    : AppColors.textSecondary,
                                               ),
                                             ),
                                           );
@@ -562,12 +563,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                             horizontal: 10, vertical: 6),
                                         decoration: BoxDecoration(
                                           color: groupLiked
-                                              ? Colors.green
-                                              : Colors.white,
+                                              ? AppColors.success
+                                              : AppColors.background,
                                           borderRadius:
                                               BorderRadius.circular(24),
                                           border: Border.all(
-                                              color: Colors.green, width: 1.5),
+                                              color: AppColors.success, width: 1.5),
                                         ),
                                         child: Row(
                                             mainAxisSize: MainAxisSize.min,
@@ -575,16 +576,16 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                               Text('いいね',
                                                   style: TextStyle(
                                                       color: groupLiked
-                                                          ? Colors.white
-                                                          : Colors.green,
+                                                          ? AppColors.background
+                                                          : AppColors.success,
                                                       fontWeight:
                                                           FontWeight.w600)),
                                               const SizedBox(width: 6),
                                               Text('$likeSum',
                                                   style: TextStyle(
                                                       color: groupLiked
-                                                          ? Colors.white
-                                                          : Colors.green,
+                                                          ? AppColors.background
+                                                          : AppColors.success,
                                                       fontWeight:
                                                           FontWeight.w600)),
                                             ]),
@@ -702,7 +703,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                 Text((it['answered_at'] ?? '').toString()),
                             trailing: Icon(
                                 ok ? Icons.circle_outlined : Icons.close,
-                                color: ok ? Colors.green : Colors.red),
+                                color: ok ? AppColors.success : AppColors.danger),
                             onTap: () => _openDetail2(it['id'] as int),
                           );
                         },
@@ -739,7 +740,7 @@ class _ImagesPagerState extends State<_ImagesPager> {
             final u = widget.urls[i];
             final url = u.startsWith('http') ? u : Api.base + u;
             return Container(
-              color: Colors.black12,
+              color: AppColors.surface,
               alignment: Alignment.center,
               child: Padding(
                 padding: const EdgeInsets.all(4),
@@ -767,7 +768,7 @@ class _ImagesPagerState extends State<_ImagesPager> {
               margin: const EdgeInsets.symmetric(horizontal: 4),
               decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: sel ? Colors.teal : Colors.grey.shade400),
+                  color: sel ? AppColors.info : AppColors.border),
             ),
           );
         }),

@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../constants/app_colors.dart';
 
 import '../services/api.dart';
 import 'login_register.dart';
@@ -20,7 +21,7 @@ class RankingScreen extends StatefulWidget {
 
 class _RankingScreenState extends State<RankingScreen>
     with SingleTickerProviderStateMixin {
-  static const Color _accentColor = Color(0xFF6366F1);
+  static const Color _accentColor = AppColors.primary;
   static const List<_RankingMetric> _metrics = [
     _RankingMetric(
       key: 'created_problems',
@@ -320,7 +321,7 @@ class _RankingScreenState extends State<RankingScreen>
             Text(
               'ランキング',
               style: GoogleFonts.notoSans(
-                color: const Color(0xFF111827),
+                color: AppColors.textPrimary,
                 fontSize: 30,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.1,
@@ -339,7 +340,7 @@ class _RankingScreenState extends State<RankingScreen>
 
   Widget _buildMetricTabs() {
     return Material(
-      color: const Color(0xFFF3F4F6),
+      color: AppColors.light,
       borderRadius: BorderRadius.circular(16),
       child: TabBar(
         controller: _tabController,
@@ -348,13 +349,13 @@ class _RankingScreenState extends State<RankingScreen>
           borderSide: BorderSide(width: 3, color: _accentColor),
           insets: EdgeInsets.symmetric(horizontal: 16),
         ),
-        dividerColor: Colors.transparent,
+        dividerColor: AppColors.background,
         splashBorderRadius: BorderRadius.circular(16),
         labelPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         overlayColor: MaterialStateProperty.resolveWith(
           (states) => states.contains(MaterialState.pressed)
-              ? _accentColor.withOpacity(0.12)
-              : Colors.transparent,
+              ? AppColors.surface
+              : AppColors.background,
         ),
         labelStyle: GoogleFonts.notoSans(
           fontSize: 16,
@@ -364,8 +365,8 @@ class _RankingScreenState extends State<RankingScreen>
           fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
-        labelColor: const Color(0xFF1F2937),
-        unselectedLabelColor: const Color(0xFF6B7280),
+        labelColor: AppColors.textPrimary,
+        unselectedLabelColor: AppColors.textSecondary,
         tabs: _metrics
             .map(
               (metric) => Tab(
@@ -554,13 +555,13 @@ class _RankingScreenState extends State<RankingScreen>
           const Icon(
             Icons.inbox_outlined,
             size: 48,
-            color: Color(0xFF9CA3AF),
+            color: AppColors.textSecondary,
           ),
           const SizedBox(height: 16),
           Text(
             'データがありません',
             style: GoogleFonts.notoSans(
-              color: const Color(0xFF4B5563),
+              color: AppColors.textSecondary,
               fontSize: 16,
               fontWeight: FontWeight.w500,
             ),
@@ -578,13 +579,13 @@ class _RankingScreenState extends State<RankingScreen>
           const Icon(
             Icons.error_outline,
             size: 48,
-            color: Color(0xFFDC2626),
+            color: AppColors.danger,
           ),
           const SizedBox(height: 16),
           Text(
             '読み込みに失敗しました。再試行',
             style: GoogleFonts.notoSans(
-              color: const Color(0xFF1F2937),
+              color: AppColors.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -593,7 +594,7 @@ class _RankingScreenState extends State<RankingScreen>
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: _accentColor,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColors.background,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
               textStyle: const TextStyle(fontWeight: FontWeight.bold),
               shape: RoundedRectangleBorder(
@@ -634,10 +635,8 @@ class _PodiumCardState extends State<_PodiumCard> {
   Widget build(BuildContext context) {
     final rank = widget.entry.rank;
     final gradient = _gradientForRank(rank);
-    final borderColor = widget.entry.isSelf || _focused
-        ? widget.accentColor.withOpacity(0.9)
-        : Colors.black.withOpacity(0.08);
-    final boxShadowColor = Colors.black.withOpacity(_hovered ? 0.18 : 0.12);
+    final borderColor = widget.entry.isSelf || _focused ? AppColors.primary : AppColors.border;
+    final boxShadowColor = AppColors.shadow;
 
     return FocusableActionDetector(
       onShowFocusHighlight: (focused) {
@@ -696,8 +695,8 @@ class _PodiumCardState extends State<_PodiumCard> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.notoSans(
-                      color: Colors.black.withOpacity(0.85),
+                      style: GoogleFonts.notoSans(
+                        color: AppColors.textPrimary,
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.4,
@@ -709,7 +708,7 @@ class _PodiumCardState extends State<_PodiumCard> {
                   style: GoogleFonts.robotoMono(
                     fontSize: 30,
                     fontWeight: FontWeight.w700,
-                    color: Colors.black.withOpacity(0.85),
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -745,22 +744,14 @@ class _RankRowState extends State<_RankRow> {
   @override
   Widget build(BuildContext context) {
     final isEvenRow = widget.index.isEven;
-    final neutralBase =
-        isEvenRow ? const Color(0xFFF4F6FB) : const Color(0xFFF9FAFC);
-    final baseColor = widget.entry.isSelf
-        ? widget.accentColor.withOpacity(0.12)
-        : neutralBase;
-    final hoverColor = widget.entry.isSelf
-        ? widget.accentColor.withOpacity(0.18)
-        : const Color(0xFFE5E7EB);
+    final neutralBase = isEvenRow ? AppColors.light : AppColors.light;
+    final baseColor = widget.entry.isSelf ? AppColors.surface : neutralBase;
+    final hoverColor = widget.entry.isSelf ? AppColors.surface : AppColors.border;
     final backgroundColor = _hovered ? hoverColor : baseColor;
     final borderColor = widget.entry.isSelf || _focused
-        ? widget.accentColor.withOpacity(0.8)
-        : (_hovered
-            ? const Color(0xFFD1D5DB)
-            : const Color(0xFFE5E7EB));
-    final shadowColor =
-        Colors.black.withOpacity(_hovered ? 0.12 : 0.06);
+        ? AppColors.primary
+        : (_hovered ? AppColors.border : AppColors.border);
+    final shadowColor = AppColors.shadow;
 
     return FocusableActionDetector(
       onShowFocusHighlight: (focused) {
@@ -798,7 +789,7 @@ class _RankRowState extends State<_RankRow> {
                   child: Text(
                     '${widget.entry.rank}.',
                     style: GoogleFonts.notoSans(
-                      color: const Color(0xFF1F2937),
+                      color: AppColors.textPrimary,
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                     ),
@@ -814,7 +805,7 @@ class _RankRowState extends State<_RankRow> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.notoSans(
-                        color: const Color(0xFF1F2937),
+                        color: AppColors.textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -828,7 +819,7 @@ class _RankRowState extends State<_RankRow> {
                     widget.scoreText,
                     textAlign: TextAlign.right,
                     style: GoogleFonts.robotoMono(
-                      color: const Color(0xFF1F2937),
+                      color: AppColors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -906,8 +897,8 @@ class _SkeletonCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         gradient: LinearGradient(
           colors: [
-            const Color(0xFFE5E7EB),
-            const Color(0xFFF3F4F6),
+            AppColors.border,
+            AppColors.light,
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -922,21 +913,21 @@ class _SkeletonCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFFD1D5DB),
+                color: AppColors.border,
                 shape: BoxShape.circle,
               ),
             ),
             Container(
               height: 18,
               decoration: BoxDecoration(
-                color: const Color(0xFFDDE3ED),
+                color: AppColors.border,
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
             Container(
               height: 28,
               decoration: BoxDecoration(
-                color: const Color(0xFFDDE3ED),
+                color: AppColors.border,
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
@@ -954,7 +945,7 @@ class _LoadingRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF3F4F6),
+        color: AppColors.light,
         borderRadius: BorderRadius.circular(18),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
@@ -964,7 +955,7 @@ class _LoadingRow extends StatelessWidget {
             width: 64,
             height: 16,
             decoration: BoxDecoration(
-              color: const Color(0xFFD1D5DB),
+              color: AppColors.border,
               borderRadius: BorderRadius.circular(8),
             ),
           ),
@@ -973,7 +964,7 @@ class _LoadingRow extends StatelessWidget {
             child: Container(
               height: 16,
               decoration: BoxDecoration(
-                color: const Color(0xFFD1D5DB),
+                color: AppColors.border,
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
@@ -983,7 +974,7 @@ class _LoadingRow extends StatelessWidget {
             width: 110,
             height: 16,
             decoration: BoxDecoration(
-              color: const Color(0xFFD1D5DB),
+              color: AppColors.border,
               borderRadius: BorderRadius.circular(8),
             ),
           ),
@@ -1064,23 +1055,23 @@ List<Color> _gradientForRank(int rank) {
   switch (rank) {
     case 1:
       return const [
-        Color(0xFFFFD54A),
-        Color(0xFFFFB300),
+        AppColors.highlight,
+        AppColors.highlight,
       ];
     case 2:
       return const [
-        Color(0xFFC0C8D0),
-        Color(0xFF8A9099),
+        AppColors.border,
+        AppColors.textSecondary,
       ];
     case 3:
       return const [
-        Color(0xFFC37A42),
-        Color(0xFF8E4B20),
+        AppColors.warning,
+        AppColors.warning,
       ];
     default:
       return const [
-        Color(0xFF6366F1),
-        Color(0xFF4338CA),
+        AppColors.primary,
+        AppColors.primary,
       ];
   }
 }

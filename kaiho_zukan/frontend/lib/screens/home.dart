@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import '../services/api.dart';
+import '../constants/app_colors.dart';
 import 'my_problems.dart';
 import 'explain_my_list.dart';
 import 'explain_fix_wrong.dart';
@@ -56,8 +57,8 @@ class _HomeScreenState extends State<HomeScreen> {
           height: 48,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: Colors.teal.shade50,
-            border: Border.all(color: Colors.teal.shade200),
+            color: AppColors.light,
+            border: Border.all(color: AppColors.info),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
@@ -76,7 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final username = p?['username'] ?? '';
     return Container(
       width: 320,
-      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+      color: AppColors.surface,
       child: SafeArea(
         child: Column(
           children: [
@@ -86,7 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 100,
               margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: Colors.teal.shade100,
+                color: AppColors.light,
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
@@ -98,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   CircleAvatar(
                     radius: 36,
-                    backgroundColor: Colors.grey.shade300,
+                    backgroundColor: AppColors.border,
                     backgroundImage: iconUrl != null ? NetworkImage(iconUrl) : null,
                     child: iconUrl == null ? const Icon(Icons.person, size: 36) : null,
                   ),
@@ -252,7 +253,7 @@ class _ProfileDetailView extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 36,
-                backgroundColor: Colors.grey.shade300,
+                backgroundColor: AppColors.border,
                 backgroundImage:
                     p['icon_url'] != null ? NetworkImage(p['icon_url']) : null,
                 child: p['icon_url'] == null
@@ -268,7 +269,7 @@ class _ProfileDetailView extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.amber.shade100,
+                  color: AppColors.light,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text('ランク: ' + p['rank'].toString(),
@@ -384,8 +385,8 @@ class _NotificationBellState extends State<_NotificationBell> {
       entries.add(Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.lightBlue.shade50,
-          border: Border.all(color: Colors.grey.shade300),
+          color: AppColors.light,
+          border: Border.all(color: AppColors.border),
           borderRadius: BorderRadius.circular(8),
         ),
         child: ListTile(
@@ -416,8 +417,8 @@ class _NotificationBellState extends State<_NotificationBell> {
       entries.add(Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.lightBlue.shade50,
-          border: Border.all(color: Colors.grey.shade300),
+          color: AppColors.light,
+          border: Border.all(color: AppColors.border),
           borderRadius: BorderRadius.circular(8),
         ),
         child: ListTile(
@@ -456,8 +457,8 @@ class _NotificationBellState extends State<_NotificationBell> {
       entries.add(Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: Colors.grey.shade300),
+          color: AppColors.background,
+          border: Border.all(color: AppColors.border),
           borderRadius: BorderRadius.circular(8),
         ),
         child: ListTile(
@@ -526,11 +527,11 @@ class _NotificationBellState extends State<_NotificationBell> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.redAccent,
+                color: AppColors.danger,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text('$_count',
-                  style: const TextStyle(color: Colors.white, fontSize: 11)),
+                  style: const TextStyle(color: AppColors.background, fontSize: 11)),
             ),
           ),
       ],

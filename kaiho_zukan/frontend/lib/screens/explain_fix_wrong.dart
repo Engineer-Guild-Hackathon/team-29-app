@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/app_colors.dart';
 import '../services/api.dart';
 import 'post_problem_form.dart';
 
@@ -141,7 +142,7 @@ class _ExplainFixWrongScreenState extends State<ExplainFixWrongScreen> {
                                         });
                                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除しました')));
                                       } else {
-                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除に失敗しました'), backgroundColor: Colors.red));
+                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除に失敗しました'), backgroundColor: AppColors.danger));
                                       }
                                     }
                                   },
