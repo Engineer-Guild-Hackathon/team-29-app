@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import '../widgets/illustrated_action_button.dart';
 import 'post_problem_subhub.dart';
 import 'explain_hub.dart';
+import '../widgets/app_icon.dart';
 
 class PostProblemHubScreen extends StatelessWidget {
   const PostProblemHubScreen({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('投稿する')),
+      appBar: AppBar(title: const IconAppBarTitle(title: '投稿する')),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/illustrated_action_button.dart';
 import 'post_problem_form.dart';
 import 'my_problems.dart';
+import '../widgets/app_icon.dart';
 
 /// 問題投稿のサブハブ
 /// - 新規で問題を投稿する
@@ -12,7 +13,7 @@ class PostProblemSubHubScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('問題の投稿/編集')),
+      appBar: AppBar(title: const IconAppBarTitle(title: '問題の投稿/編集')),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),

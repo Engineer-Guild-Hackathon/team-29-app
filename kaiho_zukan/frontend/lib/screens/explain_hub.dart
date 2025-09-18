@@ -3,6 +3,7 @@ import '../widgets/illustrated_action_button.dart';
 import 'explain_create_new.dart';
 import 'explain_my_list.dart';
 import 'explain_fix_wrong.dart';
+import '../widgets/app_icon.dart';
 
 class ExplainHubScreen extends StatelessWidget {
   const ExplainHubScreen({super.key});
@@ -10,7 +11,7 @@ class ExplainHubScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('解説の投稿/編集')),
+      appBar: AppBar(title: const IconAppBarTitle(title: '解説の投稿/編集')),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),

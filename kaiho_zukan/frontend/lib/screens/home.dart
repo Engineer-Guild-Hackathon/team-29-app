@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import '../services/api.dart';
+import '../widgets/app_icon.dart';
 import '../widgets/illustrated_action_button.dart';
 import 'my_problems.dart';
 import 'explain_my_list.dart';
@@ -69,23 +70,19 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _leftPane(BuildContext context) {
-    final p = _profile;
-    final iconUrl = p?['icon_url'] as String?;
-    final username = p?['username'] ?? '';
     return Container(
       width: 320,
       color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
       child: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 上部画像
-            Container(
-              height: 100,
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.teal.shade100,
-                borderRadius: BorderRadius.circular(12),
+            Center(
+              child: AppIcon(
+                size: 180,
+                borderRadius: BorderRadius.circular(32),
+                backgroundColor: Colors.transparent,
+                padding: EdgeInsets.zero,
               ),
             ),
             const SizedBox(height: 12),
@@ -137,7 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
               index: 4,
               illustrationHeight: 56,
             ),
-            const SizedBox(height: 32),
+            const Spacer(),
           ],
         ),
       ),
@@ -157,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SolveHubScreen(),
           const PostProblemHubScreen(),
           const ReviewScreen(),
-          const RankingScreen(),
+          const RankingScreen(showAppBar: false),
         ],
       ),
     );
@@ -165,10 +162,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final iconUrl = _profile?['icon_url'] as String?;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ホーム'),
+        title: const IconAppBarTitle(title: 'ホーム'),
         actions: [
+          if (_profile != null)
+            InkWell(
+              onTap: () => setState(() => _selected = 0),
+              borderRadius: BorderRadius.circular(24),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.grey.shade300,
+                  backgroundImage:
+                      iconUrl != null ? NetworkImage(iconUrl) : null,
+                  child: iconUrl == null
+                      ? const Icon(Icons.person, size: 20)
+                      : null,
+                ),
+              ),
+            ),
           const _NotificationBell(),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),

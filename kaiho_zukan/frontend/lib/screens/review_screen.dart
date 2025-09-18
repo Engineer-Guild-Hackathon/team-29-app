@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import '../services/api.dart';
+import '../widgets/app_icon.dart';
 
 class ReviewScreen extends StatefulWidget {
   const ReviewScreen({super.key});
@@ -622,7 +623,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('振り返り')),
+      appBar: AppBar(title: const IconAppBarTitle(title: '振り返り')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

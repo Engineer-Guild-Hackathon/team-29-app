@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api.dart';
+import '../widgets/app_icon.dart';
 import 'home.dart';
 import 'subject_select.dart';
 
@@ -17,7 +18,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('解法図鑑 - ログイン / 新規登録')),
+      appBar: AppBar(title: const IconAppBarTitle(title: '解法図鑑 - ログイン / 新規登録')),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
