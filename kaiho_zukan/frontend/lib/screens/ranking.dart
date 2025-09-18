@@ -9,9 +9,10 @@ import 'subject_select.dart';
 import 'user_info.dart';
 
 class RankingScreen extends StatefulWidget {
-  const RankingScreen({super.key, this.myName});
+  const RankingScreen({super.key, this.myName, this.showAppBar = true});
 
   final String? myName;
+  final bool showAppBar;
 
   @override
   State<RankingScreen> createState() => _RankingScreenState();
@@ -241,17 +242,13 @@ class _RankingScreenState extends State<RankingScreen>
     return '$sign$formattedInteger.$decimalPart';
   }
 
-  String _metricLabel(String key) {
-    return _metrics.firstWhere((metric) => metric.key == key).label;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: _buildAppBar(context),
+      appBar: widget.showAppBar ? _buildAppBar(context) : null,
       body: SafeArea(
-        top: false,
+        top: !widget.showAppBar,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -314,52 +311,28 @@ class _RankingScreenState extends State<RankingScreen>
   }
 
   Widget _buildHeader(BuildContext context) {
-    final selectedLabel = _metricLabel(_selectedMetric);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isNarrow = constraints.maxWidth < 520;
-          final title = Text(
-            'ランキング',
-            style: GoogleFonts.notoSans(
-              color: const Color(0xFF111827),
-              fontSize: 30,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.1,
-            ),
-          );
-          final indicator = Text(
-            '指標: $selectedLabel',
-            style: GoogleFonts.notoSans(
-              color: const Color(0xFF4B5563),
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          );
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (isNarrow) ...[
-                title,
-                const SizedBox(height: 8),
-                indicator,
-              ] else
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(child: title),
-                    indicator,
-                  ],
-                ),
-              const SizedBox(height: 16),
-              Semantics(
-                label: '指標セレクタ',
-                child: _buildMetricTabs(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!widget.showAppBar) ...[
+            Text(
+              'ランキング',
+              style: GoogleFonts.notoSans(
+                color: const Color(0xFF111827),
+                fontSize: 30,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.1,
               ),
-            ],
-          );
-        },
+            ),
+            const SizedBox(height: 12),
+          ],
+          Semantics(
+            label: '指標セレクタ',
+            child: _buildMetricTabs(),
+          ),
+        ],
       ),
     );
   }
