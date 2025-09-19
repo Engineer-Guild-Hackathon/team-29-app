@@ -1,92 +1,77 @@
-# 解法図鑑 バックエンド（FastAPI）
+# Kaiho Zukan バックエンド (FastAPI)
 
-学習用の問題・解説プラットフォームのバックエンドです。FastAPI + SQLAlchemy + MySQL を採用し、画像アップロード、問題/解説の「いいね」、AI による解説生成・誤り判定を提供します。
+## 概要
+Kaiho Zukan は、学習者が問題を投稿・解き、解説や復習サイクルを共有できるプラットフォームです。このバックエンドは FastAPI をベースに、認証、問題管理、AI を活用した判定・解説補助、ランキングなどの機能を提供します。
 
 ## 主な機能
+- JWT ベースのユーザー認証と権限管理
+- 問題・選択肢・模範解答・画像アップロードの CRUD API
+- 解説投稿、いいね、誤りフラグ付け、レビュー履歴の管理
+- スペースドリピティションを意識した復習（/review 系エンドポイント）
+- OpenAI API を用いた解説生成・判定（環境変数で有効化）
+- まとめやランキング、プロフィール編集 API
 
-- 認証（JWT）/ユーザー情報/学習カテゴリ設定
-- 問題の作成・編集・削除、画像添付、選択肢、模範解答、解説（全体/選択肢別）
-- いいね（問題・問題全体の解説）/ 回答履歴 / 振り返り（統計・履歴）
-- ランキング（作問数/解説数/いいね/ポイント）
-- AI 連携（任意）: 解説の自動生成、誤り判定（AI 二値判定 + 群衆フラグ）
+## 技術スタック
+- Python 3.11 / FastAPI / Uvicorn
+- SQLAlchemy + MySQL 8.0 (utf8mb4_0900_ai_ci)
+- Pydantic (v2) によるスキーマ定義
+- PyJWT によるトークン発行
+- Tesseract OCR（画像からの文字抽出を想定、Dockerfile で導入）
+- OpenAI API（任意機能）
 
-## セットアップ
+## ディレクトリ構成
+- app/main.py : FastAPI アプリエントリーポイント（ルーター登録）
+- app/core/ : 設定 (config.py)、DB セッション (db.py)、ロガー等
+- app/models/ : SQLAlchemy モデル（ユーザー、問題、解説、AI 判定など）
+- app/schemas/ : Pydantic スキーマ
+- app/api/ : ルーター (auth.py, problems.py, 
+eview.py など)
+- app/security/ : パスワードハッシュ、JWT ヘルパー
+- app/services/ : AI 判定ロジックなどのドメインサービス
+- app/static/ : アイコン等の静的ファイル
 
-- 推奨: Docker / Docker Compose
-- 代替: ローカル（Python + MySQL）
+## セットアップ手順
+### 1. Docker Compose を利用する場合（推奨）
+1. backend/.env, .env.db, mysql.env を編集し、必要に応じて値を変更します。
+2. docker compose up --build を実行します。
+3. 起動後のアクセス先:
+   - API: http://localhost:8000
+   - OpenAPI ドキュメント: http://localhost:8000/docs
+   - phpMyAdmin: http://localhost:8080
+4. 終了は docker compose down。永続化ボリュームは dbdata（MySQL）、api_uploads（アップロードファイル）です。
 
-### 1) Docker（推奨）
+### 2. ローカル環境で動かす場合
+1. Python 3.11 と MySQL 8 を用意し、データベース learn を作成します。
+2. 仮想環境を作成し依存関係をインストールします。
+   python -m venv .venv
+   .venv\\Scripts\\activate        # Windows
+   source .venv/bin/activate          # macOS / Linux
+   pip install -r requirements.txt
+   
+3. 以下の環境変数を設定します（例）。
+   set DATABASE_URL=mysql+pymysql://app:app@127.0.0.1:3306/learn
+   set JWT_SECRET=変更してください
+   set UPLOAD_DIR=./uploads
+   set OPENAI_ENABLED=false
+   
+4. アプリを起動します。
+   uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+   
+5. 画像アップロード用ディレクトリ（UPLOAD_DIR）を作成し、必要に応じて python -m app.api.init などの初期化処理を実行してください。
 
-- 事前準備: `.env` / `.env.db` / `mysql.env` を必要に応じて編集
-- 起動: `docker compose up --build`
-- アクセス: API `http://localhost:8000` / Docs `http://localhost:8000/docs` / phpMyAdmin `http://localhost:8080`
-- 停止: `docker compose down`
+## 主な環境変数
+| 変数 | 説明 | 既定値 |
+| ---- | ---- | ------ |
+| DATABASE_URL | MySQL 接続文字列 | mysql+pymysql://app:app@db:3306/learn |
+| JWT_SECRET | JWT 署名キー（必須） | なし |
+| JWT_EXPIRES_MIN | トークン有効期限（分） | 10080 |
+| OPENAI_ENABLED | OpenAI 連携の有効化フラグ | false |
+| OPENAI_API_KEY | OpenAI API キー（OPENAI_ENABLED=true の場合必須） | なし |
+| OPENAI_MODEL | 利用モデル名 | gpt-4o-mini |
+| UPLOAD_DIR | ファイル保存先パス | /data/uploads |
 
-ボリューム
-- MySQL: `dbdata`
-- アップロード画像: `api_uploads`（コンテナ内 `/data/uploads`）
-
-### 2) ローカル実行
-
-前提: Python 3.11+ / MySQL 8.x
-
-1) `pip install -r requirements.txt`
-2) 環境変数（例）
-   - `DATABASE_URL=mysql+pymysql://app:app@127.0.0.1:3306/learn`
-   - `JWT_SECRET=...`（必須）
-   - `UPLOAD_DIR=./uploads`
-   - `OPENAI_ENABLED=false` / `OPENAI_API_KEY=...` / `OPENAI_MODEL=gpt-4o-mini`
-3) `uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload`
-
-起動時に DB 接続確認・テーブル作成・スキーマ保証・カテゴリ初期投入が実行されます。
-
-## 環境変数
-
-- DB/認証: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_MIN`（既定 10080=7日）
-- CORS/アップロード: `CORS_ALLOW_ALL`, `UPLOAD_DIR`（既定 `/data/uploads`、`/uploads` で配信）
-- AI: `OPENAI_ENABLED`, `OPENAI_API_KEY`, `OPENAI_MODEL`
-
-## API 概要
-
-- 認証/ユーザー
-  - `POST /auth/register` / `POST /auth/login`
-  - `GET /me` / `POST /me/categories` / `PUT /me`
-  - `GET /my/problems` / `GET /my/explanations/problems`
-- カテゴリ
-  - `GET /categories/tree`
-- 問題
-  - `POST /problems` / `PUT /problems/{pid}`（multipart）
-  - `GET /problems/{pid}` / `GET /problems/for-explain` / `GET /problems/next`
-  - `GET /problems/{pid}/explanations?sort=likes|recent|random`
-  - `GET /problems/{pid}/my-explanations` / `DELETE /problems/{pid}/my-explanations`
-  - `DELETE /problems/{pid}`
-- 回答/いいね
-  - `POST /problems/{pid}/answer`
-  - `POST/DELETE /problems/{pid}/like`
-  - `POST/DELETE /problems/{pid}/explanations/like`
-- 解説
-  - `GET /explanations/problem/{pid}` / `POST /explanations/problem/{pid}` / `PUT /explanations/{eid}`
-  - `POST/DELETE /explanations/{eid}/like` / `POST/DELETE /explanations/{eid}/wrong-flags`
-- 模範解答
-  - `POST /problems/{pid}/model-answer` / `GET /problems/{pid}/model-answer` / `GET /problems/{pid}/model-answers`
-- 振り返り
-  - `GET /review/stats` / `GET /review/history` / `GET /review/item` / `POST /review/mark`
-- ランキング
-  - `GET /leaderboard?metric=created_problems|created_expl|likes_problems|likes_expl|points`
-
-## 画像アップロード
-
-- `POST /problems` / `PUT /problems/{pid}` で `images` を複数送信可
-- 保存先: `UPLOAD_DIR`（既定 `/data/uploads`） → `/uploads` で配信
-
-## AI メタ情報（解説レスポンス）
-
-解説の配列要素には、環境が有効な場合に次のメタが付きます:
-- `ai_is_wrong`, `ai_judge_score`, `ai_judge_reason`
-- `wrong_flag_count`, `flagged_wrong`, `solvers_count`, `crowd_maybe_wrong`
-
-## メモ
-
-- 422 は簡略化して返却（バリデーションログあり）
-- MySQL は `utf8mb4_0900_ai_ci`
-- 問題削除時は関連レコード・画像削除を先に実施（`AiJudgement` も明示削除）
+## 運用上のヒント
+- /uploads エンドポイントで UPLOAD_DIR に保存されたファイルを配信します。
+- API から返される 422 エラーはバリデーション失敗を表します。リクエストボディを確認してください。
+- 画像 OCR が必要な場合は、Docker イメージに含まれる Tesseract を利用できます（ローカル実行時は別途インストールしてください）。
+- OpenAI 連携を有効化すると、解説生成や自動判定エンドポイントが有効になります。課金設定に注意してください。

@@ -161,7 +161,6 @@ class _ReviewScreenState extends State<ReviewScreen> {
           final bool ok = (it['is_correct'] == true);
           return ListTile(
             title: Text(it['title'] ?? ''),
-            subtitle: Text((it['answered_at'] ?? '').toString()),
             trailing: Icon(
               ok ? Icons.circle_outlined : Icons.close,
               color: ok ? AppColors.success : AppColors.danger,
