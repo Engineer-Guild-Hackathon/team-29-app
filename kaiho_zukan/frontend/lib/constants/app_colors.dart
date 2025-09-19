@@ -32,4 +32,12 @@ class AppColors {
   static const Color rank3 = Color(0xFFB37E3A);
   static const Color rank3_shade = Color(0xFF99592B);
   static const Color shadow = Color(0x29000000); // 透明度付き
+
+  static const Color dashboard_profile = Color(0xFFF2F6FF);
+  static const Color dashboard_solve = Color(0xFFEAF4FF);
+  static const Color dashboard_post = Color(0xFFFFF5ED);
+  static const Color dashboard_review = Color(0xFFF0FBF4);
+  static const Color dashboard_ranking = Color(0xFFE9F4FF);
+  static const Color dashboard_card = Color(0xFFFFFFFF);
+  static const Color dashboard_border = Color(0xFFE2E8F5);
 }
