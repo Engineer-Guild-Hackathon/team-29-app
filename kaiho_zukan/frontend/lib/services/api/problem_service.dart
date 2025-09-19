@@ -64,7 +64,7 @@ class ProblemService {
     if (modelAnswer != null && modelAnswer.trim().isNotEmpty) {
       request.fields['model_answer'] = modelAnswer.trim();
     }
-    if (initialExplanation != null && initialExplanation.trim().isNotEmpty) {
+    if (initialExplanation != null) {
       request.fields['initial_explanation'] = initialExplanation.trim();
     }
     if (optionExplanationsJson != null) {
@@ -132,7 +132,7 @@ class ProblemService {
     if (modelAnswer != null && modelAnswer.trim().isNotEmpty) {
       request.fields['model_answer'] = modelAnswer.trim();
     }
-    if (initialExplanation != null && initialExplanation.trim().isNotEmpty) {
+    if (initialExplanation != null) {
       request.fields['initial_explanation'] = initialExplanation.trim();
     }
     if (optionExplanationsJson != null) {
@@ -191,7 +191,7 @@ class ProblemService {
       request.fields['options_text'] = optionsText;
       request.fields['correct_index'] = (correctIndex ?? 0).toString();
     }
-    if (initialExplanation != null && initialExplanation.trim().isNotEmpty) {
+    if (initialExplanation != null) {
       request.fields['initial_explanation'] = initialExplanation.trim();
     }
     if (token != null) {
@@ -235,7 +235,7 @@ class ProblemService {
       request.fields['options_text'] = opt;
       request.fields['correct_index'] = (correctIndex ?? 0).toString();
     }
-    if (initialExplanation != null && initialExplanation.trim().isNotEmpty) {
+    if (initialExplanation != null) {
       request.fields['initial_explanation'] = initialExplanation.trim();
     }
     if (modelAnswer != null && modelAnswer.trim().isNotEmpty) {
@@ -363,7 +363,7 @@ class ProblemService {
     if (modelAnswer != null && modelAnswer.trim().isNotEmpty) {
       request.fields['model_answer'] = modelAnswer.trim();
     }
-    if (initialExplanation != null && initialExplanation.trim().isNotEmpty) {
+    if (initialExplanation != null) {
       request.fields['initial_explanation'] = initialExplanation.trim();
     }
     if (optionExplanationsJson != null) {
@@ -510,3 +510,4 @@ class ProblemService {
     return response.statusCode == 200;
   }
 }
+

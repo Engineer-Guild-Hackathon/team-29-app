@@ -361,9 +361,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
       // 1) まずテキストの更新（※画像がある場合は initial_explanation は null にして重複を防ぐ）
       final r = await Api.problems.updateWithImages(
         id: widget.editId!,
-        initialExplanation: hasExplainImages
-            ? null
-            : (initialTxt.isEmpty ? null : initialTxt),
+        // 解説が空でもフィールドを送ってサーバ側で削除させる
+        initialExplanation: hasExplainImages ? null : (initialTxt.isEmpty ? '' : initialTxt),
         optionExplanationsJson: optionExplanationsJson,
       );
 
@@ -409,6 +408,10 @@ class _PostProblemFormState extends State<PostProblemForm> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('保存しました')),
       );
+      // 記述式で解説が空ならサーバ上の自分の解説を削除
+      if (qtype != 'mcq' && initialTxt.isEmpty && !hasExplainImages) {
+        try { await Api.explanations.deleteMine(widget.editId!); } catch (_) {}
+      }
       Navigator.pop(context);
       return;
     }
@@ -515,6 +518,10 @@ class _PostProblemFormState extends State<PostProblemForm> {
             }
           }
         } catch (_) {}
+        // 記述式で解説が空ならサーバ上の自分の解説を削除
+        if (qtype != 'mcq' && initialTxt.isEmpty && !hasExplainImages) {
+          try { await Api.explanations.deleteMine(widget.editId!); } catch (_) {}
+        }
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const MyProblemsScreen()),
@@ -538,9 +545,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
         modelAnswer: qtype == 'free' && modelAnswerCtrl.text.trim().isNotEmpty
             ? modelAnswerCtrl.text.trim()
             : null,
-        initialExplanation: hasExplainImages
-            ? null
-            : (initialTxt.isNotEmpty ? initialTxt : null),
+        // 解説が空でもフィールドを送ってサーバ側で削除させる
+        initialExplanation: hasExplainImages ? null : (initialTxt.isNotEmpty ? initialTxt : ''),
         optionExplanationsJson: optionExplanationsJson,
         images: problemImgs.isEmpty ? null : problemImgs,
       );
@@ -907,7 +913,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
                     controller: myAnswerCtrl,
                     minLines: 2,
                     maxLines: 4,
-                    decoration: const InputDecoration(labelText: '自分の解答（任意）'),
+                    decoration: const InputDecoration(labelText: '自分の解答'),
                   ),
                 ],
 
@@ -1116,3 +1122,6 @@ class _ImagesPagerState extends State<_ImagesPager> {
     ]);
   }
 }
+
+
+
