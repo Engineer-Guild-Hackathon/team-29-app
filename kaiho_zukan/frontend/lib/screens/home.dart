@@ -1,10 +1,13 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/home_section_theme.dart';
 import '../services/api.dart';
 import '../widgets/app_icon.dart';
 import '../widgets/illustrated_action_button.dart';
 import '../widgets/home_section_surface.dart';
+import '../widgets/app_header.dart';
+import '../widgets/app_sidebar.dart';
+import '../widgets/app_breadcrumbs.dart';
 import 'my_problems.dart';
 import 'explain_my_list.dart';
 import 'explain_fix_wrong.dart';
@@ -17,7 +20,9 @@ import 'review_screen.dart';
 import 'user_info.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.initialSelected});
+
+  final int? initialSelected;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -63,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
     _NavigationItem(
       index: 2,
-      title: '問題・解答・解説を投稿する',
+      title: '投稿する',
       icon: Icons.upload_file,
       color: HomeSectionThemes.post.accent,
       illustrationHeight: 56,
@@ -110,6 +115,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialSelected != null) {
+      _selected = widget.initialSelected!.clamp(0, _navigationItems.length - 1);
+    }
     _loadProfile();
   }
 
@@ -431,24 +439,76 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final iconUrl = _profile?['icon_url'] as String?;
+    final username = _profile?['username']?.toString();
     final mediaPadding = MediaQuery.of(context).padding;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final bool isCompact = constraints.maxWidth < 960;
+        // Build navigation items for sidebar/drawer
+        final navItems = _navigationItems
+            .map((e) => AppNavItem(
+                  index: e.index,
+                  title: e.title,
+                  icon: e.icon,
+                  color: e.color,
+                  illustrationHeight: e.illustrationHeight,
+                ))
+            .toList();
+
         return Scaffold(
           key: _scaffoldKey,
           backgroundColor: AppColors.background,
-          drawer: isCompact ? Drawer(child: _buildDrawerContent()) : null,
+          drawer: isCompact
+              ? Drawer(
+                  child: AppDrawerMenu(
+                    items: navItems,
+                    selectedIndex: _selected,
+                    onSelect: (i) => _handleNavigation(i, fromDrawer: true),
+                  ),
+                )
+              : null,
           body: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (!isCompact) _buildSidebar(mediaPadding),
+              if (!isCompact)
+                AppSidebar(
+                  items: navItems,
+                  selectedIndex: _selected,
+                  onSelect: (i) => _handleNavigation(i),
+                  mediaPadding: mediaPadding,
+                ),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildHeader(mediaPadding, isCompact, iconUrl),
+                    AppHeader(
+                      title: _pageTitle,
+                      isCompact: isCompact,
+                      onOpenMenu: () => _scaffoldKey.currentState?.openDrawer(),
+                      iconUrl: iconUrl,
+                      username: username,
+                      onTapProfile: () => _handleNavigation(0),
+                    ),
+                    if (_selected != 0)
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                        decoration: const BoxDecoration(
+                          color: AppColors.background,
+                          border: Border(
+                            bottom: BorderSide(color: AppColors.border),
+                          ),
+                        ),
+                        child: AppBreadcrumbs(
+                          items: [
+                            BreadcrumbItem(
+                              label: 'ホーム',
+                              onTap: () => _handleNavigation(0),
+                            ),
+                            BreadcrumbItem(label: _pageTitle),
+                          ],
+                        ),
+                      ),
                     Expanded(
                       child: Container(
                         color: (_sectionThemes[_selected]?.background ??

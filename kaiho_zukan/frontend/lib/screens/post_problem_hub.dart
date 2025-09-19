@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/home_section_theme.dart';
 import '../widgets/home_section_surface.dart';
+import '../widgets/app_breadcrumbs.dart';
 import '../widgets/illustrated_action_button.dart';
 import 'post_problem_subhub.dart';
 import 'explain_hub.dart';
 import '../widgets/app_icon.dart';
+import 'home.dart';
+import '../widgets/app_scaffold.dart';
 
 class PostProblemHubScreen extends StatelessWidget {
   const PostProblemHubScreen({
@@ -85,13 +88,20 @@ class PostProblemHubScreen extends StatelessWidget {
       return section;
     }
 
-    return Scaffold(
+    return AppScaffold(
+      title: '投稿する',
       backgroundColor: theme.background,
-      appBar: AppBar(
-        backgroundColor: theme.background,
-        elevation: 0,
-        title: const IconAppBarTitle(title: '投稿する'),
-        foregroundColor: AppColors.dark,
+      subHeader: AppBreadcrumbs(
+        items: [
+          BreadcrumbItem(
+            label: 'ホーム',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            ),
+          ),
+          const BreadcrumbItem(label: '投稿する'),
+        ],
       ),
       body: section,
     );

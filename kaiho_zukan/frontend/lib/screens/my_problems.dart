@@ -3,6 +3,11 @@ import '../constants/app_colors.dart';
 import '../services/api.dart';
 import 'post_problem_form.dart';
 import '../widgets/app_icon.dart';
+import '../widgets/app_scaffold.dart';
+import '../widgets/app_breadcrumbs.dart';
+import 'home.dart';
+import 'post_problem_hub.dart';
+import 'post_problem_subhub.dart';
 
 class MyProblemsScreen extends StatefulWidget {
   const MyProblemsScreen({super.key});
@@ -28,8 +33,34 @@ class _MyProblemsScreenState extends State<MyProblemsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const IconAppBarTitle(title: '自分が作った問題')),
+    return AppScaffold(
+      title: '自分が作った問題',
+      subHeader: AppBreadcrumbs(
+        items: [
+          BreadcrumbItem(
+            label: 'ホーム',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            ),
+          ),
+          BreadcrumbItem(
+            label: '投稿する',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PostProblemHubScreen()),
+            ),
+          ),
+          BreadcrumbItem(
+            label: '問題の投稿/編集',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PostProblemSubHubScreen()),
+            ),
+          ),
+          const BreadcrumbItem(label: '自分が作った問題'),
+        ],
+      ),
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -69,7 +100,7 @@ class _MyProblemsScreenState extends State<MyProblemsScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => PostProblemForm(editId: it['id'] as int),
+                              builder: (_) => PostProblemForm(editId: it['id'] as int, fromMyList: true),
                             ),
                           );
                         },
@@ -113,3 +144,4 @@ class _MyProblemsScreenState extends State<MyProblemsScreen> {
     );
   }
 }
+

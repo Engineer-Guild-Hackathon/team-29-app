@@ -3,6 +3,8 @@ import '../constants/app_colors.dart';
 import '../services/api.dart';
 import 'home.dart';
 import '../widgets/app_icon.dart';
+import '../widgets/app_scaffold.dart';
+import '../widgets/app_breadcrumbs.dart';
 
 class SubjectSelectScreen extends StatefulWidget {
   final bool isOnboarding;
@@ -51,11 +53,26 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
       return q.isEmpty || name.contains(q);
     }).toList();
 
-    return Scaffold(
+    return AppScaffold(
+      title: widget.isOnboarding ? '教科を選んで登録' : '教科をえらび直す',
       appBar: AppBar(
         title: IconAppBarTitle(
           title: widget.isOnboarding ? '教科を選んで登録' : '教科をえらび直す',
         ),
+      ),
+      subHeader: AppBreadcrumbs(
+        items: [
+          BreadcrumbItem(
+            label: 'ホーム',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            ),
+          ),
+          BreadcrumbItem(
+            label: widget.isOnboarding ? '科目を選択する' : '科目の設定',
+          ),
+        ],
       ),
       body: loading ? const Center(child: CircularProgressIndicator()) :
       Center(

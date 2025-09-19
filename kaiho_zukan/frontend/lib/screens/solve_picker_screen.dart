@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../services/api.dart';
 import 'solve_screen.dart';
 import '../widgets/app_icon.dart';
+import '../widgets/app_scaffold.dart';
+import '../widgets/app_breadcrumbs.dart';
+import 'home.dart';
 
 class SolvePickerScreen extends StatefulWidget {
   const SolvePickerScreen({super.key});
@@ -25,7 +28,7 @@ class _S extends State<SolvePickerScreen> {
   }
 
   Future<void> _loadCats() async {
-    final t = await Api.categories.tree();
+    final t = await Api.categories.tree(mineOnly: true);
     setState(() {
       parents = t;
       if (t.isNotEmpty) {
@@ -38,6 +41,10 @@ class _S extends State<SolvePickerScreen> {
         }
       }
     });
+    if (childId == null) {
+      setState(() => loading = false);
+      return;
+    }
     await _search();
   }
 
@@ -61,8 +68,27 @@ class _S extends State<SolvePickerScreen> {
 
   @override
   Widget build(BuildContext c) {
-    return Scaffold(
-      appBar: AppBar(title: const IconAppBarTitle(title: '問題を選んで解く')),
+    return AppScaffold(
+      title: '問題を選んで解く',
+      subHeader: AppBreadcrumbs(
+        items: [
+          BreadcrumbItem(
+            label: 'ホーム',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            ),
+          ),
+          BreadcrumbItem(
+            label: '問題を解く',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen(initialSelected: 1)),
+            ),
+          ),
+          const BreadcrumbItem(label: '問題を選んで解く'),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -133,7 +159,15 @@ class _S extends State<SolvePickerScreen> {
                             title: Text(p['title'] ?? ''),
                             subtitle: Text('いいね ${p['like_count']} / 解説数: ${p['ex_cnt']}'),
                             trailing: FilledButton(
-                              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SolveScreen(initialProblemId: p['id'] as int))),
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => SolveScreen(
+                                    initialProblemId: p['id'] as int,
+                                    fromPicker: true,
+                                  ),
+                                ),
+                              ),
                               child: const Text('解く'),
                             ),
                           );
