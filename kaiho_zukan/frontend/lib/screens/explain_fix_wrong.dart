@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import '../constants/app_colors.dart';
 import '../services/api.dart';
 import 'post_problem_form.dart';
-import '../widgets/app_icon.dart';
 
 class ExplainFixWrongScreen extends StatefulWidget {
   const ExplainFixWrongScreen({super.key});
@@ -108,7 +106,7 @@ class _ExplainFixWrongScreenState extends State<ExplainFixWrongScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const IconAppBarTitle(title: '「間違っている」判定の解説一覧')),
+      appBar: AppBar(title: const Text('間違っているかも解説の一覧')),
       body: loading
           ? Center(
               child: Column(
@@ -248,7 +246,7 @@ class _ExplainFixWrongScreenState extends State<ExplainFixWrongScreen> {
                                         });
                                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除しました')));
                                       } else {
-                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除に失敗しました'), backgroundColor: AppColors.danger));
+                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除に失敗しました'), backgroundColor: Colors.red));
                                       }
                                     }
                                   },
@@ -294,4 +292,65 @@ class _WrongItem {
     required this.aiReason,
     required this.crowdFlag,
   });
+}
+
+// 画像ページャ（SolveScreen と同等の表示）
+class _ImagesPager extends StatefulWidget {
+  final List<String> urls;
+  const _ImagesPager({super.key, required this.urls});
+  @override
+  State<_ImagesPager> createState() => _ImagesPagerState();
+}
+
+class _ImagesPagerState extends State<_ImagesPager> {
+  final PageController _pc = PageController();
+  int _index = 0;
+  @override
+  Widget build(BuildContext context) {
+    if (widget.urls.isEmpty) return const SizedBox.shrink();
+    return Column(children: [
+      SizedBox(
+        height: 280,
+        width: double.infinity,
+        child: PageView.builder(
+          controller: _pc,
+          onPageChanged: (i) => setState(() => _index = i),
+          itemCount: widget.urls.length,
+          itemBuilder: (_, i) {
+            final url = widget.urls[i];
+            return Container(
+              color: Colors.black12,
+              alignment: Alignment.center,
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(url, fit: BoxFit.contain),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+      const SizedBox(height: 8),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(widget.urls.length, (i) {
+          final sel = i == _index;
+          return GestureDetector(
+            onTap: () => _pc.animateToPage(i, duration: const Duration(milliseconds: 200), curve: Curves.easeOut),
+            child: Container(
+              width: 10,
+              height: 10,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: sel ? Colors.teal : Colors.grey.shade400,
+              ),
+            ),
+          );
+        }),
+      ),
+    ]);
+  }
 }
