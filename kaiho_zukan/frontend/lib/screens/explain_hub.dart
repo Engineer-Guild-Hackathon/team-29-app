@@ -4,6 +4,7 @@ import 'explain_create_new.dart';
 import 'explain_my_list.dart';
 import 'explain_fix_wrong.dart';
 import '../widgets/app_icon.dart';
+import '../constants/app_colors.dart';
 
 class ExplainHubScreen extends StatelessWidget {
   const ExplainHubScreen({super.key});
@@ -23,7 +24,8 @@ class ExplainHubScreen extends StatelessWidget {
                 IllustratedActionButton(
                   label: '新規で解説を投稿する',
                   icon: Icons.lightbulb,
-                  color: Colors.teal,
+                  backgroundColor: AppColors.accent1_light,
+                  color: AppColors.accent1,
                   illustrationHeight: 120,
                   onTap: () => Navigator.push(
                     context,
@@ -36,7 +38,8 @@ class ExplainHubScreen extends StatelessWidget {
                 IllustratedActionButton(
                   label: '自分が作った解説を編集する',
                   icon: Icons.edit_note,
-                  color: Colors.deepPurple,
+                  backgroundColor: AppColors.secondary_light,
+                  color: AppColors.secondary,
                   illustrationHeight: 120,
                   onTap: () => Navigator.push(
                     context,
@@ -49,7 +52,8 @@ class ExplainHubScreen extends StatelessWidget {
                 IllustratedActionButton(
                   label: '「間違っている」と判定された解説を修正',
                   icon: Icons.build,
-                  color: Colors.orange,
+                  backgroundColor: AppColors.accent2_light,
+                  color: AppColors.accent2,
                   illustrationHeight: 120,
                   onTap: () => Navigator.push(
                     context,

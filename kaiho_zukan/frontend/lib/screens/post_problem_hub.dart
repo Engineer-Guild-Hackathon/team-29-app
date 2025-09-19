@@ -3,6 +3,7 @@ import '../widgets/illustrated_action_button.dart';
 import 'post_problem_subhub.dart';
 import 'explain_hub.dart';
 import '../widgets/app_icon.dart';
+import '../constants/app_colors.dart';
 
 class PostProblemHubScreen extends StatelessWidget {
   const PostProblemHubScreen({super.key});
@@ -21,7 +22,8 @@ class PostProblemHubScreen extends StatelessWidget {
                 IllustratedActionButton(
                   label: '問題を投稿する',
                   icon: Icons.post_add,
-                  color: Colors.indigo,
+                  backgroundColor: AppColors.accent1_light,
+                  color: AppColors.accent1,
                   illustrationHeight: 120,
                   onTap: () => Navigator.push(
                     context,
@@ -34,7 +36,8 @@ class PostProblemHubScreen extends StatelessWidget {
                 IllustratedActionButton(
                   label: '解答・解説を投稿する',
                   icon: Icons.menu_book,
-                  color: Colors.teal,
+                  backgroundColor: AppColors.secondary_light,
+                  color: AppColors.secondary,
                   illustrationHeight: 120,
                   onTap: () => Navigator.push(
                     context,

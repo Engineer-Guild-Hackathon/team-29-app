@@ -19,7 +19,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const IconAppBarTitle(title: '解法図鑑 - ログイン / 新規登録')),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(title: const IconAppBarTitle(title: '解法図鑑 - ログイン / 新規登録', color: AppColors.textPrimary_light)),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),

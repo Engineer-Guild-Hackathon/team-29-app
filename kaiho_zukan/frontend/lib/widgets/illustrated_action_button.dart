@@ -9,12 +9,16 @@ class IllustratedActionButton extends StatelessWidget {
     this.color,
     this.isSelected = false,
     this.illustrationHeight = 96,
+    this.solidFill = false, // ← 追加
+    this.backgroundColor,
   });
 
+  final bool solidFill; // ← 追加
   final String label;
   final IconData icon;
   final VoidCallback? onTap;
   final Color? color;
+  final Color? backgroundColor;
   final bool isSelected;
   final double illustrationHeight;
 
@@ -25,9 +29,8 @@ class IllustratedActionButton extends StatelessWidget {
     final Color borderColor = isSelected
         ? baseColor
         : (scheme.outlineVariant.withOpacity(0.7));
-    final Color backgroundColor = isSelected
-        ? baseColor.withOpacity(0.18)
-        : scheme.surface;
+    final Color bg =
+        backgroundColor ?? (isSelected ? baseColor.withOpacity(0.18) : scheme.surface);
 
     return InkWell(
       onTap: onTap,
@@ -36,7 +39,7 @@ class IllustratedActionButton extends StatelessWidget {
       hoverColor: baseColor.withOpacity(0.06),
       child: Ink(
         decoration: BoxDecoration(
-          color: backgroundColor,
+          color: bg,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: borderColor, width: isSelected ? 2 : 1),
           boxShadow: isSelected
@@ -75,29 +78,38 @@ class IllustratedActionButton extends StatelessWidget {
 }
 
 class _Illustration extends StatelessWidget {
-  const _Illustration({required this.icon, required this.color});
+  const _Illustration({
+    required this.icon,
+    required this.color,
+    this.solidFill = false,
+  });
 
   final IconData icon;
   final Color color;
+  final bool solidFill;
 
   @override
   Widget build(BuildContext context) {
-    final gradient = LinearGradient(
-      colors: [
-        color.withOpacity(0.9),
-        color.withOpacity(0.7),
-      ],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
+    final BoxDecoration decoration = BoxDecoration(
+      // 単色塗りかグラデかを切り替え
+      color: solidFill ? color : null,
+      gradient: solidFill
+          ? null
+          : LinearGradient(
+              colors: [
+                color,
+                color.withOpacity(0.85),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+      borderRadius: BorderRadius.circular(16),
     );
 
     return AspectRatio(
       aspectRatio: 4 / 3,
       child: Container(
-        decoration: BoxDecoration(
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(16),
-        ),
+        decoration: decoration,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -109,7 +121,10 @@ class _Illustration extends StatelessWidget {
             Positioned(
               bottom: 16,
               right: 20,
-              child: _AccentCircle(color: Colors.white.withOpacity(0.18), size: 36),
+              child: _AccentCircle(
+                color: Colors.white.withOpacity(0.18),
+                size: 36,
+              ),
             ),
             Align(
               alignment: Alignment.center,

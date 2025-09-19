@@ -268,6 +268,7 @@ class _SolveScreenState extends State<SolveScreen> {
     final bool isFree = !isMcq;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: const IconAppBarTitle(title: '問題をランダムに解く')),
       body: Padding(
         padding: const EdgeInsets.all(16),

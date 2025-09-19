@@ -3,6 +3,7 @@ import '../widgets/illustrated_action_button.dart';
 import 'post_problem_form.dart';
 import 'my_problems.dart';
 import '../widgets/app_icon.dart';
+import '../constants/app_colors.dart';
 
 /// 問題投稿のサブハブ
 /// - 新規で問題を投稿する
@@ -26,7 +27,8 @@ class PostProblemSubHubScreen extends StatelessWidget {
                 IllustratedActionButton(
                   label: '新規で問題を投稿する',
                   icon: Icons.add_task,
-                  color: Colors.indigo,
+                  backgroundColor: AppColors.accent1_light,
+                  color: AppColors.accent1,
                   illustrationHeight: 120,
                   onTap: () {
                     Navigator.push(
@@ -41,7 +43,8 @@ class PostProblemSubHubScreen extends StatelessWidget {
                 IllustratedActionButton(
                   label: '自分が作った問題を編集する',
                   icon: Icons.edit_note,
-                  color: Colors.deepPurple,
+                  backgroundColor: AppColors.secondary_light,
+                  color: AppColors.secondary,
                   illustrationHeight: 120,
                   onTap: () {
                     Navigator.push(

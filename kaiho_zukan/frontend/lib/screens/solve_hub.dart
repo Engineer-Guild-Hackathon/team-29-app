@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/app_colors.dart';
 import '../widgets/illustrated_action_button.dart';
 import 'solve_screen.dart';
 import 'solve_picker_screen.dart';
@@ -10,6 +11,7 @@ class SolveHubScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: const IconAppBarTitle(title: '問題を解く')),
       body: Center(
         child: ConstrainedBox(
@@ -22,7 +24,8 @@ class SolveHubScreen extends StatelessWidget {
                 IllustratedActionButton(
                   label: '問題をランダムに解く',
                   icon: Icons.casino,
-                  color: Colors.indigo,
+                  backgroundColor: AppColors.accent1_light,
+                  color: AppColors.accent1,
                   illustrationHeight: 120,
                   onTap: () => Navigator.push(
                     context,
@@ -35,7 +38,8 @@ class SolveHubScreen extends StatelessWidget {
                 IllustratedActionButton(
                   label: '問題を選んで解く',
                   icon: Icons.view_list,
-                  color: Colors.deepOrange,
+                  backgroundColor: AppColors.secondary_light,
+                  color: AppColors.secondary,
                   illustrationHeight: 120,
                   onTap: () => Navigator.push(
                     context,
