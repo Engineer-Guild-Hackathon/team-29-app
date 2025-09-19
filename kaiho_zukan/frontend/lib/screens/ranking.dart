@@ -1057,23 +1057,23 @@ List<Color> _gradientForRank(int rank) {
   switch (rank) {
     case 1:
       return const [
-        AppColors.highlight,
-        AppColors.highlight,
+        AppColors.rank1,
+        AppColors.rank1_shade,
       ];
     case 2:
       return const [
-        AppColors.border,
-        AppColors.textSecondary,
+        AppColors.rank2,
+        AppColors.rank2_shade,
       ];
     case 3:
       return const [
-        AppColors.warning,
-        AppColors.warning,
+        AppColors.rank3,
+        AppColors.rank3_shade,
       ];
     default:
       return const [
         AppColors.primary,
-        AppColors.primary,
+        AppColors.primary_dark,
       ];
   }
 }
