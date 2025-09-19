@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import '../services/api.dart';
 import 'post_problem_form.dart';
-import '../widgets/app_icon.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/app_breadcrumbs.dart';
 import 'home.dart';
+import 'post_problem_hub.dart';
+import 'explain_hub.dart';
 
 class ExplainCreateNewScreen extends StatefulWidget {
   const ExplainCreateNewScreen({super.key});
@@ -72,10 +73,17 @@ class _ExplainCreateNewScreenState extends State<ExplainCreateNewScreen> {
             label: '投稿する',
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const HomeScreen(initialSelected: 2)),
+              MaterialPageRoute(builder: (_) => const PostProblemHubScreen()),
             ),
           ),
-          const BreadcrumbItem(label: '新規で解説を作成'),
+          BreadcrumbItem(
+            label: '解説の投稿/編集',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ExplainHubScreen()),
+            ),
+          ),
+          const BreadcrumbItem(label: '解説未作成の問題一覧'),
         ],
       ),
       body: Padding(
@@ -182,6 +190,7 @@ class _ExplainCreateNewScreenState extends State<ExplainCreateNewScreen> {
                               builder: (_) => PostProblemForm(
                                 editId: p['id'] as int,
                                 explainOnly: true,
+                                explanationContext: ExplanationBreadcrumbContext.createNew,
                               ),
                             ),
                           ),
@@ -195,3 +204,4 @@ class _ExplainCreateNewScreenState extends State<ExplainCreateNewScreen> {
     );
   }
 }
+
