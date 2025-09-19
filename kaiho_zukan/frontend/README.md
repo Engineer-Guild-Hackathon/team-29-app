@@ -1,65 +1,54 @@
-# Kaiho Zukan Frontend (Flutter)
+# Kaiho Zukan フロントエンド (Flutter)
 
-学習用の問題・解説プラットフォームのフロントエンドです。Flutter（Web/モバイル）で動作し、バックエンド FastAPI と通信します。
+## 概要
+Kaiho Zukan のフロントエンドは Flutter (Web / Android / iOS / デスクトップ) を利用したクロスプラットフォームアプリです。バックエンド FastAPI と連携し、ユーザーのログイン、問題演習、解説投稿、復習、ランキング表示などの学習体験を提供します。
 
 ## 必要環境
+- Flutter 3.3 以上（stable チャネル推奨）
+- Dart SDK （Flutter に同梱）
+- Chrome または対象プラットフォーム向けのデバイス/エミュレーター
 
-- Flutter 3.x（stable）
-- Dart（Flutter 同梱）
-
-確認例:
-
-```
+動作確認:
 flutter --version
-```
+
 
 ## 環境変数
+flutter_dotenv を利用しており、ビルド時に .env（開発用）または .env.production（本番用）を読み込みます。
 
-起動時に `.env`（開発時）または `.env.production`（リリースビルド時）を読み込みます。
+| 変数 | 用途 | 例 |
+| ---- | ---- | --- |
+| API_BASE_URL | バックエンド API のベース URL | 開発: http://localhost:8000 / 本番: https://example.com/api |
 
-- `API_BASE_URL`: 接続先バックエンドのベース URL（例: `http://localhost:8000`）
-  - 未設定の場合、リリースビルドでは既定で `https://es4.eedept.kobe-u.ac.jp/kaihou-back`、開発時は `http://localhost:8000` に接続します。
-
-例: `frontend/.env`
-
-```
+frontend/.env
 API_BASE_URL=http://localhost:8000
-```
 
-## 開発（ローカル実行）
-
-```
+## セットアップ & 起動
 flutter pub get
-flutter run -d chrome   # Web（Chrome）
-# または
-flutter run             # 接続中のデバイス/エミュレータ
-```
+flutter run -d chrome          # Web (Chrome)
+# もしくは接続済みデバイスに対して
+flutter devices
+flutter run -d <device_id>
 
-バックエンドが `http://localhost:8000` で起動していることを確認してください。
+バックエンドが API_BASE_URL で起動していることを確認してください。
 
 ## ビルド
+- Web: flutter build web
+  - サブパス配信時は flutter build web --base-href "/kaiho-zukan/"
+- Android APK: flutter build apk --release
+- iOS: flutter build ipa （要 macOS / Xcode）
 
-Web ビルド:
+## ディレクトリ構成（抜粋）
+- lib/main.dart : エントリーポイント（MaterialApp / ルーティング設定）
+- lib/services/api.dart : HTTP クライアント・API ラッパー
+- lib/screens/ : 画面群（ログイン、ホーム、出題/解説、レビュー、ランキングなど）
+- lib/widgets/ : 共通ウィジェット（AppBar、サイドバー、ダイアログ等）
+- lib/models/ : 型定義・DTO（存在する場合）
+- assets/ : 画像・アイコン（必要に応じて配置）
 
-```
-flutter build web
-# GitHub Pages などサブパスに配置する場合:
-flutter build web --base-href "/kaihou-zukan/"
-```
+## 開発時のヒント
+- flutter analyze で静的解析
+- flutter test でウィジェットテスト
+- API モックが必要な場合は lib/services/api.dart を差し替えや DI できるように構造化されています。
+- lib/screens/explain_* など AI 補助機能画面では、バックエンドの OpenAI 設定が必要です。
 
-モバイルビルド（例: Android APK）:
-
-```
-flutter build apk --release
-```
-
-## 主要画面/機能
-
-- 認証: `login_register.dart`
-- ホーム: `home.dart`
-- 問題を解く: `solve_screen.dart`（カテゴリ選択、出題、回答、解説表示、いいね）
-- 問題作成/編集: `post_problem_form.dart`（画像/選択肢/解説/模範解答、編集/解説のみ編集モード）
-- 解説を作る: `explain_create.dart`（単元「すべて」での絞り込み対応）
-- 振り返り（レビュー）: `review_screen.dart`（統計/履歴、問題詳細で解答→解説の順に表示）
-- 自分の問題一覧/削除: `my_problems.dart`
-- ランキング: `ranking.dart`
+問題が発生した際は、flutter clean の後に再ビルドを試してください。
