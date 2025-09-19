@@ -21,11 +21,81 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+class _NavigationItem {
+  const _NavigationItem({
+    required this.index,
+    required this.title,
+    required this.icon,
+    required this.color,
+    this.illustrationHeight = 108,
+  });
+
+  final int index;
+  final String title;
+  final IconData icon;
+  final Color color;
+  final double illustrationHeight;
+}
+
 class _HomeScreenState extends State<HomeScreen> {
-  // 0: プロフィール詳細, 1: 問題を解く, 2: 投稿, 3: 振り返り, 4: ランキング
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   int _selected = 0;
   Map<String, dynamic>? _profile;
   bool _loading = true;
+
+  static const List<_NavigationItem> _navigationItems = [
+    _NavigationItem(
+      index: 0,
+      title: 'ホーム',
+      icon: Icons.home,
+      color: AppColors.primary,
+      illustrationHeight: 56,
+    ),
+    _NavigationItem(
+      index: 1,
+      title: '問題を解く',
+      icon: Icons.psychology_alt,
+      color: Colors.indigo,
+      illustrationHeight: 56,
+    ),
+    _NavigationItem(
+      index: 2,
+      title: '問題・解答・解説を投稿する',
+      icon: Icons.upload_file,
+      color: Colors.teal,
+      illustrationHeight: 56,
+    ),
+    _NavigationItem(
+      index: 3,
+      title: '振り返り',
+      icon: Icons.history_toggle_off,
+      color: Colors.deepOrange,
+      illustrationHeight: 56,
+    ),
+    _NavigationItem(
+      index: 4,
+      title: 'ランキングを見る',
+      icon: Icons.emoji_events,
+      color: Colors.purple,
+      illustrationHeight: 56,
+    ),
+  ];
+
+  String get _pageTitle {
+    switch (_selected) {
+      case 1:
+        return '問題を解く';
+      case 2:
+        return '投稿する';
+      case 3:
+        return '振り返り';
+      case 4:
+        return 'ランキング';
+      default:
+        return 'ホーム';
+    }
+  }
 
   @override
   void initState() {
@@ -50,169 +120,359 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Widget _menuButton({
-    required String title,
-    required IconData icon,
-    required Color color,
-    required int index,
-    double illustrationHeight = 108,
-  }) {
+  void _handleNavigation(int index, {bool fromDrawer = false}) {
+    if (_selected != index) {
+      setState(() => _selected = index);
+    }
+    if (fromDrawer) {
+      _scaffoldKey.currentState?.closeDrawer();
+    }
+  }
+
+  Future<void> _handleOverflowAction(String value) async {
+    switch (value) {
+      case 'user':
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const UserInfoScreen()),
+        );
+        break;
+      case 'subjects':
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const SubjectSelectScreen(
+              isOnboarding: false,
+            ),
+          ),
+        );
+        break;
+      case 'logout':
+        Api.clearToken();
+        if (!mounted) return;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const LoginRegisterScreen(),
+          ),
+          (_) => false,
+        );
+        break;
+    }
+  }
+
+  Widget _buildMenuButton(_NavigationItem item) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: IllustratedActionButton(
-        label: title,
-        icon: icon,
-        color: color,
-        isSelected: _selected == index,
-        illustrationHeight: illustrationHeight,
-        onTap: () => setState(() => _selected = index),
+        label: item.title,
+        icon: item.icon,
+        color: item.color,
+        isSelected: _selected == item.index,
+        illustrationHeight: item.illustrationHeight,
+        onTap: () => _handleNavigation(item.index),
       ),
     );
   }
 
-  Widget _leftPane(BuildContext context) {
+  Widget _buildSidebar(EdgeInsets mediaPadding) {
     return Container(
-      width: 320,
-      color: AppColors.surface,
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(vertical: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              AppIcon(
-                size: 180,
-                borderRadius: BorderRadius.circular(32),
+      width: 288,
+      height: double.infinity,
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 12,
+            offset: Offset(2, 0),
+          ),
+        ],
+      ),
+      child: ListView(
+        padding: EdgeInsets.fromLTRB(
+          24,
+          mediaPadding.top + 24,
+          24,
+          mediaPadding.bottom + 24,
+        ),
+        children: [
+          Tooltip(
+            message: 'ホーム',
+            child: GestureDetector(
+              onTap: () => _handleNavigation(0),
+              child: AppIcon(
+                size: 132,
+                borderRadius: BorderRadius.circular(28),
                 backgroundColor: Colors.transparent,
                 padding: EdgeInsets.zero,
               ),
-              const SizedBox(height: 12),
-              _menuButton(
-                title: '問題を解く',
-                icon: Icons.psychology_alt,
-                color: Colors.indigo,
-                index: 1,
-                illustrationHeight: 56,
+            ),
+          ),
+          const SizedBox(height: 16),
+          for (final item in _navigationItems) _buildMenuButton(item),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawerContent() {
+    return SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: AppIcon(
+              size: 96,
+              borderRadius: BorderRadius.circular(24),
+              backgroundColor: Colors.transparent,
+              padding: EdgeInsets.zero,
+            ),
+          ),
+          const SizedBox(height: 12),
+          for (final item in _navigationItems)
+            ListTile(
+              leading: Icon(item.icon, color: item.color),
+              title: Text(item.title),
+              selected: _selected == item.index,
+              selectedTileColor:
+                  AppColors.primary_light.withValues(alpha: 0.25),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              _menuButton(
-                title: '問題・解答・解説を投稿する',
-                icon: Icons.upload_file,
-                color: Colors.teal,
-                index: 2,
-                illustrationHeight: 56,
+              onTap: () => _handleNavigation(item.index, fromDrawer: true),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(
+    EdgeInsets mediaPadding,
+    bool isCompact,
+    String? iconUrl,
+  ) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        24,
+        mediaPadding.top + 12,
+        24,
+        12,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.primary_dark,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 14,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: IconTheme(
+        data: const IconThemeData(color: Colors.white),
+        child: Row(
+          children: [
+            if (isCompact)
+              _HeaderIconButton(
+                icon: Icons.menu,
+                tooltip: 'メニューを開く',
+                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
               ),
-              _menuButton(
-                title: '振り返り',
-                icon: Icons.history_toggle_off,
-                color: Colors.deepOrange,
-                index: 3,
-                illustrationHeight: 56,
+            if (isCompact) const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _pageTitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ) ??
+                    const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
               ),
-              _menuButton(
-                title: 'ランキングを見る',
-                icon: Icons.emoji_events,
-                color: Colors.purple,
-                index: 4,
-                illustrationHeight: 56,
-              ),
-              const SizedBox(height: 16),
-            ],
+            ),
+            const SizedBox(width: 16),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Semantics(
+                  button: true,
+                  label: '通知を開く',
+                  child: const _NotificationBell(
+                    focusColor: Colors.white24,
+                    hoverColor: Colors.white12,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                _buildProfileAction(iconUrl, isCompact),
+                const SizedBox(width: 12),
+                _buildOverflowMenu(),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileAction(String? iconUrl, bool isCompact) {
+    final username = _profile?['username']?.toString() ?? '';
+
+    final avatar = CircleAvatar(
+      radius: 18,
+      backgroundColor: Colors.white24,
+      backgroundImage: iconUrl != null ? NetworkImage(iconUrl) : null,
+      child: iconUrl == null
+          ? const Icon(Icons.person, size: 20, color: Colors.white)
+          : null,
+    );
+
+    return Tooltip(
+      message: 'プロフィールを開く',
+      child: Semantics(
+        button: true,
+        label: 'プロフィールを開く',
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: () => _handleNavigation(0),
+          focusColor: Colors.white24,
+          hoverColor: Colors.white12,
+          highlightColor: Colors.white10,
+          mouseCursor: SystemMouseCursors.click,
+          child: Ink(
+            padding: EdgeInsets.symmetric(
+              horizontal: isCompact || username.isEmpty ? 4 : 12,
+              vertical: 4,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                avatar,
+                if (!isCompact && username.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 160),
+                    child: Text(
+                      username,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _rightPane() {
-    return Expanded(
-      child: IndexedStack(
-        index: _selected,
-        children: [
-          _ProfileDetailView(
-            profile: _profile,
-            loading: _loading,
-            onRefresh: _loadProfile,
-          ),
-          const SolveHubScreen(),
-          const PostProblemHubScreen(),
-          const ReviewScreen(),
-          const RankingScreen(showAppBar: false),
-        ],
-      ),
+  Widget _buildOverflowMenu() {
+    return PopupMenuButton<String>(
+      tooltip: 'その他の操作',
+      icon: const Icon(Icons.more_vert),
+      onSelected: _handleOverflowAction,
+      itemBuilder: (context) => const [
+        PopupMenuItem(value: 'user', child: Text('ユーザー情報')),
+        PopupMenuItem(value: 'subjects', child: Text('教材を選びなおす')),
+        PopupMenuItem(value: 'logout', child: Text('ログアウト')),
+      ],
+    );
+  }
+
+  Widget _buildContentStack() {
+    return IndexedStack(
+      index: _selected,
+      children: [
+        _ProfileDetailView(
+          profile: _profile,
+          loading: _loading,
+          onRefresh: _loadProfile,
+        ),
+        const SolveHubScreen(embedded: true),
+        const PostProblemHubScreen(embedded: true),
+        const ReviewScreen(embedded: true),
+        const RankingScreen(showAppBar: false, embedded: true),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final iconUrl = _profile?['icon_url'] as String?;
-    return Scaffold(
-      appBar: AppBar(
-        title: const IconAppBarTitle(title: 'ホーム'),
-        actions: [
-          if (_profile != null)
-            InkWell(
-              onTap: () => setState(() => _selected = 0),
-              borderRadius: BorderRadius.circular(24),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.grey.shade300,
-                  backgroundImage:
-                      iconUrl != null ? NetworkImage(iconUrl) : null,
-                  child: iconUrl == null
-                      ? const Icon(Icons.person, size: 20)
-                      : null,
-                ),
-              ),
-            ),
-          const _NotificationBell(),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.menu),
-            onSelected: (v) async {
-              switch (v) {
-                case 'user':
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const UserInfoScreen()),
-                  );
-                  break;
-                case 'subjects':
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const SubjectSelectScreen(
-                        isOnboarding: false,
+    final mediaPadding = MediaQuery.of(context).padding;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isCompact = constraints.maxWidth < 960;
+        return Scaffold(
+          key: _scaffoldKey,
+          backgroundColor: AppColors.background,
+          drawer: isCompact ? Drawer(child: _buildDrawerContent()) : null,
+          body: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (!isCompact) _buildSidebar(mediaPadding),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildHeader(mediaPadding, isCompact, iconUrl),
+                    Expanded(
+                      child: Container(
+                        color: Theme.of(context).colorScheme.surface,
+                        padding: EdgeInsets.only(bottom: mediaPadding.bottom),
+                        child: _buildContentStack(),
                       ),
                     ),
-                  );
-                  break;
-                case 'logout':
-                  Api.clearToken();
-                  if (!mounted) return;
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const LoginRegisterScreen(),
-                    ),
-                    (_) => false,
-                  );
-                  break;
-              }
-            },
-            itemBuilder: (c) => const [
-              PopupMenuItem(value: 'user', child: Text('ユーザー情報')),
-              PopupMenuItem(value: 'subjects', child: Text('教材を選びなおす')),
-              PopupMenuItem(value: 'logout', child: Text('ログアウト')),
+                  ],
+                ),
+              ),
             ],
           ),
-        ],
-      ),
-      body: Row(
-        children: [
-          _leftPane(context),
-          _rightPane(),
-        ],
+        );
+      },
+    );
+  }
+}
+
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({
+    required this.icon,
+    required this.tooltip,
+    this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: IconButton(
+        icon: Icon(icon),
+        onPressed: onPressed,
+        splashRadius: 24,
+        hoverColor: Colors.white12,
+        focusColor: Colors.white24,
       ),
     );
   }
@@ -223,7 +483,6 @@ class _ProfileDetailView extends StatelessWidget {
     this.profile,
     this.loading = false,
     this.onRefresh,
-    super.key,
   });
 
   final Map<String, dynamic>? profile;
@@ -323,7 +582,13 @@ class _ProfileDetailView extends StatelessWidget {
 }
 
 class _NotificationBell extends StatefulWidget {
-  const _NotificationBell();
+  const _NotificationBell({
+    this.hoverColor,
+    this.focusColor,
+  });
+
+  final Color? hoverColor;
+  final Color? focusColor;
   @override
   State<_NotificationBell> createState() => _NotificationBellState();
 }
@@ -536,6 +801,9 @@ class _NotificationBellState extends State<_NotificationBell> {
         IconButton(
           tooltip: '通知',
           icon: const Icon(Icons.notifications),
+          splashRadius: 24,
+          hoverColor: widget.hoverColor,
+          focusColor: widget.focusColor,
           onPressed: _openMenu,
         ),
         if (_count > 0)
@@ -548,12 +816,17 @@ class _NotificationBellState extends State<_NotificationBell> {
                 color: AppColors.danger,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Text('$_count',
-                  style: const TextStyle(color: AppColors.background, fontSize: 11)),
+              child: Text(
+                '$_count',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
       ],
     );
   }
 }
-

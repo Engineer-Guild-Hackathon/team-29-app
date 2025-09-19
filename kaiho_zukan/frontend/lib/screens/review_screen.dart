@@ -4,7 +4,9 @@ import '../services/api.dart';
 import '../widgets/app_icon.dart';
 
 class ReviewScreen extends StatefulWidget {
-  const ReviewScreen({super.key});
+  const ReviewScreen({super.key, this.embedded = false});
+
+  final bool embedded;
   @override
   State<ReviewScreen> createState() => _ReviewScreenState();
 }
@@ -623,95 +625,100 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final body = Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          DropdownButton<int>(
+              value: parentId,
+              items: _parentItems(),
+              onChanged: (v) {
+                if (v == null) return;
+                final p = parents.firstWhere((e) => e['id'] == v,
+                    orElse: () => null);
+                setState(() {
+                  parentId = v;
+                  if (p != null) {
+                    children = p['children'] ?? [];
+                  }
+                  childId = children.isNotEmpty
+                      ? children.first['id'] as int
+                      : null;
+                  grands = childId != null
+                      ? (children.firstWhere(
+                              (c) => c['id'] == childId)['children'] ??
+                          [])
+                      : [];
+                  grandId = null;
+                });
+                _load();
+              }),
+          const SizedBox(width: 8),
+          DropdownButton<int>(
+              value: childId,
+              items: _childItems(),
+              onChanged: (v) {
+                if (v == null) return;
+                final c = children.firstWhere((e) => e['id'] == v,
+                    orElse: () => null);
+                setState(() {
+                  childId = v;
+                  grands = c != null ? (c['children'] ?? []) : [];
+                  grandId = null;
+                });
+                _load();
+              }),
+          const SizedBox(width: 8),
+          DropdownButton<int?>(
+              value: grandId,
+              items: _grandItems(),
+              onChanged: (v) {
+                setState(() => grandId = v);
+                _load();
+              }),
+          const Spacer(),
+          IconButton(onPressed: _load, icon: const Icon(Icons.refresh))
+        ]),
+        const SizedBox(height: 12),
+        if (loading)
+          const Center(
+              child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: CircularProgressIndicator())),
+        if (!loading && stats != null) _dashboard(),
+        const SizedBox(height: 8),
+        Expanded(
+          child: loading
+              ? const SizedBox.shrink()
+              : (history.isEmpty
+                  ? const Center(child: Text('この条件での解答履歴はありません'))
+                  : ListView.separated(
+                      itemCount: history.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (_, i) {
+                        final it = history[i];
+                        final bool ok = (it['is_correct'] == true);
+                        return ListTile(
+                          title: Text(it['title'] ?? ''),
+                          subtitle: Text((it['answered_at'] ?? '').toString()),
+                          trailing: Icon(ok ? Icons.circle_outlined : Icons.close,
+                              color:
+                                  ok ? AppColors.success : AppColors.danger),
+                          onTap: () => _openDetail2(it['id'] as int),
+                        );
+                      },
+                    )),
+        ),
+      ]),
+    );
+
+    if (widget.embedded) {
+      return body;
+    }
+
     return Scaffold(
       appBar: AppBar(title: const IconAppBarTitle(title: '振り返り')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            DropdownButton<int>(
-                value: parentId,
-                items: _parentItems(),
-                onChanged: (v) {
-                  if (v == null) return;
-                  final p = parents.firstWhere((e) => e['id'] == v,
-                      orElse: () => null);
-                  setState(() {
-                    parentId = v;
-                    if (p != null) {
-                      children = p['children'] ?? [];
-                    }
-                    childId = children.isNotEmpty
-                        ? children.first['id'] as int
-                        : null;
-                    grands = childId != null
-                        ? (children.firstWhere(
-                                (c) => c['id'] == childId)['children'] ??
-                            [])
-                        : [];
-                    grandId = null;
-                  });
-                  _load();
-                }),
-            const SizedBox(width: 8),
-            DropdownButton<int>(
-                value: childId,
-                items: _childItems(),
-                onChanged: (v) {
-                  if (v == null) return;
-                  final c = children.firstWhere((e) => e['id'] == v,
-                      orElse: () => null);
-                  setState(() {
-                    childId = v;
-                    grands = c != null ? (c['children'] ?? []) : [];
-                    grandId = null;
-                  });
-                  _load();
-                }),
-            const SizedBox(width: 8),
-            DropdownButton<int?>(
-                value: grandId,
-                items: _grandItems(),
-                onChanged: (v) {
-                  setState(() => grandId = v);
-                  _load();
-                }),
-            const Spacer(),
-            IconButton(onPressed: _load, icon: const Icon(Icons.refresh))
-          ]),
-          const SizedBox(height: 12),
-          if (loading)
-            const Center(
-                child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: CircularProgressIndicator())),
-          if (!loading && stats != null) _dashboard(),
-          const SizedBox(height: 8),
-          Expanded(
-            child: loading
-                ? const SizedBox.shrink()
-                : (history.isEmpty
-                    ? const Center(child: Text('この条件での解答履歴はありません'))
-                    : ListView.separated(
-                        itemCount: history.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
-                        itemBuilder: (_, i) {
-                          final it = history[i];
-                          final bool ok = (it['is_correct'] == true);
-                          return ListTile(
-                            title: Text(it['title'] ?? ''),
-                            subtitle:
-                                Text((it['answered_at'] ?? '').toString()),
-                            trailing: Icon(
-                                ok ? Icons.circle_outlined : Icons.close,
-                                color: ok ? AppColors.success : AppColors.danger),
-                            onTap: () => _openDetail2(it['id'] as int),
-                          );
-                        },
-                      )),
-          ),
-        ]),
-      ),
+      body: body,
     );
   }
 }
@@ -777,4 +784,3 @@ class _ImagesPagerState extends State<_ImagesPager> {
     ]);
   }
 }
-

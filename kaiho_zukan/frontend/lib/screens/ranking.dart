@@ -11,10 +11,16 @@ import 'user_info.dart';
 import '../widgets/app_icon.dart';
 
 class RankingScreen extends StatefulWidget {
-  const RankingScreen({super.key, this.myName, this.showAppBar = true});
+  const RankingScreen({
+    super.key,
+    this.myName,
+    this.showAppBar = true,
+    this.embedded = false,
+  });
 
   final String? myName;
   final bool showAppBar;
+  final bool embedded;
 
   @override
   State<RankingScreen> createState() => _RankingScreenState();
@@ -246,19 +252,31 @@ class _RankingScreenState extends State<RankingScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: widget.showAppBar ? _buildAppBar(context) : null,
-      body: SafeArea(
-        top: !widget.showAppBar,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildHeader(context),
-            Expanded(child: _buildBody()),
-          ],
-        ),
+    final shouldPadTop = !widget.embedded && !widget.showAppBar;
+    final backgroundColor = Theme.of(context).colorScheme.surface;
+    final content = SafeArea(
+      top: shouldPadTop,
+      bottom: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildHeader(context),
+          Expanded(child: _buildBody()),
+        ],
       ),
+    );
+
+    if (widget.embedded) {
+      return DecoratedBox(
+        decoration: BoxDecoration(color: backgroundColor),
+        child: content,
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      appBar: widget.showAppBar ? _buildAppBar(context) : null,
+      body: content,
     );
   }
 
