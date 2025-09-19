@@ -1,10 +1,19 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
+import '../constants/home_section_theme.dart';
 import '../services/api.dart';
 import '../widgets/app_icon.dart';
+import '../widgets/home_section_surface.dart';
 
 class ReviewScreen extends StatefulWidget {
-  const ReviewScreen({super.key});
+  const ReviewScreen({
+    super.key,
+    this.embedded = false,
+    HomeSectionTheme? theme,
+  }) : theme = theme ?? HomeSectionThemes.review;
+
+  final bool embedded;
+  final HomeSectionTheme theme;
   @override
   State<ReviewScreen> createState() => _ReviewScreenState();
 }
@@ -49,6 +58,116 @@ class _ReviewScreenState extends State<ReviewScreen> {
       history = (h['items'] as List<dynamic>? ?? []).toList();
       loading = false;
     });
+  }
+
+  Widget _parentDropdown({bool expanded = false}) {
+    final dropdown = DropdownButton<int>(
+      value: parentId,
+      isExpanded: true,
+      items: _parentItems(),
+      onChanged: (v) {
+        if (v == null) return;
+        final p = parents.firstWhere((e) => e['id'] == v, orElse: () => null);
+        setState(() {
+          parentId = v;
+          if (p != null) {
+            children = p['children'] ?? [];
+          }
+          childId = children.isNotEmpty ? children.first['id'] as int : null;
+          grands = childId != null
+              ? (children.firstWhere((c) => c['id'] == childId)['children'] ??
+                  [])
+              : [];
+          grandId = null;
+        });
+        _load();
+      },
+    );
+    if (expanded) {
+      return Expanded(child: dropdown);
+    }
+    return SizedBox(width: double.infinity, child: dropdown);
+  }
+
+  Widget _childDropdown({bool expanded = false}) {
+    final dropdown = DropdownButton<int>(
+      value: childId,
+      isExpanded: true,
+      items: _childItems(),
+      onChanged: (v) {
+        if (v == null) return;
+        final c = children.firstWhere((e) => e['id'] == v, orElse: () => null);
+        setState(() {
+          childId = v;
+          grands = c != null ? (c['children'] ?? []) : [];
+          grandId = null;
+        });
+        _load();
+      },
+    );
+    if (expanded) {
+      return Expanded(child: dropdown);
+    }
+    return SizedBox(width: double.infinity, child: dropdown);
+  }
+
+  Widget _grandDropdown({bool expanded = false}) {
+    final dropdown = DropdownButton<int?>(
+      value: grandId,
+      isExpanded: true,
+      items: _grandItems(),
+      onChanged: (v) {
+        setState(() => grandId = v);
+        _load();
+      },
+    );
+    if (expanded) {
+      return Expanded(child: dropdown);
+    }
+    return SizedBox(width: double.infinity, child: dropdown);
+  }
+
+  Widget _buildHistoryList() {
+    if (loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    Widget listView;
+    if (history.isEmpty) {
+      listView = ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(vertical: 32),
+        children: const [
+          Center(child: Text('現在の条件での履歴はありません')),
+        ],
+      );
+    } else {
+      listView = ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        itemCount: history.length,
+        separatorBuilder: (_, __) =>
+            const Divider(height: 1, color: AppColors.dashboard_border),
+        itemBuilder: (_, i) {
+          final it = history[i];
+          final bool ok = (it['is_correct'] == true);
+          return ListTile(
+            title: Text(it['title'] ?? ''),
+            subtitle: Text((it['answered_at'] ?? '').toString()),
+            trailing: Icon(
+              ok ? Icons.circle_outlined : Icons.close,
+              color: ok ? AppColors.success : AppColors.danger,
+            ),
+            onTap: () => _openDetail2(it['id'] as int),
+          );
+        },
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: listView,
+    );
   }
 
   List<String> _extractImageUrls(dynamic images) {
@@ -98,19 +217,18 @@ class _ReviewScreenState extends State<ReviewScreen> {
     ]);
   }
 
-  Widget _dashboard() {
+  Widget _dashboard(HomeSectionTheme palette) {
     final solved = stats?['solved'] ?? 0;
     final correct = stats?['correct'] ?? 0;
     final rate = stats?['rate'] ?? 0;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(children: [
-          Expanded(child: _metric('解答数', solved.toString(), AppColors.info)),
-          Expanded(child: _metric('正解数', correct.toString(), AppColors.success)),
-          Expanded(child: _metric('正答率', '$rate%', AppColors.secondary)),
-        ]),
-      ),
+    return HomeSectionCard(
+      theme: palette,
+      padding: const EdgeInsets.all(24),
+      child: Row(children: [
+        Expanded(child: _metric('解いた数', solved.toString(), AppColors.info)),
+        Expanded(child: _metric('正解数', correct.toString(), AppColors.success)),
+        Expanded(child: _metric('正答率', '$rate%', AppColors.secondary)),
+      ]),
     );
   }
 
@@ -188,7 +306,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
       } else {
         (g['overall'] as List<String>).add(txt);
       }
-      if (e['ai_is_wrong'] == true || (e is Map && e['crowd_maybe_wrong'] == true)) {
+      if (e['ai_is_wrong'] == true ||
+          (e is Map && e['crowd_maybe_wrong'] == true)) {
         g['aiWrong'] = true;
       }
       final eid = (e['id'] is int) ? e['id'] as int : null;
@@ -207,9 +326,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
     final List<Map<String, dynamic>> groupList = groups.values.toList();
     // フィルタ済み（著者単位で「間違っているかも」のグループを除外）
     final List<Map<String, dynamic>> groupListAll = groupList;
-    final List<Map<String, dynamic>> groupListFiltered = groupList
-        .where((g) => (g['aiWrong'] == true) == false)
-        .toList();
+    final List<Map<String, dynamic>> groupListFiltered =
+        groupList.where((g) => (g['aiWrong'] == true) == false).toList();
 
     if (!mounted) return;
     int problemLikes = (pd['like_count'] is int)
@@ -251,19 +369,25 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: problemLiked ? AppColors.success : AppColors.background,
+                      color: problemLiked
+                          ? AppColors.success
+                          : AppColors.background,
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(color: AppColors.success, width: 1.5),
                     ),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Text('いいね',
                           style: TextStyle(
-                              color: problemLiked ? AppColors.background : AppColors.success,
+                              color: problemLiked
+                                  ? AppColors.background
+                                  : AppColors.success,
                               fontWeight: FontWeight.w600)),
                       const SizedBox(width: 6),
                       Text('$problemLikes',
                           style: TextStyle(
-                              color: problemLiked ? AppColors.background : AppColors.success,
+                              color: problemLiked
+                                  ? AppColors.background
+                                  : AppColors.success,
                               fontWeight: FontWeight.w600)),
                     ]),
                   ),
@@ -309,7 +433,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
                             widgets.add(Text(_kanaOf(selIdx)));
                           } else {
                             widgets.add(const Text('（未回答）',
-                                style: TextStyle(color: AppColors.textSecondary)));
+                                style:
+                                    TextStyle(color: AppColors.textSecondary)));
                           }
                         } else {
                           // 記述式
@@ -332,7 +457,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
                             );
                           } else {
                             widgets.add(const Text('（未回答）',
-                                style: TextStyle(color: AppColors.textSecondary)));
+                                style:
+                                    TextStyle(color: AppColors.textSecondary)));
                           }
                         }
 
@@ -352,7 +478,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       // トグル（全幅で押しやすく）
                       CheckboxListTile(
                         value: showMaybeWrong,
-                        onChanged: (v) => setStateDlg(() => showMaybeWrong = (v ?? false)),
+                        onChanged: (v) =>
+                            setStateDlg(() => showMaybeWrong = (v ?? false)),
                         dense: true,
                         contentPadding: EdgeInsets.zero,
                         controlAffinity: ListTileControlAffinity.leading,
@@ -360,7 +487,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       ),
 
                       // ★ 解説カード（各著者ごと）：上に「〇〇の解答 → 解答」→ その下に「〇〇の解説」
-                      ...((showMaybeWrong ? groupListAll : groupListFiltered)).map((g) {
+                      ...((showMaybeWrong ? groupListAll : groupListFiltered))
+                          .map((g) {
                         final by = (g['by'] ?? 'ユーザー').toString();
                         final int? uid = g['uid'] as int?;
                         final Map<int, List<String>> perOpt =
@@ -457,7 +585,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(24),
                                         border: Border.all(
-                                            color: AppColors.secondary, width: 1.2),
+                                            color: AppColors.secondary,
+                                            width: 1.2),
                                         color: AppColors.background,
                                       ),
                                       child: const Text(
@@ -515,7 +644,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                                   ? AppColors.textSecondary
                                                   : AppColors.background,
                                               border: Border.all(
-                                                  color: AppColors.textSecondary,
+                                                  color:
+                                                      AppColors.textSecondary,
                                                   width: 1.5),
                                             ),
                                             alignment: Alignment.center,
@@ -539,9 +669,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                       onTap: () async {
                                         if (repId == null) return;
                                         if (groupLiked) {
-                                          final ok =
-                                              await Api.explanations.unlike(
-                                                  repId);
+                                          final ok = await Api.explanations
+                                              .unlike(repId);
                                           if (ok) {
                                             setCard(() {
                                               groupLiked = false;
@@ -549,8 +678,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                             });
                                           }
                                         } else {
-                                          final ok =
-                                              await Api.explanations.like(repId);
+                                          final ok = await Api.explanations
+                                              .like(repId);
                                           if (ok) {
                                             setCard(() {
                                               groupLiked = true;
@@ -569,7 +698,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                           borderRadius:
                                               BorderRadius.circular(24),
                                           border: Border.all(
-                                              color: AppColors.success, width: 1.5),
+                                              color: AppColors.success,
+                                              width: 1.5),
                                         ),
                                         child: Row(
                                             mainAxisSize: MainAxisSize.min,
@@ -623,95 +753,96 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const IconAppBarTitle(title: '振り返り')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            DropdownButton<int>(
-                value: parentId,
-                items: _parentItems(),
-                onChanged: (v) {
-                  if (v == null) return;
-                  final p = parents.firstWhere((e) => e['id'] == v,
-                      orElse: () => null);
-                  setState(() {
-                    parentId = v;
-                    if (p != null) {
-                      children = p['children'] ?? [];
-                    }
-                    childId = children.isNotEmpty
-                        ? children.first['id'] as int
-                        : null;
-                    grands = childId != null
-                        ? (children.firstWhere(
-                                (c) => c['id'] == childId)['children'] ??
-                            [])
-                        : [];
-                    grandId = null;
-                  });
-                  _load();
-                }),
-            const SizedBox(width: 8),
-            DropdownButton<int>(
-                value: childId,
-                items: _childItems(),
-                onChanged: (v) {
-                  if (v == null) return;
-                  final c = children.firstWhere((e) => e['id'] == v,
-                      orElse: () => null);
-                  setState(() {
-                    childId = v;
-                    grands = c != null ? (c['children'] ?? []) : [];
-                    grandId = null;
-                  });
-                  _load();
-                }),
-            const SizedBox(width: 8),
-            DropdownButton<int?>(
-                value: grandId,
-                items: _grandItems(),
-                onChanged: (v) {
-                  setState(() => grandId = v);
-                  _load();
-                }),
-            const Spacer(),
-            IconButton(onPressed: _load, icon: const Icon(Icons.refresh))
-          ]),
-          const SizedBox(height: 12),
-          if (loading)
-            const Center(
-                child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: CircularProgressIndicator())),
-          if (!loading && stats != null) _dashboard(),
-          const SizedBox(height: 8),
-          Expanded(
-            child: loading
-                ? const SizedBox.shrink()
-                : (history.isEmpty
-                    ? const Center(child: Text('この条件での解答履歴はありません'))
-                    : ListView.separated(
-                        itemCount: history.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
-                        itemBuilder: (_, i) {
-                          final it = history[i];
-                          final bool ok = (it['is_correct'] == true);
-                          return ListTile(
-                            title: Text(it['title'] ?? ''),
-                            subtitle:
-                                Text((it['answered_at'] ?? '').toString()),
-                            trailing: Icon(
-                                ok ? Icons.circle_outlined : Icons.close,
-                                color: ok ? AppColors.success : AppColors.danger),
-                            onTap: () => _openDetail2(it['id'] as int),
-                          );
-                        },
-                      )),
-          ),
-        ]),
+    final palette = widget.theme;
+
+    final filtersCard = HomeSectionCard(
+      theme: palette,
+      padding: const EdgeInsets.all(16),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 720;
+
+          if (isCompact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _parentDropdown(),
+                const SizedBox(height: 12),
+                _childDropdown(),
+                const SizedBox(height: 12),
+                _grandDropdown(),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: IconButton(
+                    tooltip: '最新のデータを取得',
+                    onPressed: _load,
+                    icon: const Icon(Icons.refresh),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              _parentDropdown(expanded: true),
+              const SizedBox(width: 12),
+              _childDropdown(expanded: true),
+              const SizedBox(width: 12),
+              _grandDropdown(expanded: true),
+              const Spacer(),
+              IconButton(
+                tooltip: '最新のデータを取得',
+                onPressed: _load,
+                icon: const Icon(Icons.refresh),
+              ),
+            ],
+          );
+        },
       ),
+    );
+
+    final children = <Widget>[
+      filtersCard,
+      const SizedBox(height: 16),
+      if (!loading && stats != null) ...[
+        _dashboard(palette),
+        const SizedBox(height: 16),
+      ],
+      Expanded(
+        child: HomeSectionCard(
+          theme: palette,
+          padding: EdgeInsets.zero,
+          child: _buildHistoryList(),
+        ),
+      ),
+    ];
+
+    final section = HomeSectionSurface(
+      theme: palette,
+      maxContentWidth: 960,
+      expandChild: true,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
+      ),
+    );
+
+    if (widget.embedded) {
+      return section;
+    }
+
+    return Scaffold(
+      backgroundColor: palette.background,
+      appBar: AppBar(
+        backgroundColor: palette.background,
+        elevation: 0,
+        title: const IconAppBarTitle(title: '振り返り'),
+        foregroundColor: AppColors.dark,
+      ),
+      body: section,
     );
   }
 }
@@ -777,4 +908,3 @@ class _ImagesPagerState extends State<_ImagesPager> {
     ]);
   }
 }
-

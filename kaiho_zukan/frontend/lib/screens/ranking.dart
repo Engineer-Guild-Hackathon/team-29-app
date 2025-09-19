@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
+import '../constants/home_section_theme.dart';
 
 import '../services/api.dart';
 import 'login_register.dart';
@@ -11,10 +12,18 @@ import 'user_info.dart';
 import '../widgets/app_icon.dart';
 
 class RankingScreen extends StatefulWidget {
-  const RankingScreen({super.key, this.myName, this.showAppBar = true});
+  const RankingScreen({
+    super.key,
+    this.myName,
+    this.showAppBar = true,
+    this.embedded = false,
+    HomeSectionTheme? theme,
+  }) : theme = theme ?? HomeSectionThemes.ranking;
 
   final String? myName;
   final bool showAppBar;
+  final bool embedded;
+  final HomeSectionTheme theme;
 
   @override
   State<RankingScreen> createState() => _RankingScreenState();
@@ -114,7 +123,8 @@ class _RankingScreenState extends State<RankingScreen>
     }
   }
 
-  ({List<_RankingEntry> entries, String? scrollId}) _parseEntries(List rawItems) {
+  ({List<_RankingEntry> entries, String? scrollId}) _parseEntries(
+      List rawItems) {
     final normalizedMyName = widget.myName?.trim().toLowerCase();
     final parsedItems = <_ParsedItem>[];
     var unnamedCount = 1;
@@ -183,8 +193,8 @@ class _RankingScreenState extends State<RankingScreen>
         lastScore = normalizedScore;
       }
       final entryScrollId = 'entry-$index-${item.displayNameLower}';
-      final isSelf = normalizedMyName != null &&
-          item.matchKeys.contains(normalizedMyName);
+      final isSelf =
+          normalizedMyName != null && item.matchKeys.contains(normalizedMyName);
       entries.add(
         _RankingEntry(
           rank: currentRank,
@@ -246,26 +256,41 @@ class _RankingScreenState extends State<RankingScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: widget.showAppBar ? _buildAppBar(context) : null,
-      body: SafeArea(
-        top: !widget.showAppBar,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildHeader(context),
-            Expanded(child: _buildBody()),
-          ],
-        ),
+    final palette = widget.theme;
+    final shouldPadTop = !widget.embedded && !widget.showAppBar;
+    final backgroundColor = palette.background;
+    final content = SafeArea(
+      top: shouldPadTop,
+      bottom: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildHeader(context),
+          Expanded(child: _buildBody()),
+        ],
       ),
+    );
+
+    if (widget.embedded) {
+      return ColoredBox(
+        color: backgroundColor,
+        child: content,
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      appBar: widget.showAppBar ? _buildAppBar(context) : null,
+      body: content,
     );
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
-      title: const IconAppBarTitle(title: 'ランキング'),// ← タイトル文字色を指定
-      backgroundColor: AppColors.background, // ← 背景を薄い色に固定
+      title: const IconAppBarTitle(title: 'ランキング'),
+      backgroundColor: widget.theme.background,
+      foregroundColor: AppColors.dark,
+      elevation: 0,
       actions: [
         PopupMenuButton<String>(
           icon: const Icon(Icons.menu),
@@ -416,8 +441,8 @@ class _RankingScreenState extends State<RankingScreen>
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final entry = otherEntries[index];
-                      final key =
-                          _itemKeys.putIfAbsent(entry.scrollId, () => GlobalKey());
+                      final key = _itemKeys.putIfAbsent(
+                          entry.scrollId, () => GlobalKey());
                       return KeyedSubtree(
                         key: key,
                         child: Padding(
@@ -436,7 +461,8 @@ class _RankingScreenState extends State<RankingScreen>
                 ),
               ),
             SliverToBoxAdapter(
-              child: SizedBox(height: MediaQuery.paddingOf(context).bottom + 24),
+              child:
+                  SizedBox(height: MediaQuery.paddingOf(context).bottom + 24),
             ),
           ],
         );
@@ -453,7 +479,8 @@ class _RankingScreenState extends State<RankingScreen>
         children: [
           for (var i = 0; i < entries.length; i++)
             Padding(
-              padding: EdgeInsets.only(bottom: i == entries.length - 1 ? 0 : 16),
+              padding:
+                  EdgeInsets.only(bottom: i == entries.length - 1 ? 0 : 16),
               child: Center(
                 child: FractionallySizedBox(
                   widthFactor: 0.92,
@@ -637,7 +664,8 @@ class _PodiumCardState extends State<_PodiumCard> {
   Widget build(BuildContext context) {
     final rank = widget.entry.rank;
     final gradient = _gradientForRank(rank);
-    final borderColor = widget.entry.isSelf || _focused ? AppColors.primary : AppColors.border;
+    final borderColor =
+        widget.entry.isSelf || _focused ? AppColors.primary : AppColors.border;
     final boxShadowColor = AppColors.shadow;
 
     return FocusableActionDetector(
@@ -650,8 +678,7 @@ class _PodiumCardState extends State<_PodiumCard> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           height: widget.height,
-          transform: Matrix4.identity()
-            ..translate(0.0, _hovered ? -4.0 : 0.0),
+          transform: Matrix4.identity()..translate(0.0, _hovered ? -4.0 : 0.0),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -697,8 +724,8 @@ class _PodiumCardState extends State<_PodiumCard> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
-                      style: GoogleFonts.notoSans(
-                        color: AppColors.textPrimary_dark,
+                    style: GoogleFonts.notoSans(
+                      color: AppColors.textPrimary_dark,
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.4,
@@ -748,7 +775,8 @@ class _RankRowState extends State<_RankRow> {
     final isEvenRow = widget.index.isEven;
     final neutralBase = isEvenRow ? AppColors.light : AppColors.light;
     final baseColor = widget.entry.isSelf ? AppColors.surface : neutralBase;
-    final hoverColor = widget.entry.isSelf ? AppColors.surface : AppColors.border;
+    final hoverColor =
+        widget.entry.isSelf ? AppColors.surface : AppColors.border;
     final backgroundColor = _hovered ? hoverColor : baseColor;
     final borderColor = widget.entry.isSelf || _focused
         ? AppColors.primary
@@ -765,8 +793,7 @@ class _RankRowState extends State<_RankRow> {
         onExit: (_) => setState(() => _hovered = false),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          transform: Matrix4.identity()
-            ..translate(0.0, _hovered ? -2.0 : 0.0),
+          transform: Matrix4.identity()..translate(0.0, _hovered ? -2.0 : 0.0),
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(18),
@@ -799,8 +826,7 @@ class _RankRowState extends State<_RankRow> {
                 ),
                 Expanded(
                   child: Tooltip(
-                    message:
-                        widget.entry.tooltip ?? widget.entry.displayName,
+                    message: widget.entry.tooltip ?? widget.entry.displayName,
                     waitDuration: const Duration(milliseconds: 400),
                     child: Text(
                       widget.entry.displayName,
