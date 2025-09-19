@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api.dart';
 import 'post_problem_form.dart';
+import '../widgets/app_icon.dart';
 
 class ExplainCreateNewScreen extends StatefulWidget {
   const ExplainCreateNewScreen({super.key});
@@ -54,7 +55,7 @@ class _ExplainCreateNewScreenState extends State<ExplainCreateNewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('新規で解説を作成')),
+      appBar: AppBar(title: const IconAppBarTitle(title: '新規で解説を作成')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(children: [

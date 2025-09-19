@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../services/api.dart';
 import 'solve_picker_screen.dart';
+import '../widgets/app_icon.dart';
 
 class SolveScreen extends StatefulWidget {
   final int? initialProblemId; // 指定された問題を解く場合に使用
@@ -267,7 +268,7 @@ class _SolveScreenState extends State<SolveScreen> {
     final bool isFree = !isMcq;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('問題をランダムに解く')),
+      appBar: AppBar(title: const IconAppBarTitle(title: '問題をランダムに解く')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView(

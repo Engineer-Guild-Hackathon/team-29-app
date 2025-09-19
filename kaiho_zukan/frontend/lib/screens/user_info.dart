@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../services/api.dart';
+import '../widgets/app_icon.dart';
 
 class UserInfoScreen extends StatefulWidget {
   const UserInfoScreen({super.key});
@@ -32,7 +33,7 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('ユーザ情報')),
+      appBar: AppBar(title: const IconAppBarTitle(title: 'ユーザ情報')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: loading
@@ -67,4 +68,3 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
     );
   }
 }
-

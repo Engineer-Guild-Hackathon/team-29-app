@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../services/api.dart';
 import 'home.dart';
+import '../widgets/app_icon.dart';
 
 class SubjectSelectScreen extends StatefulWidget {
   final bool isOnboarding;
@@ -51,7 +52,11 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
     }).toList();
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.isOnboarding? '教科を選んで登録' : '教科をえらび直す')),
+      appBar: AppBar(
+        title: IconAppBarTitle(
+          title: widget.isOnboarding ? '教科を選んで登録' : '教科をえらび直す',
+        ),
+      ),
       body: loading ? const Center(child: CircularProgressIndicator()) :
       Center(
         child: ConstrainedBox(

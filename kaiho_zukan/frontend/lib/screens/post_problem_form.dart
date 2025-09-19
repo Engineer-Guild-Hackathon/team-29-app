@@ -3,6 +3,7 @@ import '../constants/app_colors.dart';
 import 'package:file_picker/file_picker.dart';
 import '../services/api.dart';
 import 'my_problems.dart';
+import '../widgets/app_icon.dart';
 // import 'problem_posted.dart';
 
 class PostProblemForm extends StatefulWidget {
@@ -612,13 +613,12 @@ class _PostProblemFormState extends State<PostProblemForm> {
     if (loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+    final titleText = widget.explainOnly
+        ? '解説を編集'
+        : (widget.editId == null ? '新規で問題を作る' : '問題を編集');
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.explainOnly
-              ? '解説を編集'
-              : (widget.editId == null ? '新規で問題を作る' : '問題を編集'),
-        ),
+        title: IconAppBarTitle(title: titleText),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

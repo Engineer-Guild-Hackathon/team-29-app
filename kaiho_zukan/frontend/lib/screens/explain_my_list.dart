@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../constants/app_colors.dart';
 import '../services/api.dart';
 import 'post_problem_form.dart';
+import '../widgets/app_icon.dart';
 
 class ExplainMyListScreen extends StatefulWidget {
   const ExplainMyListScreen({super.key});
@@ -34,7 +35,7 @@ class _ExplainMyListScreenState extends State<ExplainMyListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('自分で作った解説一覧')),
+      appBar: AppBar(title: const IconAppBarTitle(title: '自分の作った解説一覧')),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : ListView.builder(
