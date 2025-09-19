@@ -69,16 +69,20 @@ class AppIcon extends StatelessWidget {
 class IconAppBarTitle extends StatelessWidget {
   final String title;
   final double iconSize;
+  final Color? color;
 
   const IconAppBarTitle({
     super.key,
     required this.title,
     this.iconSize = 30,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final baseStyle = textTheme.titleLarge ?? const TextStyle(fontSize: 20);
+    final textStyle = color != null ? baseStyle.copyWith(color: color) : baseStyle;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -88,7 +92,7 @@ class IconAppBarTitle extends StatelessWidget {
           child: Text(
             title,
             overflow: TextOverflow.ellipsis,
-            style: textTheme.titleLarge,
+            style: textStyle,
           ),
         ),
       ],

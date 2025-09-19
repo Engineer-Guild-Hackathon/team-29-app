@@ -36,14 +36,14 @@ class MyApp extends StatelessWidget {
           error: AppColors.danger,
           onPrimary: AppColors.background,
           onSecondary: AppColors.background,
-          onSurface: AppColors.textPrimary,
-          onBackground: AppColors.textPrimary,
+          onSurface: Colors.black,
+          onBackground: Colors.black,
           onError: AppColors.background,
         ),
         scaffoldBackgroundColor: AppColors.background,
         textTheme: GoogleFonts.notoSansJpTextTheme().apply(
-          bodyColor: AppColors.textPrimary,
-          displayColor: AppColors.textPrimary,
+          bodyColor: Colors.black,
+          displayColor: Colors.black,
         ),
         appBarTheme: const AppBarTheme(
           backgroundColor: AppColors.primary,

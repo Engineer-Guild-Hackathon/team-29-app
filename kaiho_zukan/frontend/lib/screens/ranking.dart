@@ -247,7 +247,7 @@ class _RankingScreenState extends State<RankingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: AppColors.background,
       appBar: widget.showAppBar ? _buildAppBar(context) : null,
       body: SafeArea(
         top: !widget.showAppBar,
@@ -264,7 +264,8 @@ class _RankingScreenState extends State<RankingScreen>
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
-      title: const IconAppBarTitle(title: 'ランキング'),
+      title: const IconAppBarTitle(title: 'ランキング'),// ← タイトル文字色を指定
+      backgroundColor: AppColors.background, // ← 背景を薄い色に固定
       actions: [
         PopupMenuButton<String>(
           icon: const Icon(Icons.menu),
@@ -322,7 +323,7 @@ class _RankingScreenState extends State<RankingScreen>
             Text(
               'ランキング',
               style: GoogleFonts.notoSans(
-                color: AppColors.textPrimary,
+                color: AppColors.textPrimary_dark,
                 fontSize: 30,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.1,
@@ -355,7 +356,7 @@ class _RankingScreenState extends State<RankingScreen>
         labelPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         overlayColor: MaterialStateProperty.resolveWith(
           (states) => states.contains(MaterialState.pressed)
-              ? AppColors.surface
+              ? AppColors.background
               : Colors.transparent,
         ),
         labelStyle: GoogleFonts.notoSans(
@@ -366,7 +367,7 @@ class _RankingScreenState extends State<RankingScreen>
           fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
-        labelColor: AppColors.textPrimary,
+        labelColor: AppColors.dark,
         unselectedLabelColor: AppColors.textSecondary,
         tabs: _metrics
             .map(
@@ -586,7 +587,7 @@ class _RankingScreenState extends State<RankingScreen>
           Text(
             '読み込みに失敗しました。再試行してください',
             style: GoogleFonts.notoSans(
-              color: AppColors.textPrimary,
+              color: AppColors.textPrimary_dark,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -697,7 +698,7 @@ class _PodiumCardState extends State<_PodiumCard> {
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                       style: GoogleFonts.notoSans(
-                        color: AppColors.textPrimary,
+                        color: AppColors.textPrimary_dark,
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.4,
@@ -709,7 +710,7 @@ class _PodiumCardState extends State<_PodiumCard> {
                   style: GoogleFonts.robotoMono(
                     fontSize: 30,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: AppColors.textPrimary_dark,
                   ),
                 ),
               ],
@@ -790,7 +791,7 @@ class _RankRowState extends State<_RankRow> {
                   child: Text(
                     '${widget.entry.rank}.',
                     style: GoogleFonts.notoSans(
-                      color: AppColors.textPrimary,
+                      color: AppColors.textPrimary_dark,
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                     ),
@@ -806,7 +807,7 @@ class _RankRowState extends State<_RankRow> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.notoSans(
-                        color: AppColors.textPrimary,
+                        color: AppColors.textPrimary_dark,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -820,7 +821,7 @@ class _RankRowState extends State<_RankRow> {
                     widget.scoreText,
                     textAlign: TextAlign.right,
                     style: GoogleFonts.robotoMono(
-                      color: AppColors.textPrimary,
+                      color: AppColors.textPrimary_dark,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),

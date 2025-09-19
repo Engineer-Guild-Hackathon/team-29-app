@@ -73,10 +73,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _leftPane(BuildContext context) {
     return Container(
       width: 320,
-      color: AppColors.surface,
+      height: double.infinity, //常に全高
+      color: AppColors.light,
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(vertical: 24),
+          padding: const EdgeInsets.only(bottom: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -90,28 +91,28 @@ class _HomeScreenState extends State<HomeScreen> {
               _menuButton(
                 title: '問題を解く',
                 icon: Icons.psychology_alt,
-                color: Colors.indigo,
+                color: AppColors.primary,
                 index: 1,
                 illustrationHeight: 56,
               ),
               _menuButton(
                 title: '問題・解答・解説を投稿する',
                 icon: Icons.upload_file,
-                color: Colors.teal,
+                color: AppColors.primary,
                 index: 2,
                 illustrationHeight: 56,
               ),
               _menuButton(
                 title: '振り返り',
                 icon: Icons.history_toggle_off,
-                color: Colors.deepOrange,
+                color: AppColors.primary,
                 index: 3,
                 illustrationHeight: 56,
               ),
               _menuButton(
                 title: 'ランキングを見る',
                 icon: Icons.emoji_events,
-                color: Colors.purple,
+                color: AppColors.primary,
                 index: 4,
                 illustrationHeight: 56,
               ),
@@ -147,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final iconUrl = _profile?['icon_url'] as String?;
     return Scaffold(
       appBar: AppBar(
-        title: const IconAppBarTitle(title: 'ホーム'),
+        title: const IconAppBarTitle(title: 'ホーム', color: AppColors.textPrimary_light),
         actions: [
           if (_profile != null)
             InkWell(
@@ -157,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: CircleAvatar(
                   radius: 18,
-                  backgroundColor: Colors.grey.shade300,
+                  backgroundColor: AppColors.background,
                   backgroundImage:
                       iconUrl != null ? NetworkImage(iconUrl) : null,
                   child: iconUrl == null
