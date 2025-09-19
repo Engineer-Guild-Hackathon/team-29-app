@@ -25,5 +25,11 @@ class AppColors {
   static const Color textSecondary = Color(0xFF757575);
   static const Color border = Color(0xFF77163F);
   static const Color highlight = Color(0xFFF4A5C3);
+  static const Color rank1 = Color(0xFFFFCF3E);
+  static const Color rank1_shade = Color(0xFFFFAA09);
+  static const Color rank2 = Color(0xFFBFC1C9);
+  static const Color rank2_shade = Color(0xFF8F969E);
+  static const Color rank3 = Color(0xFFB37E3A);
+  static const Color rank3_shade = Color(0xFF99592B);
   static const Color shadow = Color(0x29000000); // 透明度付き
 }
