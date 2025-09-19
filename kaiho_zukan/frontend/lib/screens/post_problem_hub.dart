@@ -6,7 +6,6 @@ import '../widgets/app_breadcrumbs.dart';
 import '../widgets/illustrated_action_button.dart';
 import 'post_problem_subhub.dart';
 import 'explain_hub.dart';
-import '../widgets/app_icon.dart';
 import 'home.dart';
 import '../widgets/app_scaffold.dart';
 
@@ -26,58 +25,36 @@ class PostProblemHubScreen extends StatelessWidget {
       theme: theme,
       maxContentWidth: 720,
       scrollable: true,
+      backgroundColor: AppColors.background,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          HomeSectionCard(
-            theme: theme,
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  '投稿メニュー',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: AppColors.dark,
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '新しい問題や解答を共有して、みんなの学びを広げましょう。',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                ),
-                const SizedBox(height: 24),
-                IllustratedActionButton(
-                  label: '問題を投稿する',
-                  icon: Icons.post_add,
-                  backgroundColor: AppColors.accent1_light,
-                  color: AppColors.accent1,
-                  illustrationHeight: 120,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const PostProblemSubHubScreen(),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                IllustratedActionButton(
-                  label: '解答・解説を投稿する',
-                  icon: Icons.menu_book,
-                  backgroundColor: AppColors.secondary_light,
-                  color: AppColors.secondary,
-                  illustrationHeight: 120,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const ExplainHubScreen(),
-                    ),
-                  ),
-                ),
-              ],
+          const SizedBox(height: 8),
+          IllustratedActionButton(
+            label: '問題を投稿する',
+            icon: Icons.post_add,
+            backgroundColor: AppColors.accent1_light,
+            color: AppColors.accent1,
+            illustrationHeight: 120,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const PostProblemSubHubScreen(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          IllustratedActionButton(
+            label: '解答・解説を投稿する',
+            icon: Icons.menu_book,
+            backgroundColor: AppColors.secondary_light,
+            color: AppColors.secondary,
+            illustrationHeight: 120,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ExplainHubScreen(),
+              ),
             ),
           ),
         ],
@@ -90,7 +67,7 @@ class PostProblemHubScreen extends StatelessWidget {
 
     return AppScaffold(
       title: '投稿する',
-      backgroundColor: theme.background,
+      backgroundColor: AppColors.background,
       subHeader: AppBreadcrumbs(
         items: [
           BreadcrumbItem(
