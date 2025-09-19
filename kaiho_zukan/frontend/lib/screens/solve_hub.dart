@@ -6,6 +6,9 @@ import '../widgets/illustrated_action_button.dart';
 import 'solve_screen.dart';
 import 'solve_picker_screen.dart';
 import '../widgets/app_icon.dart';
+import '../widgets/app_scaffold.dart';
+import '../widgets/app_breadcrumbs.dart';
+import 'home.dart';
 
 class SolveHubScreen extends StatelessWidget {
   const SolveHubScreen({
@@ -85,14 +88,21 @@ class SolveHubScreen extends StatelessWidget {
       return section;
     }
 
-    return Scaffold(
-      backgroundColor: theme.background,
-      appBar: AppBar(
-        backgroundColor: theme.background,
-        elevation: 0,
-        title: const IconAppBarTitle(title: '問題を解く'),
-        foregroundColor: AppColors.dark,
+    return AppScaffold(
+      title: '問題を解く',
+      subHeader: AppBreadcrumbs(
+        items: [
+          BreadcrumbItem(
+            label: 'ホーム',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            ),
+          ),
+          const BreadcrumbItem(label: '問題を解く'),
+        ],
       ),
+      backgroundColor: theme.background,
       body: section,
     );
   }

@@ -10,6 +10,9 @@ import 'login_register.dart';
 import 'subject_select.dart';
 import 'user_info.dart';
 import '../widgets/app_icon.dart';
+import '../widgets/app_scaffold.dart';
+import '../widgets/app_breadcrumbs.dart';
+import 'home.dart';
 
 class RankingScreen extends StatefulWidget {
   const RankingScreen({
@@ -278,11 +281,27 @@ class _RankingScreenState extends State<RankingScreen>
       );
     }
 
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: widget.showAppBar ? _buildAppBar(context) : null,
-      body: content,
-    );
+    if (widget.showAppBar) {
+      return AppScaffold(
+        title: 'ランキング',
+        backgroundColor: backgroundColor,
+        subHeader: AppBreadcrumbs(
+          items: [
+            BreadcrumbItem(
+              label: 'ホーム',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HomeScreen()),
+              ),
+            ),
+            const BreadcrumbItem(label: 'ランキング'),
+          ],
+        ),
+        body: content,
+      );
+    }
+    // embedded view (no header/sidebar)
+    return ColoredBox(color: backgroundColor, child: content);
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {

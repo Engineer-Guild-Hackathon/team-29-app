@@ -4,6 +4,9 @@ import '../constants/app_colors.dart';
 import '../services/api.dart';
 import 'post_problem_form.dart';
 import '../widgets/app_icon.dart';
+import '../widgets/app_scaffold.dart';
+import '../widgets/app_breadcrumbs.dart';
+import 'home.dart';
 
 class ExplainMyListScreen extends StatefulWidget {
   const ExplainMyListScreen({super.key});
@@ -34,8 +37,27 @@ class _ExplainMyListScreenState extends State<ExplainMyListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const IconAppBarTitle(title: '自分の作った解説一覧')),
+    return AppScaffold(
+      title: '自分の作った解説一覧',
+      subHeader: AppBreadcrumbs(
+        items: [
+          BreadcrumbItem(
+            label: 'ホーム',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            ),
+          ),
+          BreadcrumbItem(
+            label: '投稿する',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen(initialSelected: 2)),
+            ),
+          ),
+          const BreadcrumbItem(label: '自分が作った解説一覧'),
+        ],
+      ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : ListView.builder(

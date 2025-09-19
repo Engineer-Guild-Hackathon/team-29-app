@@ -4,6 +4,9 @@ import '../constants/home_section_theme.dart';
 import '../services/api.dart';
 import '../widgets/app_icon.dart';
 import '../widgets/home_section_surface.dart';
+import '../widgets/app_scaffold.dart';
+import '../widgets/app_breadcrumbs.dart';
+import 'home.dart';
 
 class ReviewScreen extends StatefulWidget {
   const ReviewScreen({
@@ -36,7 +39,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
   }
 
   Future<void> _loadTree() async {
-    final t = await Api.categories.tree();
+    final t = await Api.categories.tree(mineOnly: true);
     setState(() {
       parents = t;
       parentId = t.isNotEmpty ? t.first['id'] as int : null;
@@ -45,6 +48,10 @@ class _ReviewScreenState extends State<ReviewScreen> {
       grands = children.isNotEmpty ? (children.first['children'] ?? []) : [];
       grandId = null; // 全単元
     });
+    if (childId == null) {
+      setState(() => loading = false);
+      return;
+    }
     await _load();
   }
 
@@ -834,14 +841,21 @@ class _ReviewScreenState extends State<ReviewScreen> {
       return section;
     }
 
-    return Scaffold(
-      backgroundColor: palette.background,
-      appBar: AppBar(
-        backgroundColor: palette.background,
-        elevation: 0,
-        title: const IconAppBarTitle(title: '振り返り'),
-        foregroundColor: AppColors.dark,
+    return AppScaffold(
+      title: '振り返り',
+      subHeader: AppBreadcrumbs(
+        items: [
+          BreadcrumbItem(
+            label: 'ホーム',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            ),
+          ),
+          const BreadcrumbItem(label: '振り返り'),
+        ],
       ),
+      backgroundColor: palette.background,
       body: section,
     );
   }

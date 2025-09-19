@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/api.dart';
 import 'post_problem_form.dart';
+import '../widgets/app_scaffold.dart';
+import '../widgets/app_breadcrumbs.dart';
+import 'home.dart';
 
 class ExplainFixWrongScreen extends StatefulWidget {
   const ExplainFixWrongScreen({super.key});
@@ -105,8 +108,28 @@ class _ExplainFixWrongScreenState extends State<ExplainFixWrongScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('間違っているかも解説の一覧')),
+    return AppScaffold(
+      title: '誤りの可能性がある解説一覧',
+      appBar: AppBar(title: const Text('誤りの可能性がある解説一覧')),
+      subHeader: AppBreadcrumbs(
+        items: [
+          BreadcrumbItem(
+            label: 'ホーム',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            ),
+          ),
+          BreadcrumbItem(
+            label: '投稿する',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen(initialSelected: 2)),
+            ),
+          ),
+          const BreadcrumbItem(label: '誤りの可能性がある解説一覧'),
+        ],
+      ),
       body: loading
           ? Center(
               child: Column(

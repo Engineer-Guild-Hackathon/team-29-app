@@ -3,6 +3,9 @@ import '../constants/app_colors.dart';
 import '../services/api.dart';
 import 'post_problem_form.dart';
 import '../widgets/app_icon.dart';
+import '../widgets/app_scaffold.dart';
+import '../widgets/app_breadcrumbs.dart';
+import 'home.dart';
 
 class ExplainCreateScreen extends StatefulWidget {
   const ExplainCreateScreen({super.key});
@@ -22,7 +25,7 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
   void initState() { super.initState(); _loadCats(); }
 
   Future<void> _loadCats() async {
-    final t = await Api.categories.tree();
+    final t = await Api.categories.tree(mineOnly: true);
     setState((){
       parents = t;
       if (t.isNotEmpty) {
@@ -54,8 +57,27 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const IconAppBarTitle(title: '解説を作る')),
+    return AppScaffold(
+      title: '解説を作る',
+      subHeader: AppBreadcrumbs(
+        items: [
+          BreadcrumbItem(
+            label: 'ホーム',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            ),
+          ),
+          BreadcrumbItem(
+            label: '投稿する',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen(initialSelected: 2)),
+            ),
+          ),
+          const BreadcrumbItem(label: '解説を作る'),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(children: [

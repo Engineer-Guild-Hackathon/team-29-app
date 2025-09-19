@@ -3,10 +3,15 @@ import '../constants/app_colors.dart';
 import '../services/api.dart';
 import 'solve_picker_screen.dart';
 import '../widgets/app_icon.dart';
+import '../widgets/app_header.dart';
+import '../widgets/app_scaffold.dart';
+import '../widgets/app_breadcrumbs.dart';
+import 'home.dart';
 
 class SolveScreen extends StatefulWidget {
   final int? initialProblemId; // 指定された問題を解く場合に使用
-  const SolveScreen({super.key, this.initialProblemId});
+  const SolveScreen({super.key, this.initialProblemId, this.fromPicker = false});
+  final bool fromPicker;
   @override
   State<SolveScreen> createState() => _SolveScreenState();
 }
@@ -14,6 +19,8 @@ class SolveScreen extends StatefulWidget {
 class _SolveScreenState extends State<SolveScreen> {
   // カテゴリ選択
   List<dynamic> tree = [];
+  List<dynamic> _filteredTree = [];
+  final Set<int> _myChildIds = {};
   int? parentId;
   int? childId;
   int? grandId; // null = 全単元
@@ -142,7 +149,7 @@ class _SolveScreenState extends State<SolveScreen> {
   // ===== Data Loaders =====
 
   Future<void> _loadTree() async {
-    final t = await Api.categories.tree();
+    final t = await Api.categories.tree(mineOnly: true);
     setState(() => tree = t);
     if (t.isNotEmpty) {
       final root = t.first;
@@ -267,9 +274,29 @@ class _SolveScreenState extends State<SolveScreen> {
     final bool isMcq = opts.isNotEmpty; // ← qtype に依存せず options の有無で判定
     final bool isFree = !isMcq;
 
-    return Scaffold(
+    final crumbLabel = widget.fromPicker ? '問題を選んで解く' : 'ランダムに解く';
+    return AppScaffold(
+      title: '問題をランダムに解く',
+      subHeader: AppBreadcrumbs(
+        items: [
+          BreadcrumbItem(
+            label: 'ホーム',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            ),
+          ),
+          BreadcrumbItem(
+            label: '問題を解く',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen(initialSelected: 1)),
+            ),
+          ),
+          BreadcrumbItem(label: crumbLabel),
+        ],
+      ),
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const IconAppBarTitle(title: '問題をランダムに解く')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView(

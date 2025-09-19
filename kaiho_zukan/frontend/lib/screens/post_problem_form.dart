@@ -3,13 +3,22 @@ import '../constants/app_colors.dart';
 import 'package:file_picker/file_picker.dart';
 import '../services/api.dart';
 import 'my_problems.dart';
+import '../widgets/app_scaffold.dart';
+import '../widgets/app_breadcrumbs.dart';
+import 'home.dart';
 import '../widgets/app_icon.dart';
 // import 'problem_posted.dart';
 
 class PostProblemForm extends StatefulWidget {
   final int? editId;
   final bool explainOnly; // 解説のみ編集モード
-  const PostProblemForm({super.key, this.editId, this.explainOnly = false});
+  final bool fromMyList; // 自分の問題一覧から遷移
+  const PostProblemForm({
+    super.key,
+    this.editId,
+    this.explainOnly = false,
+    this.fromMyList = false,
+  });
   @override
   State<PostProblemForm> createState() => _PostProblemFormState();
 }
@@ -133,7 +142,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
   }
 
   Future<void> _loadCats() async {
-    final t = await Api.categories.tree();
+    final t = await Api.categories.tree(mineOnly: true);
     // Initial defaults
     List<dynamic> parentsTmp = t;
     List<dynamic> childrenTmp =
@@ -617,14 +626,44 @@ class _PostProblemFormState extends State<PostProblemForm> {
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const AppScaffold(title: '読み込み中', body: Center(child: CircularProgressIndicator()));
     }
     final titleText = widget.explainOnly
         ? '解説を編集'
         : (widget.editId == null ? '新規で問題を作る' : '問題を編集');
-    return Scaffold(
-      appBar: AppBar(
-        title: IconAppBarTitle(title: titleText),
+    final String breadcrumbTail = widget.explainOnly
+        ? '解説の投稿/編集'
+        : (widget.editId == null
+            ? '問題の投稿/編集 > 新規で問題を作る'
+            : (widget.fromMyList
+                ? '問題の投稿/編集 > 自分が作った問題 > 問題を編集する'
+                : '問題の投稿/編集'));
+    return AppScaffold(
+      title: titleText,
+      subHeader: AppBreadcrumbs(
+        items: [
+          BreadcrumbItem(
+            label: 'ホーム',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            ),
+          ),
+          BreadcrumbItem(
+            label: '投稿する',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen(initialSelected: 2)),
+            ),
+          ),
+          const BreadcrumbItem(label: '問題の投稿/編集'),
+          if (!widget.explainOnly && widget.editId == null)
+            const BreadcrumbItem(label: '新規で問題を投稿する'),
+          if (!widget.explainOnly && widget.editId != null && widget.fromMyList) ...[
+            const BreadcrumbItem(label: '自分が作った問題'),
+            const BreadcrumbItem(label: '問題を編集する'),
+          ],
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -1123,6 +1162,10 @@ class _ImagesPagerState extends State<_ImagesPager> {
     ]);
   }
 }
+
+
+
+
 
 
 

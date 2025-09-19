@@ -4,6 +4,10 @@ import 'explain_create_new.dart';
 import 'explain_my_list.dart';
 import 'explain_fix_wrong.dart';
 import '../widgets/app_icon.dart';
+import '../widgets/app_scaffold.dart';
+import '../widgets/app_breadcrumbs.dart';
+import 'home.dart';
+import 'post_problem_hub.dart';
 import '../constants/app_colors.dart';
 
 class ExplainHubScreen extends StatelessWidget {
@@ -11,8 +15,27 @@ class ExplainHubScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const IconAppBarTitle(title: '解説の投稿/編集')),
+    return AppScaffold(
+      title: '解説の投稿/編集',
+      subHeader: AppBreadcrumbs(
+        items: [
+          BreadcrumbItem(
+            label: 'ホーム',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            ),
+          ),
+          BreadcrumbItem(
+            label: '投稿する',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PostProblemHubScreen()),
+            ),
+          ),
+          const BreadcrumbItem(label: '解説の投稿/編集'),
+        ],
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
