@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../constants/app_colors.dart';
 import '../services/api.dart';
 import 'solve_picker_screen.dart';
+import '../widgets/app_icon.dart';
 
 class SolveScreen extends StatefulWidget {
   final int? initialProblemId; // 指定された問題を解く場合に使用
@@ -266,7 +268,8 @@ class _SolveScreenState extends State<SolveScreen> {
     final bool isFree = !isMcq;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('問題をランダムに解く')),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(title: const IconAppBarTitle(title: '問題をランダムに解く')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView(
@@ -442,10 +445,10 @@ class _SolveScreenState extends State<SolveScreen> {
                           horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: (prob!['liked'] ?? false) == true
-                            ? Colors.green
-                            : Colors.white,
+                            ? AppColors.success
+                            : AppColors.background,
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: Colors.green, width: 1.5),
+                        border: Border.all(color: AppColors.success, width: 1.5),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -454,8 +457,8 @@ class _SolveScreenState extends State<SolveScreen> {
                             'いいね',
                             style: TextStyle(
                               color: (prob!['liked'] ?? false) == true
-                                  ? Colors.white
-                                  : Colors.green,
+                                  ? AppColors.background
+                                  : AppColors.success,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -464,8 +467,8 @@ class _SolveScreenState extends State<SolveScreen> {
                             '${prob!['like_count'] ?? 0}',
                             style: TextStyle(
                               color: (prob!['liked'] ?? false) == true
-                                  ? Colors.white
-                                  : Colors.green,
+                                  ? AppColors.background
+                                  : AppColors.success,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -569,7 +572,7 @@ class _SolveScreenState extends State<SolveScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                   content: Text('選択肢IDの取得に失敗しました'),
-                                  backgroundColor: Colors.red),
+                                  backgroundColor: AppColors.danger),
                             );
                             return;
                           }
@@ -598,7 +601,7 @@ class _SolveScreenState extends State<SolveScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                   content: Text('選択肢IDの取得に失敗しました'),
-                                  backgroundColor: Colors.red),
+                                  backgroundColor: AppColors.danger),
                             );
                             return;
                           }
@@ -871,13 +874,13 @@ class _SolveScreenState extends State<SolveScreen> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(24),
                             border:
-                                Border.all(color: Colors.purple, width: 1.2),
-                            color: Colors.white,
+                                Border.all(color: AppColors.secondary, width: 1.2),
+                            color: AppColors.background,
                           ),
                           child: const Text(
                             'この解説は間違っているかもしれません',
                             style: TextStyle(
-                                color: Colors.purple,
+                                color: AppColors.secondary,
                                 fontWeight: FontWeight.w600),
                           ),
                         ),
@@ -936,9 +939,9 @@ class _SolveScreenState extends State<SolveScreen> {
                                 margin: const EdgeInsets.only(right: 8),
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: flagged ? Colors.grey : Colors.white,
+                                  color: flagged ? AppColors.border : AppColors.background,
                                   border: Border.all(
-                                      color: Colors.grey, width: 1.5),
+                                      color: AppColors.border, width: 1.5),
                                 ),
                                 alignment: Alignment.center,
                                 child: Text(
@@ -946,7 +949,7 @@ class _SolveScreenState extends State<SolveScreen> {
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w800,
-                                    color: flagged ? Colors.white : Colors.grey,
+                                    color: flagged ? AppColors.background : AppColors.border,
                                   ),
                                 ),
                               );
@@ -1004,10 +1007,10 @@ class _SolveScreenState extends State<SolveScreen> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 6),
                               decoration: BoxDecoration(
-                                color: liked ? Colors.green : Colors.white,
+                                color: liked ? AppColors.success : AppColors.background,
                                 borderRadius: BorderRadius.circular(24),
                                 border:
-                                    Border.all(color: Colors.green, width: 1.5),
+                                    Border.all(color: AppColors.success, width: 1.5),
                               ),
                               child: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -1015,15 +1018,15 @@ class _SolveScreenState extends State<SolveScreen> {
                                     Text('いいね',
                                         style: TextStyle(
                                             color: liked
-                                                ? Colors.white
-                                                : Colors.green,
+                                                ? AppColors.background
+                                                : AppColors.success,
                                             fontWeight: FontWeight.w600)),
                                     const SizedBox(width: 6),
                                     Text('$count',
                                         style: TextStyle(
                                             color: liked
-                                                ? Colors.white
-                                                : Colors.green,
+                                                ? AppColors.background
+                                                : AppColors.success,
                                             fontWeight: FontWeight.w600)),
                                   ]),
                             );
@@ -1069,7 +1072,7 @@ class _ImagesPagerState extends State<_ImagesPager> {
             itemBuilder: (_, i) {
               final url = widget.urls[i];
               return Container(
-                color: Colors.black12,
+                color: AppColors.surface,
                 alignment: Alignment.center,
                 child: Padding(
                   padding: const EdgeInsets.all(4),
@@ -1097,7 +1100,7 @@ class _ImagesPagerState extends State<_ImagesPager> {
                 margin: const EdgeInsets.symmetric(horizontal: 4),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: sel ? Colors.teal : Colors.grey.shade400,
+                  color: sel ? AppColors.info : AppColors.border,
                 ),
               ),
             );

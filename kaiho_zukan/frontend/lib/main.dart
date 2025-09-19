@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'screens/login_register.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'constants/app_colors.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
@@ -24,8 +25,31 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
-        textTheme: GoogleFonts.notoSansJpTextTheme(),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.primary,
+          brightness: Brightness.light,
+        ).copyWith(
+          primary: AppColors.primary,
+          secondary: AppColors.secondary,
+          surface: AppColors.surface,
+          background: AppColors.background,
+          error: AppColors.danger,
+          onPrimary: AppColors.background,
+          onSecondary: AppColors.background,
+          onSurface: Colors.black,
+          onBackground: Colors.black,
+          onError: AppColors.background,
+        ),
+        scaffoldBackgroundColor: AppColors.background,
+        textTheme: GoogleFonts.notoSansJpTextTheme().apply(
+          bodyColor: Colors.black,
+          displayColor: Colors.black,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.background,
+        ),
+        dividerColor: AppColors.border,
       ),
       home: const LoginRegisterScreen(),
     );

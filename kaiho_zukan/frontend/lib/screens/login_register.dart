@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../constants/app_colors.dart';
 import '../services/api.dart';
+import '../widgets/app_icon.dart';
 import 'home.dart';
 import 'subject_select.dart';
 
@@ -17,7 +19,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('解法図鑑 - ログイン / 新規登録')),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(title: const IconAppBarTitle(title: '解法図鑑 - ログイン / 新規登録', color: AppColors.textPrimary_light)),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
@@ -51,7 +54,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                 const SizedBox(height: 8),
                 TextButton(onPressed: ()=> setState(()=> isLogin=!isLogin), child: Text(isLogin? '新規登録はこちら' : 'ログインはこちら')),
                 const SizedBox(height: 8),
-                Text(msg, style: const TextStyle(color: Colors.red)),
+                Text(msg, style: const TextStyle(color: AppColors.danger)),
               ],
             ),
           ),

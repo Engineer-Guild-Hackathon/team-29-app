@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../constants/app_colors.dart';
 import '../services/api.dart';
 import 'post_problem_form.dart';
+import '../widgets/app_icon.dart';
 
 class MyProblemsScreen extends StatefulWidget {
   const MyProblemsScreen({super.key});
@@ -27,7 +29,7 @@ class _MyProblemsScreenState extends State<MyProblemsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('自分が作った問題')),
+      appBar: AppBar(title: const IconAppBarTitle(title: '自分が作った問題')),
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -74,7 +76,7 @@ class _MyProblemsScreenState extends State<MyProblemsScreen> {
                       ),
                       IconButton(
                         tooltip: '削除',
-                        icon: const Icon(Icons.delete, color: Colors.redAccent),
+                        icon: const Icon(Icons.delete, color: AppColors.danger),
                         onPressed: () async {
                           final ok = await showDialog<bool>(
                             context: context,
@@ -95,7 +97,7 @@ class _MyProblemsScreenState extends State<MyProblemsScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除しました')));
                             } else {
                               if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除に失敗しました'), backgroundColor: Colors.red));
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除に失敗しました'), backgroundColor: AppColors.danger));
                             }
                           }
                         },

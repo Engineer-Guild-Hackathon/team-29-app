@@ -16,12 +16,12 @@ from models import (
 router = APIRouter(tags=["profile"])
 
 
-def _rank_from_likes(total_likes: int) -> str:
-    if total_likes <= 10:
+def _rank_from_creations(total_creations: int) -> str:
+    if total_creations <= 30:
         return "ブロンズ"
-    elif total_likes <= 20:
+    elif total_creations <= 50:
         return "シルバー"
-    elif total_likes <= 30:
+    elif total_creations <= 70:
         return "ゴールド"
     else:
         return "プラチナ"
@@ -67,8 +67,8 @@ def get_profile(
         or 0
     )
 
-    total_likes = int(question_likes) + int(explanation_likes)
-    rank = _rank_from_likes(total_likes)
+    total_creations = int(question_count) + int(answer_creation_count)
+    rank = _rank_from_creations(total_creations)
 
     icon_url = f"https://api.dicebear.com/8.x/identicon/png?seed={user.username}"
 
