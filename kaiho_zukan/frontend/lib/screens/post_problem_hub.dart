@@ -29,41 +29,32 @@ class PostProblemHubScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          HomeSectionCard(
-            theme: theme,
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 8),
-                IllustratedActionButton(
-                  label: '問題を投稿する',
-                  icon: Icons.post_add,
-                  backgroundColor: AppColors.accent1_light,
-                  color: AppColors.accent1,
-                  illustrationHeight: 120,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const PostProblemSubHubScreen(),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                IllustratedActionButton(
-                  label: '解答・解説を投稿する',
-                  icon: Icons.menu_book,
-                  backgroundColor: AppColors.secondary_light,
-                  color: AppColors.secondary,
-                  illustrationHeight: 120,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const ExplainHubScreen(),
-                    ),
-                  ),
-                ),
-              ],
+          const SizedBox(height: 8),
+          IllustratedActionButton(
+            label: '問題を投稿する',
+            icon: Icons.post_add,
+            backgroundColor: AppColors.accent1_light,
+            color: AppColors.accent1,
+            illustrationHeight: 120,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const PostProblemSubHubScreen(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          IllustratedActionButton(
+            label: '解答・解説を投稿する',
+            icon: Icons.menu_book,
+            backgroundColor: AppColors.secondary_light,
+            color: AppColors.secondary,
+            illustrationHeight: 120,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ExplainHubScreen(),
+              ),
             ),
           ),
         ],

@@ -29,41 +29,32 @@ class SolveHubScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          HomeSectionCard(
-            theme: theme,
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 8),
-                IllustratedActionButton(
-                  label: '問題をランダムに解く',
-                  icon: Icons.casino,
-                  backgroundColor: AppColors.accent1_light,
-                  color: AppColors.accent1,
-                  illustrationHeight: 120,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const SolveScreen(),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                IllustratedActionButton(
-                  label: '問題を選んで解く',
-                  icon: Icons.view_list,
-                  backgroundColor: AppColors.secondary_light,
-                  color: AppColors.secondary,
-                  illustrationHeight: 120,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const SolvePickerScreen(),
-                    ),
-                  ),
-                ),
-              ],
+          const SizedBox(height: 8),
+          IllustratedActionButton(
+            label: '問題をランダムに解く',
+            icon: Icons.casino,
+            backgroundColor: AppColors.accent1_light,
+            color: AppColors.accent1,
+            illustrationHeight: 120,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const SolveScreen(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          IllustratedActionButton(
+            label: '問題を選んで解く',
+            icon: Icons.view_list,
+            backgroundColor: AppColors.secondary_light,
+            color: AppColors.secondary,
+            illustrationHeight: 120,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const SolvePickerScreen(),
+              ),
             ),
           ),
         ],

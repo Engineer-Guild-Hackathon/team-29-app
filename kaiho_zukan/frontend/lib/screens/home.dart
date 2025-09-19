@@ -610,8 +610,20 @@ class _ProfileDetailView extends StatelessWidget {
       );
     } else {
       final p = profile!;
-      final badgeColor =
-          (theme.secondaryAccent ?? theme.accent).withOpacity(0.18);
+      final rankName = (p['rank'] ?? '').toString();
+      final badgeColor = () {
+        final lower = rankName.toLowerCase();
+        if (lower.contains('ブロンズ') || lower.contains('bronze')) {
+          return AppColors.rank1;
+        }
+        if (lower.contains('シルバー') || lower.contains('silver')) {
+          return AppColors.rank2;
+        }
+        if (lower.contains('ゴールド') || lower.contains('gold')) {
+          return AppColors.rank3;
+        }
+        return (theme.secondaryAccent ?? theme.accent).withOpacity(0.18);
+      }();
       final statsItems = <MapEntry<String, String>>[
         MapEntry('ユーザー名', p['username'].toString()),
         MapEntry('解いた数', p['answer_count'].toString()),
@@ -675,7 +687,10 @@ class _ProfileDetailView extends StatelessWidget {
                     ),
                     child: Text(
                       'ランク: ${p['rank']}',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        color: AppColors.dark,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],

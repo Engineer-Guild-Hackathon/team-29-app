@@ -96,6 +96,7 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
                             final name = c != null ? c['name'] : 'ID:$id';
                             return Chip(
                                 label: Text(name),
+                                backgroundColor: AppColors.light,
                                 deleteIcon: const Icon(Icons.close,
                                     color: AppColors.danger),
                                 onDeleted: () {
@@ -124,6 +125,7 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
                               final bool sel = p['id'] == selectedParentId;
                               return ChoiceChip(
                                 selected: sel,
+                                backgroundColor: AppColors.primary_light,
                                 label: Text(p['name'] ?? ''),
                                 onSelected: (_) => setState(
                                     () => selectedParentId = p['id'] as int),
@@ -144,15 +146,11 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
                               final id = c['id'] as int;
                               final bool sel = selectedChildIds.contains(id);
                               return Card(
-                                color: sel
-                                    ? AppColors.primary_light
-                                    : Colors.white,
+                                color: AppColors.primary_light,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   side: BorderSide(
-                                    color: sel
-                                        ? AppColors.primary
-                                        : AppColors.border,
+                                    color: AppColors.primary,
                                     width: 1.2,
                                   ),
                                 ),
@@ -160,9 +158,7 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
                                   title: Text(
                                     c['name'] ?? '',
                                     style: TextStyle(
-                                      color: sel
-                                          ? AppColors.primary_dark
-                                          : AppColors.dark,
+                                      color: AppColors.primary_dark,
                                       fontWeight: sel
                                           ? FontWeight.w600
                                           : FontWeight.w500,
@@ -171,9 +167,7 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
                                   trailing: IconButton(
                                     icon: Icon(
                                       sel ? Icons.close : Icons.add,
-                                      color: sel
-                                          ? AppColors.primary_dark
-                                          : AppColors.primary,
+                                      color: AppColors.primary_dark,
                                     ),
                                     onPressed: () {
                                       setState(() {
