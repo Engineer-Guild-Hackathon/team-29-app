@@ -3,6 +3,7 @@ import '../constants/app_colors.dart';
 import '../constants/home_section_theme.dart';
 import '../services/api.dart';
 import '../widgets/app_icon.dart';
+import '../widgets/user_profile_dialog.dart';
 import '../widgets/home_section_surface.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/app_breadcrumbs.dart';
@@ -251,6 +252,90 @@ class _ReviewScreenState extends State<ReviewScreen> {
     });
   }
 
+  Future<void> _openUserProfile(int userId) async {
+    try {
+      await showDialog(
+        context: context,
+        builder: (_) => UserProfileDialog(userId: userId),
+      );
+    } catch (_) {}
+  }
+
+  Color _rankBorderColor(int? level) {
+    switch (level) {
+      case 4:
+        return AppColors.rank1_shade;
+      case 3:
+        return AppColors.rank1;
+      case 2:
+        return AppColors.rank2;
+      case 1:
+        return AppColors.rank3;
+      default:
+        return AppColors.border;
+    }
+  }
+
+  Widget? _buildExplanationAvatar(Map<String, dynamic> group) {
+    final bool isAi = group['isAi'] == true;
+    if (isAi) {
+      return Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.black, width: 3),
+        ),
+        child: CircleAvatar(
+          radius: 24,
+          backgroundColor: Colors.white,
+          child: const Text(
+            'AI',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final uid = group['uid'];
+    if (uid == null) return null;
+    final icon = group['iconUrl']?.toString();
+    final resolved = AppIcon.resolveImageUrl(icon);
+    final rankLevelRaw = group['rankLevel'];
+    int? rankLevel;
+    if (rankLevelRaw is int) {
+      rankLevel = rankLevelRaw;
+    } else if (rankLevelRaw is num) {
+      rankLevel = rankLevelRaw.toInt();
+    } else if (rankLevelRaw is String) {
+      rankLevel = int.tryParse(rankLevelRaw);
+    }
+    final rankLabel = group['rank']?.toString();
+    final hasIcon = resolved != null && resolved.isNotEmpty;
+    final avatar = CircleAvatar(
+      radius: 24,
+      backgroundColor: AppColors.background,
+      backgroundImage: hasIcon ? NetworkImage(resolved) : null,
+      child: hasIcon
+          ? null
+          : const Icon(Icons.person, size: 24, color: Colors.white),
+    );
+    Widget content = Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: _rankBorderColor(rankLevel), width: 3),
+      ),
+      child: avatar,
+    );
+    if (rankLabel != null && rankLabel.isNotEmpty) {
+      content = Tooltip(message: rankLabel, child: content);
+    }
+    return content;
+  }
+
   Future<void> _openDetail2(int pid) async {
     final detail = await Api.review.item(pid);
     final Map<String, dynamic>? problem =
@@ -303,7 +388,37 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 'images': <String>{},
                 'aiWrong': false,
                 'repWrongFlagged': false,
+                'iconUrl': isAi ? null : e['author_icon_url'],
+                'rank': isAi ? null : e['author_rank'],
+                'rankLevel': isAi ? null : e['author_rank_level'],
+                'isAi': isAi,
               });
+      if (!isAi) {
+        final icon = e['author_icon_url'];
+        if (icon != null && icon.toString().isNotEmpty) {
+          final current = g['iconUrl'];
+          if (current == null || current.toString().isEmpty) {
+            g['iconUrl'] = icon;
+          }
+        }
+        final rank = e['author_rank'];
+        if (rank != null && (g['rank'] == null || g['rank'].toString().isEmpty)) {
+          g['rank'] = rank;
+        }
+        final rankLevelRaw = e['author_rank_level'];
+        if (rankLevelRaw != null && g['rankLevel'] == null) {
+          if (rankLevelRaw is int) {
+            g['rankLevel'] = rankLevelRaw;
+          } else if (rankLevelRaw is num) {
+            g['rankLevel'] = rankLevelRaw.toInt();
+          } else if (rankLevelRaw is String) {
+            final parsed = int.tryParse(rankLevelRaw);
+            if (parsed != null) {
+              g['rankLevel'] = parsed;
+            }
+          }
+        }
+      }
       final txt = (e['content'] ?? '').toString();
       final oi = e['option_index'];
       if (oi is int) {
@@ -553,6 +668,15 @@ class _ReviewScreenState extends State<ReviewScreen> {
                         }
 
                         return StatefulBuilder(builder: (context2, setCard) {
+                          final bool isAiGroup = g['isAi'] == true;
+                          final int? avatarUserId = isAiGroup ? null : g['uid'] as int?;
+                          Widget? avatarWidget = _buildExplanationAvatar(g);
+                          if (!isAiGroup && avatarWidget != null && avatarUserId != null) {
+                            avatarWidget = GestureDetector(
+                              onTap: () => _openUserProfile(avatarUserId),
+                              child: avatarWidget,
+                            );
+                          }
                           final children = <Widget>[];
 
                           if (answerText.isNotEmpty) {
@@ -735,12 +859,25 @@ class _ReviewScreenState extends State<ReviewScreen> {
                             ),
                           );
 
+                          final contentColumn = Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: children,
+                          );
+                          final Widget sectionBody = avatarWidget != null
+                              ? Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    avatarWidget!,
+                                    const SizedBox(width: 12),
+                                    Expanded(child: contentColumn),
+                                  ],
+                                )
+                              : contentColumn;
+
                           return Card(
                             child: Padding(
                               padding: const EdgeInsets.all(12),
-                              child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: children),
+                              child: sectionBody,
                             ),
                           );
                         });

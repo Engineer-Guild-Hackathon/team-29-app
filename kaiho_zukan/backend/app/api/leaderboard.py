@@ -1,4 +1,3 @@
-from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
@@ -6,6 +5,7 @@ from sqlalchemy import select, func
 from api.deps import get_current_user
 from core.db import get_db
 from models import User, Problem, Explanation, ProblemLike, ExplanationLike
+from api.explanations import _icon_url, _rank_info
 
 router = APIRouter(prefix="/leaderboard", tags=["leaderboard"])
 
@@ -19,11 +19,11 @@ def leaderboard(
 ):
     """
     Supported metrics:
-    - created_problems: 作問数（Problem.created_by）
-    - created_expl: 解説作成数（Explanation.user_id, AIは除外）
-    - likes_problems: 自分の問題に付いたいいね合計
-    - likes_expl: 自分の解説に付いたいいね合計（AIは除外）
-    - points: users.points をそのまま
+    - created_problems: number of problems created
+    - created_expl: number of explanations created (excluding AI)
+    - likes_problems: total likes received on problems
+    - likes_expl: total likes received on explanations (excluding AI)
+    - points: users.points column
     """
     items: list[dict] = []
 
@@ -98,9 +98,41 @@ def leaderboard(
             {"user_id": uid, "username": un, "nickname": nn, "value": int(v or 0)}
             for uid, un, nn, v in rows
         ]
+
     else:
-        # unknown metric
         raise HTTPException(status_code=400, detail="unknown metric")
 
-    return {"metric": metric, "items": items}
+    user_ids = [int(item.get("user_id")) for item in items if item.get("user_id") is not None]
+    if user_ids:
+        user_rows = db.execute(select(User).where(User.id.in_(user_ids))).scalars().all()
+        user_map = {u.id: u for u in user_rows}
+        problem_counts = {
+            int(uid): int(cnt or 0)
+            for uid, cnt in db.execute(
+                select(Problem.created_by, func.count())
+                .where(Problem.created_by.in_(user_ids))
+                .group_by(Problem.created_by)
+            ).all()
+        }
+        explanation_counts = {
+            int(uid): int(cnt or 0)
+            for uid, cnt in db.execute(
+                select(Explanation.user_id, func.count())
+                .where(Explanation.user_id.in_(user_ids))
+                .group_by(Explanation.user_id)
+            ).all()
+        }
+        for item in items:
+            uid = item.get("user_id")
+            if uid is None:
+                continue
+            uid_int = int(uid)
+            user_obj = user_map.get(uid_int)
+            icon_url = _icon_url(user_obj) if user_obj else None
+            total_creations = problem_counts.get(uid_int, 0) + explanation_counts.get(uid_int, 0)
+            rank_label, rank_level = _rank_info(int(total_creations))
+            item["icon_url"] = icon_url
+            item["rank"] = rank_label
+            item["rank_level"] = rank_level
 
+    return {"metric": metric, "items": items}

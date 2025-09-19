@@ -79,7 +79,10 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                             MaterialPageRoute(builder: (_) => const HomeScreen()),
                           );
                         } else {
-                          setState(() => msg = 'ログインに失敗しました');
+                          final detail = (r['detail'] ?? '').toString();
+                          setState(() => msg = detail.isNotEmpty
+                              ? detail
+                              : 'ユーザーIDまたはパスワードが間違っています。');
                         }
                       } else {
                         final r = await Api.auth.register(
@@ -95,7 +98,14 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                             ),
                           );
                         } else {
-                          setState(() => msg = '新規登録に失敗しました');
+                          final detail = (r['detail'] ?? '').toString();
+                          if (detail.contains('already exists') || detail.contains('already registered')) {
+                            setState(() => msg = 'そのユーザーIDは使用されています。');
+                          } else {
+                            setState(() => msg = detail.isNotEmpty
+                                ? detail
+                                : '新規登録に失敗しました');
+                          }
                         }
                       }
                     },
@@ -122,5 +132,6 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     );
   }
 }
+
 
 

@@ -39,7 +39,7 @@ class _ExplainMyListScreenState extends State<ExplainMyListScreen> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      title: '自分の作った解説一覧',
+      title: '自分の作った解説',
       subHeader: AppBreadcrumbs(
         items: [
           BreadcrumbItem(
@@ -63,7 +63,7 @@ class _ExplainMyListScreenState extends State<ExplainMyListScreen> {
               MaterialPageRoute(builder: (_) => const ExplainHubScreen()),
             ),
           ),
-          const BreadcrumbItem(label: '自分が作った解説一覧'),
+          const BreadcrumbItem(label: '自分が作った解説'),
         ],
       ),
       body: loading

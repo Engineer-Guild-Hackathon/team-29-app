@@ -14,6 +14,24 @@ from models import (
 from services.ai_judge import judge_problem_for_user, judge_explanation_ai
 
 settings = get_settings()
+
+
+def _icon_url(user: User) -> str:
+    if getattr(user, "icon_path", None):
+        return f"/uploads/{user.icon_path}"
+    return f"https://api.dicebear.com/8.x/identicon/png?seed={user.username}"
+
+
+def _rank_info(total_creations: int) -> tuple[str, int]:
+    if total_creations <= 30:
+        return "ランク：ブロンズ", 1
+    elif total_creations <= 50:
+        return "ランク：シルバー", 2
+    elif total_creations <= 70:
+        return "ランク：ゴールド", 3
+    else:
+        return "ランク：プラチナ", 4
+
 router = APIRouter(prefix="/explanations", tags=["explanations"])
 
 @router.get("/problem/{pid:int}")
@@ -61,6 +79,40 @@ def list_explanations(
     liked_ids = {int(r[0]) for r in liked_rows}
 
     uids = list({e.user_id for e in exps if getattr(e, "user_id", None) is not None})
+    user_map: dict[int, dict[str, object]] = {}
+    problem_counts: dict[int, int] = {}
+    explanation_counts: dict[int, int] = {}
+    if uids:
+        user_rows = db.execute(select(User).where(User.id.in_(uids))).scalars().all()
+        problem_counts = {
+            int(uid): int(cnt or 0)
+            for uid, cnt in db.execute(
+                select(Problem.created_by, func.count())
+                .where(Problem.created_by.in_(uids))
+                .group_by(Problem.created_by)
+            ).all()
+        }
+        explanation_counts = {
+            int(uid): int(cnt or 0)
+            for uid, cnt in db.execute(
+                select(Explanation.user_id, func.count())
+                .where(Explanation.user_id.in_(uids))
+                .group_by(Explanation.user_id)
+            ).all()
+        }
+        for u in user_rows:
+            total_creations = problem_counts.get(u.id, 0) + explanation_counts.get(u.id, 0)
+            rank, rank_level = _rank_info(int(total_creations))
+            display_name = u.nickname if u.nickname else u.username
+            user_map[u.id] = {
+                "user": u,
+                "display_name": display_name,
+                "icon_url": _icon_url(u),
+                "rank": rank,
+                "rank_level": rank_level,
+                "problem_count": problem_counts.get(u.id, 0),
+                "explanation_count": explanation_counts.get(u.id, 0),
+            }
     judgement_map = {}
     if uids:
         jrows = db.execute(
@@ -80,11 +132,36 @@ def list_explanations(
 
     items = []
     for e in exps:
+        author_icon_url = None
+        author_rank = None
+        author_rank_level = None
+        user_obj = None
+        info = None
         if e.user_id is None:
             by = "AI"
         else:
-            u = db.get(User, e.user_id)
-            by = (u.nickname if u and u.nickname else (u.username if u else None))
+            info = user_map.get(e.user_id)
+            if info:
+                by = info.get("display_name")
+                author_icon_url = info.get("icon_url")
+                author_rank = info.get("rank")
+                author_rank_level = info.get("rank_level")
+                user_obj = info.get("user")
+            else:
+                user_obj = db.get(User, e.user_id)
+                by = (user_obj.nickname if user_obj and user_obj.nickname else (user_obj.username if user_obj else None))
+        if user_obj is None and e.user_id is not None and info is None:
+            user_obj = db.get(User, e.user_id)
+        if author_icon_url is None and user_obj is not None:
+            author_icon_url = _icon_url(user_obj)
+        if author_rank is None and user_obj is not None:
+            total_creations = problem_counts.get(user_obj.id, 0) + explanation_counts.get(user_obj.id, 0)
+            author_rank, author_rank_level = _rank_info(int(total_creations))
+            if by is None:
+                by = user_obj.nickname if user_obj.nickname else user_obj.username
+
+        if not by:
+            by = "ユーザー"
 
         imgs = db.execute(
             select(ExplanationImage).where(ExplanationImage.explanation_id == e.id).order_by(ExplanationImage.id.asc())
@@ -95,6 +172,12 @@ def list_explanations(
         wrong_cnt = wrong_flag_counts.get(e.id, 0)
         crowd_maybe_wrong = (solvers >= 10 and (wrong_cnt / max(1, solvers)) > 0.3)
 
+        if author_rank_level is not None:
+            try:
+                author_rank_level = int(author_rank_level)
+            except (TypeError, ValueError):
+                author_rank_level = None
+
         items.append({
             "id": e.id,
             "content": e.content,
@@ -103,6 +186,9 @@ def list_explanations(
             "option_index": e.option_index,
             "user_id": e.user_id,
             "by": by,
+            "author_icon_url": author_icon_url,
+            "author_rank": author_rank,
+            "author_rank_level": author_rank_level,
             "liked": (e.id in liked_ids),
             "images": img_urls,
             "ai_is_wrong": (j.is_wrong if j else None),

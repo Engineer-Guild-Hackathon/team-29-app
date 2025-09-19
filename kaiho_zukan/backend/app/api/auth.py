@@ -24,5 +24,5 @@ def register(payload: RegisterIn, db: Session = Depends(get_db)):
 def login(payload: LoginIn, db: Session = Depends(get_db)):
     user = db.execute(select(User).where(User.username==payload.username)).scalar_one_or_none()
     if not user or not verify_pw(payload.password, user.password_hash):
-        raise HTTPException(401, "invalid credentials")
+        raise HTTPException(401, "認証情報が正しくありません")
     return TokenOut(access_token=make_token(user.id))

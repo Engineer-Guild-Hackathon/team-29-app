@@ -37,4 +37,15 @@ class UserService {
     );
     return response.statusCode == 200;
   }
+  Future<Map<String, dynamic>> fetchProfile({required int userId}) async {
+    final response = await http.get(
+      Uri.parse('${ApiClient.base}/profile/$userId'),
+      headers: ApiClient.authHeader,
+    );
+    final data = await ApiClient.decode(response);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return data;
+    }
+    throw Exception(data['detail'] ?? 'Failed to fetch user profile');
+  }
 }

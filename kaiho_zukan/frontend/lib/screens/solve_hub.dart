@@ -29,6 +29,7 @@ class SolveHubScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+
           const SizedBox(height: 8),
           IllustratedActionButton(
             label: '問題をランダムに解く',

@@ -881,88 +881,96 @@ class _PostProblemFormState extends State<PostProblemForm> {
                   decoration: const InputDecoration(labelText: '問題文'),
                 ),
                 const SizedBox(height: 8),
-                Row(children: [
-                  const Text('種別: '),
-                  DropdownButton<String>(
-                    value: qtype,
-                    items: const [
-                      DropdownMenuItem(value: 'mcq', child: Text('選択式')),
-                      DropdownMenuItem(value: 'free', child: Text('記述式')),
-                    ],
-                    onChanged: widget.explainOnly
-                        ? null
-                        : (v) => setState(() => qtype = v ?? 'mcq'),
-                  ),
-                  const Spacer(),
-                  DropdownButton<int>(
-                    value: parentId,
-                    items: parents
-                        .map<DropdownMenuItem<int>>(
-                          (p) => DropdownMenuItem(
-                            value: p['id'] as int,
-                            child: Text(p['name']),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: widget.explainOnly
-                        ? null
-                        : (v) {
-                            final p = parents.firstWhere((e) => e['id'] == v);
-                            setState(() {
-                              parentId = v;
-                              children = p['children'] ?? [];
-                              childId = children.isNotEmpty
-                                  ? children.first['id']
-                                  : null;
-                              grands = childId != null
-                                  ? (children.firstWhere((c) =>
-                                          c['id'] == childId)['children'] ??
-                                      [])
-                                  : [];
-                              grandId =
-                                  grands.isNotEmpty ? grands.first['id'] : null;
-                            });
-                          },
-                  ),
-                  const SizedBox(width: 8),
-                  DropdownButton<int>(
-                    value: childId,
-                    items: children
-                        .map<DropdownMenuItem<int>>(
-                          (c) => DropdownMenuItem(
-                            value: c['id'] as int,
-                            child: Text(c['name']),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: widget.explainOnly
-                        ? null
-                        : (v) {
-                            final c = children.firstWhere((e) => e['id'] == v);
-                            setState(() {
-                              childId = v;
-                              grands = c['children'] ?? [];
-                              grandId =
-                                  grands.isNotEmpty ? grands.first['id'] : null;
-                            });
-                          },
-                  ),
-                  const SizedBox(width: 8),
-                  DropdownButton<int>(
-                    value: grandId,
-                    items: grands
-                        .map<DropdownMenuItem<int>>(
-                          (g) => DropdownMenuItem(
-                            value: g['id'] as int,
-                            child: Text(g['name']),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: widget.explainOnly
-                        ? null
-                        : (v) => setState(() => grandId = v),
-                  ),
-                ]),
+
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('種別: '),
+                        DropdownButton<String>(
+                          value: qtype,
+                          items: const [
+                            DropdownMenuItem(value: 'mcq', child: Text('選択式')),
+                            DropdownMenuItem(value: 'free', child: Text('記述式')),
+                          ],
+                          onChanged: widget.explainOnly
+                              ? null
+                              : (v) => setState(() => qtype = v ?? 'mcq'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        DropdownButton<int>(
+                          value: parentId,
+                          items: parents
+                              .map<DropdownMenuItem<int>>(
+                                (p) => DropdownMenuItem(
+                                  value: p['id'] as int,
+                                  child: Text(p['name']),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: widget.explainOnly
+                              ? null
+                              : (v) {
+                                  final p = parents.firstWhere((e) => e['id'] == v);
+                                  setState(() {
+                                    parentId = v;
+                                    children = p['children'] ?? [];
+                                    childId = children.isNotEmpty
+                                        ? children.first['id']
+                                        : null;
+                                    grands = childId != null
+                                        ? (children.firstWhere((c) => c['id'] == childId)['children'] ?? [])
+                                        : [];
+                                    grandId = grands.isNotEmpty ? grands.first['id'] : null;
+                                  });
+                                },
+                        ),
+                        DropdownButton<int>(
+                          value: childId,
+                          items: children
+                              .map<DropdownMenuItem<int>>(
+                                (c) => DropdownMenuItem(
+                                  value: c['id'] as int,
+                                  child: Text(c['name']),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: widget.explainOnly
+                              ? null
+                              : (v) {
+                                  final c = children.firstWhere((e) => e['id'] == v);
+                                  setState(() {
+                                    childId = v;
+                                    grands = c['children'] ?? [];
+                                    grandId = grands.isNotEmpty ? grands.first['id'] : null;
+                                  });
+                                },
+                        ),
+                        DropdownButton<int>(
+                          value: grandId,
+                          items: grands
+                              .map<DropdownMenuItem<int>>(
+                                (g) => DropdownMenuItem(
+                                  value: g['id'] as int,
+                                  child: Text(g['name']),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: widget.explainOnly ? null : (v) => setState(() => grandId = v),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
                 const SizedBox(height: 8),
 
                 // ===== 問題画像（既存UI） =====
@@ -1384,3 +1392,4 @@ class _ImagesPagerState extends State<_ImagesPager> {
     ]);
   }
 }
+

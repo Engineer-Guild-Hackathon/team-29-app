@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../services/api.dart';
+import 'app_icon.dart';
 import '../screens/login_register.dart';
 import '../screens/subject_select.dart';
 import '../screens/user_info.dart';
@@ -182,11 +183,14 @@ class _ProfileAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final resolvedIconUrl = AppIcon.resolveImageUrl(iconUrl)?.trim();
+    final hasIcon = resolvedIconUrl != null && resolvedIconUrl.isNotEmpty;
+
     final avatar = CircleAvatar(
       radius: 18,
       backgroundColor: AppColors.background,
-      backgroundImage: iconUrl != null ? NetworkImage(iconUrl!) : null,
-      child: iconUrl == null
+      backgroundImage: hasIcon ? NetworkImage(resolvedIconUrl!) : null,
+      child: !hasIcon
           ? const Icon(Icons.person, size: 20, color: Colors.white)
           : null,
     );
@@ -545,3 +549,4 @@ class _NotificationBellState extends State<NotificationBell> {
     );
   }
 }
+

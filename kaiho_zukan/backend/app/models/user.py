@@ -9,5 +9,6 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     nickname: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    icon_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
     points: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)

@@ -8,6 +8,7 @@ class AppIcon extends StatelessWidget {
   final BorderRadiusGeometry? borderRadius;
   final EdgeInsetsGeometry? padding;
   final Color? backgroundColor;
+  final String? imageUrl;
 
   const AppIcon({
     super.key,
@@ -15,38 +16,44 @@ class AppIcon extends StatelessWidget {
     this.borderRadius,
     this.padding,
     this.backgroundColor,
+    this.imageUrl,
   });
+
+  static String? resolveImageUrl(String? url) {
+    if (url == null) return null;
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return null;
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    if (trimmed.startsWith('/')) {
+      return '${Api.base}$trimmed';
+    }
+    return '${Api.base}/$trimmed';
+  }
 
   @override
   Widget build(BuildContext context) {
     final radius = borderRadius ?? BorderRadius.circular(size * 0.2);
     final bg = backgroundColor ?? Theme.of(context).colorScheme.surface;
+    final resolvedUrl = resolveImageUrl(imageUrl) ?? '${Api.base}${_iconPath}';
 
     Widget image;
     try {
       final dpr = MediaQuery.of(context).devicePixelRatio;
       image = Image.network(
-        '${Api.base}${_iconPath}',
+        resolvedUrl,
         width: size,
         height: size,
-        fit: BoxFit.contain, // アイコンはトリミングしない
-        cacheWidth:  (size * dpr).round(),   // ← 重要：DPRぶん確保
+        fit: BoxFit.cover,
+        cacheWidth: (size * dpr).round(),
         cacheHeight: (size * dpr).round(),
-        // Web(特にHTMLレンダラ)だと high がかえって滲むことがある
         filterQuality: FilterQuality.medium,
         isAntiAlias: true,
-        errorBuilder: (context, error, stack) => Icon(
-          Icons.school,
-          size: size,
-          color: Theme.of(context).colorScheme.secondary,
-        ),
+        errorBuilder: (context, error, stack) => _fallbackIcon(context),
       );
     } catch (_) {
-      image = Icon(
-        Icons.school,
-        size: size,
-        color: Theme.of(context).colorScheme.secondary,
-      );
+      image = _fallbackIcon(context);
     }
 
     return Container(
@@ -62,6 +69,14 @@ class AppIcon extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: image,
       ),
+    );
+  }
+
+  Widget _fallbackIcon(BuildContext context) {
+    return Icon(
+      Icons.person,
+      size: size,
+      color: Theme.of(context).colorScheme.secondary,
     );
   }
 }
