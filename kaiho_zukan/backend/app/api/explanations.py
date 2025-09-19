@@ -196,6 +196,14 @@ def edit_explanation(
         raise HTTPException(403, "forbidden")
 
     changed = False
+    # If empty string is explicitly sent, delete this explanation
+    if content is not None and (str(content).strip() == ""):
+        # Remove likes and images first to avoid FK issues, then delete the row
+        db.query(ExplanationLike).filter(ExplanationLike.explanation_id == eid).delete(synchronize_session=False)
+        db.query(ExplanationImage).filter(ExplanationImage.explanation_id == eid).delete(synchronize_session=False)
+        db.delete(e)
+        db.commit()
+        return {"ok": True, "deleted": True, "id": eid}
     if content is not None:
         e.content = content
         changed = True
