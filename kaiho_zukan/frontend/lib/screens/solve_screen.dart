@@ -10,7 +10,8 @@ import 'home.dart';
 
 class SolveScreen extends StatefulWidget {
   final int? initialProblemId; // 指定された問題を解く場合に使用
-  const SolveScreen({super.key, this.initialProblemId, this.fromPicker = false});
+  const SolveScreen(
+      {super.key, this.initialProblemId, this.fromPicker = false});
   final bool fromPicker;
   @override
   State<SolveScreen> createState() => _SolveScreenState();
@@ -179,8 +180,8 @@ class _SolveScreenState extends State<SolveScreen> {
       _mcqSelectedIndex = null;
     });
 
-    final r = await Api.problems.next(childId!, grandId,
-        includeAnswered: includeAnswered);
+    final r = await Api.problems
+        .next(childId!, grandId, includeAnswered: includeAnswered);
     Map<String, dynamic>? p;
     if (r['id'] != null) {
       p = r;
@@ -290,7 +291,8 @@ class _SolveScreenState extends State<SolveScreen> {
             label: '問題を解く',
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const HomeScreen(initialSelected: 1)),
+              MaterialPageRoute(
+                  builder: (_) => const HomeScreen(initialSelected: 1)),
             ),
           ),
           BreadcrumbItem(label: crumbLabel),
@@ -446,7 +448,8 @@ class _SolveScreenState extends State<SolveScreen> {
                       if (prob == null) return;
                       final liked = (prob!['liked'] ?? false) == true;
                       if (liked) {
-                        final ok = await Api.problems.unlike(prob!['id'] as int);
+                        final ok =
+                            await Api.problems.unlike(prob!['id'] as int);
                         if (ok) {
                           setState(() {
                             prob!['liked'] = false;
@@ -475,7 +478,8 @@ class _SolveScreenState extends State<SolveScreen> {
                             ? AppColors.success
                             : AppColors.background,
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: AppColors.success, width: 1.5),
+                        border:
+                            Border.all(color: AppColors.success, width: 1.5),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -573,7 +577,8 @@ class _SolveScreenState extends State<SolveScreen> {
                       const Spacer(),
                       Checkbox(
                         value: _showMaybeWrong,
-                        onChanged: (v) => setState(() => _showMaybeWrong = (v ?? false)),
+                        onChanged: (v) =>
+                            setState(() => _showMaybeWrong = (v ?? false)),
                       ),
                       const Text('間違っているかもしれない解説も表示'),
                     ],
@@ -703,7 +708,8 @@ class _SolveScreenState extends State<SolveScreen> {
                       const Spacer(),
                       Checkbox(
                         value: _showMaybeWrong,
-                        onChanged: (v) => setState(() => _showMaybeWrong = (v ?? false)),
+                        onChanged: (v) =>
+                            setState(() => _showMaybeWrong = (v ?? false)),
                       ),
                       const Text('間違っているかもしれない解説も表示'),
                     ],
@@ -900,8 +906,8 @@ class _SolveScreenState extends State<SolveScreen> {
                               horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(24),
-                            border:
-                                Border.all(color: AppColors.secondary, width: 1.2),
+                            border: Border.all(
+                                color: AppColors.secondary, width: 1.2),
                             color: AppColors.background,
                           ),
                           child: const Text(
@@ -923,40 +929,41 @@ class _SolveScreenState extends State<SolveScreen> {
                         Tooltip(
                           message: 'この解説が間違っていると思ったらこのボタンを押して下さい',
                           child: GestureDetector(
-                          onTap: () async {
-                            final int? repId = (g['repId'] as int?);
-                            if (repId == null) return;
-                            final bool flagged = (g['repWrongFlagged'] == true);
-                            bool ok = false;
-                            if (flagged) {
-                              ok = await Api.explanations.unflagWrong(repId);
-                              if (ok) {
-                                setState(() {
-                                  g['repWrongFlagged'] = false;
-                                  // 反映を維持するため、元データにも反映
-                                  for (final e in explanations) {
-                                    if (e is Map && e['id'] == repId) {
-                                      e['flagged_wrong'] = false;
-                                      break;
+                            onTap: () async {
+                              final int? repId = (g['repId'] as int?);
+                              if (repId == null) return;
+                              final bool flagged =
+                                  (g['repWrongFlagged'] == true);
+                              bool ok = false;
+                              if (flagged) {
+                                ok = await Api.explanations.unflagWrong(repId);
+                                if (ok) {
+                                  setState(() {
+                                    g['repWrongFlagged'] = false;
+                                    // 反映を維持するため、元データにも反映
+                                    for (final e in explanations) {
+                                      if (e is Map && e['id'] == repId) {
+                                        e['flagged_wrong'] = false;
+                                        break;
+                                      }
                                     }
-                                  }
-                                });
-                              }
-                            } else {
-                              ok = await Api.explanations.flagWrong(repId);
-                              if (ok) {
-                                setState(() {
-                                  g['repWrongFlagged'] = true;
-                                  for (final e in explanations) {
-                                    if (e is Map && e['id'] == repId) {
-                                      e['flagged_wrong'] = true;
-                                      break;
+                                  });
+                                }
+                              } else {
+                                ok = await Api.explanations.flagWrong(repId);
+                                if (ok) {
+                                  setState(() {
+                                    g['repWrongFlagged'] = true;
+                                    for (final e in explanations) {
+                                      if (e is Map && e['id'] == repId) {
+                                        e['flagged_wrong'] = true;
+                                        break;
+                                      }
                                     }
-                                  }
-                                });
+                                  });
+                                }
                               }
-                            }
-                          },
+                            },
                             child: Builder(builder: (_) {
                               final bool flagged =
                                   (g['repWrongFlagged'] == true);
@@ -966,7 +973,9 @@ class _SolveScreenState extends State<SolveScreen> {
                                 margin: const EdgeInsets.only(right: 8),
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: flagged ? AppColors.border : AppColors.background,
+                                  color: flagged
+                                      ? AppColors.border
+                                      : AppColors.background,
                                   border: Border.all(
                                       color: AppColors.border, width: 1.5),
                                 ),
@@ -976,7 +985,9 @@ class _SolveScreenState extends State<SolveScreen> {
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w800,
-                                    color: flagged ? AppColors.background : AppColors.border,
+                                    color: flagged
+                                        ? AppColors.background
+                                        : AppColors.border,
                                   ),
                                 ),
                               );
@@ -1002,7 +1013,9 @@ class _SolveScreenState extends State<SolveScreen> {
                                   for (final e in explanations) {
                                     if (e is Map && e['id'] == repId) {
                                       e['liked'] = false;
-                                      final lc = (e['likes'] is int) ? e['likes'] as int : 0;
+                                      final lc = (e['likes'] is int)
+                                          ? e['likes'] as int
+                                          : 0;
                                       e['likes'] = (lc > 0) ? lc - 1 : 0;
                                       break;
                                     }
@@ -1018,7 +1031,9 @@ class _SolveScreenState extends State<SolveScreen> {
                                   for (final e in explanations) {
                                     if (e is Map && e['id'] == repId) {
                                       e['liked'] = true;
-                                      final lc = (e['likes'] is int) ? e['likes'] as int : 0;
+                                      final lc = (e['likes'] is int)
+                                          ? e['likes'] as int
+                                          : 0;
                                       e['likes'] = lc + 1;
                                       break;
                                     }
@@ -1034,10 +1049,12 @@ class _SolveScreenState extends State<SolveScreen> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 6),
                               decoration: BoxDecoration(
-                                color: liked ? AppColors.success : AppColors.background,
+                                color: liked
+                                    ? AppColors.success
+                                    : AppColors.background,
                                 borderRadius: BorderRadius.circular(24),
-                                border:
-                                    Border.all(color: AppColors.success, width: 1.5),
+                                border: Border.all(
+                                    color: AppColors.success, width: 1.5),
                               ),
                               child: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -1099,7 +1116,7 @@ class _ImagesPagerState extends State<_ImagesPager> {
             itemBuilder: (_, i) {
               final url = widget.urls[i];
               return Container(
-                color: AppColors.surface,
+                color: AppColors.primary_light,
                 alignment: Alignment.center,
                 child: Padding(
                   padding: const EdgeInsets.all(4),

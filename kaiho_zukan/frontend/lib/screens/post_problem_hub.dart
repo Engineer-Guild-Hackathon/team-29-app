@@ -6,7 +6,6 @@ import '../widgets/app_breadcrumbs.dart';
 import '../widgets/illustrated_action_button.dart';
 import 'post_problem_subhub.dart';
 import 'explain_hub.dart';
-import '../widgets/app_icon.dart';
 import 'home.dart';
 import '../widgets/app_scaffold.dart';
 
@@ -26,6 +25,7 @@ class PostProblemHubScreen extends StatelessWidget {
       theme: theme,
       maxContentWidth: 720,
       scrollable: true,
+      backgroundColor: embedded ? null : AppColors.background,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -35,21 +35,7 @@ class PostProblemHubScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  '投稿メニュー',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: AppColors.dark,
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
                 const SizedBox(height: 8),
-                Text(
-                  '新しい問題や解答を共有して、みんなの学びを広げましょう。',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                ),
-                const SizedBox(height: 24),
                 IllustratedActionButton(
                   label: '問題を投稿する',
                   icon: Icons.post_add,
@@ -90,7 +76,7 @@ class PostProblemHubScreen extends StatelessWidget {
 
     return AppScaffold(
       title: '投稿する',
-      backgroundColor: theme.background,
+      backgroundColor: AppColors.background,
       subHeader: AppBreadcrumbs(
         items: [
           BreadcrumbItem(

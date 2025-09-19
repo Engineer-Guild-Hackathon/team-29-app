@@ -511,8 +511,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     Expanded(
                       child: Container(
-                        color: (_sectionThemes[_selected]?.background ??
-                            AppColors.background),
+                        color: AppColors.background,
                         padding: EdgeInsets.only(bottom: mediaPadding.bottom),
                         child: _buildContentStack(),
                       ),

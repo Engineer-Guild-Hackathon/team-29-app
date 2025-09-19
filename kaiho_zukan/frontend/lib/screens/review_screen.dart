@@ -831,6 +831,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
       maxContentWidth: 960,
       expandChild: true,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      backgroundColor: widget.embedded ? null : AppColors.background,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: children,
@@ -855,7 +856,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
           const BreadcrumbItem(label: '振り返り'),
         ],
       ),
-      backgroundColor: palette.background,
+      backgroundColor: AppColors.background,
       body: section,
     );
   }
@@ -886,7 +887,7 @@ class _ImagesPagerState extends State<_ImagesPager> {
             final u = widget.urls[i];
             final url = u.startsWith('http') ? u : Api.base + u;
             return Container(
-              color: AppColors.surface,
+              color: AppColors.primary_light,
               alignment: Alignment.center,
               child: Padding(
                 padding: const EdgeInsets.all(4),

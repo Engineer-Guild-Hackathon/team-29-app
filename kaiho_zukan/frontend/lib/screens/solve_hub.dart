@@ -5,7 +5,6 @@ import '../widgets/home_section_surface.dart';
 import '../widgets/illustrated_action_button.dart';
 import 'solve_screen.dart';
 import 'solve_picker_screen.dart';
-import '../widgets/app_icon.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/app_breadcrumbs.dart';
 import 'home.dart';
@@ -26,6 +25,7 @@ class SolveHubScreen extends StatelessWidget {
       theme: theme,
       maxContentWidth: 720,
       scrollable: true,
+      backgroundColor: embedded ? null : AppColors.background,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -35,21 +35,7 @@ class SolveHubScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  '学習メニュー',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: AppColors.dark,
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
                 const SizedBox(height: 8),
-                Text(
-                  '解き方に合わせてメニューを選びましょう。',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                ),
-                const SizedBox(height: 24),
                 IllustratedActionButton(
                   label: '問題をランダムに解く',
                   icon: Icons.casino,
@@ -102,7 +88,7 @@ class SolveHubScreen extends StatelessWidget {
           const BreadcrumbItem(label: '問題を解く'),
         ],
       ),
-      backgroundColor: theme.background,
+      backgroundColor: AppColors.background,
       body: section,
     );
   }
