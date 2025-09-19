@@ -276,7 +276,7 @@ class _SolveScreenState extends State<SolveScreen> {
 
     final crumbLabel = widget.fromPicker ? '問題を選んで解く' : 'ランダムに解く';
     return AppScaffold(
-      title: '問題をランダムに解く',
+      title: '問題を解く',
       subHeader: AppBreadcrumbs(
         items: [
           BreadcrumbItem(

@@ -397,7 +397,7 @@ class _RankingScreenState extends State<RankingScreen>
         ),
         dividerColor: AppColors.background,
         splashBorderRadius: BorderRadius.circular(16),
-        labelPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        labelPadding: EdgeInsets.zero,
         overlayColor: MaterialStateProperty.resolveWith(
           (states) => states.contains(MaterialState.pressed)
               ? AppColors.background
@@ -419,7 +419,10 @@ class _RankingScreenState extends State<RankingScreen>
                 child: Tooltip(
                   message: metric.tooltip,
                   waitDuration: const Duration(milliseconds: 400),
-                  child: Text(metric.label),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    child: Text(metric.label),
+                  ),
                 ),
               ),
             )
@@ -1135,3 +1138,4 @@ String _medalEmoji(int rank) {
       return '⭐';
   }
 }
+

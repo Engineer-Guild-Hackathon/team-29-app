@@ -51,7 +51,7 @@ class SolveHubScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
                 IllustratedActionButton(
-                  label: '問題をランダムに解く',
+                  label: '問題を解く',
                   icon: Icons.casino,
                   backgroundColor: AppColors.accent1_light,
                   color: AppColors.accent1,

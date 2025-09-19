@@ -56,7 +56,7 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('ユーザ名: ${username ?? ''}'),
+                  Text('ユーザID: ${username ?? ''}'),
                   const SizedBox(height: 12),
                   TextField(
                     controller: nicknameCtrl,

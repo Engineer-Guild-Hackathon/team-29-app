@@ -24,11 +24,11 @@ class AppBreadcrumbs extends StatelessWidget {
       fontWeight: FontWeight.w700,
     );
 
-    final children = <Widget>[];
+    final crumbWidgets = <Widget>[];
     for (var i = 0; i < items.length; i++) {
       final it = items[i];
       final isLast = i == items.length - 1;
-      final child = isLast || it.onTap == null
+      final labelWidget = isLast || it.onTap == null
           ? Text(it.label, style: currentStyle, overflow: TextOverflow.ellipsis)
           : InkWell(
               onTap: it.onTap,
@@ -38,18 +38,28 @@ class AppBreadcrumbs extends StatelessWidget {
                 child: Text(it.label, style: linkStyle, overflow: TextOverflow.ellipsis),
               ),
             );
-      children.add(Flexible(fit: FlexFit.loose, child: child));
-      if (!isLast) {
-        children.add(const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 6),
-          child: Icon(Icons.chevron_right, size: 18, color: AppColors.textSecondary),
+
+      if (isLast) {
+        crumbWidgets.add(labelWidget);
+      } else {
+        crumbWidgets.add(Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            labelWidget,
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 6),
+              child: Icon(Icons.chevron_right, size: 18, color: AppColors.textSecondary),
+            ),
+          ],
         ));
       }
     }
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(mainAxisSize: MainAxisSize.min, children: children),
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: crumbWidgets,
     );
   }
 }
