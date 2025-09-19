@@ -5,6 +5,13 @@ from api.deps import get_current_user
 from core.db import get_db
 from models import User, Category, UserCategory
 
+
+
+def _icon_url(user: User) -> str:
+    if getattr(user, "icon_path", None):
+        return f"/uploads/{user.icon_path}"
+    return f"https://api.dicebear.com/8.x/identicon/png?seed={user.username}"
+
 router = APIRouter(tags=["me"])
 
 @router.get("/me")
@@ -13,6 +20,7 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
         select(Category.id, Category.name).join(UserCategory, UserCategory.category_id==Category.id).where(UserCategory.user_id==user.id)
     ).all()
     return {"id": user.id, "username": user.username, "nickname": user.nickname, "points": user.points,
+            "icon_url": _icon_url(user),
             "categories": [{"id": c.id, "name": c.name} for c in cats]}
 
 @router.post("/me/categories")

@@ -5,6 +5,7 @@ from typing import Optional
 from api.deps import get_current_user
 from core.db import get_db
 from models import User, Problem, Answer, Explanation, ExplanationLike, ExplanationWrongFlag, AiJudgement, ExplanationImage
+from api.explanations import _icon_url, _rank_info
 
 router = APIRouter(prefix="/review", tags=["review"])
 
@@ -76,8 +77,29 @@ def review_item(pid: int, user: User = Depends(get_current_user), db: Session = 
         flagged_ids = {int(r[0]) for r in rows}
     # per-user judgements
     uids = list({e.user_id for e in ex if getattr(e, "user_id", None) is not None})
+    user_map: dict[int, User] = {}
+    problem_counts: dict[int, int] = {}
+    explanation_counts: dict[int, int] = {}
     judgement_map = {}
     if uids:
+        user_rows = db.execute(select(User).where(User.id.in_(uids))).scalars().all()
+        user_map = {u.id: u for u in user_rows}
+        problem_counts = {
+            int(uid): int(cnt or 0)
+            for uid, cnt in db.execute(
+                select(Problem.created_by, func.count())
+                .where(Problem.created_by.in_(uids))
+                .group_by(Problem.created_by)
+            ).all()
+        }
+        explanation_counts = {
+            int(uid): int(cnt or 0)
+            for uid, cnt in db.execute(
+                select(Explanation.user_id, func.count())
+                .where(Explanation.user_id.in_(uids))
+                .group_by(Explanation.user_id)
+            ).all()
+        }
         jrows = db.execute(select(AiJudgement).where(AiJudgement.problem_id==pid, AiJudgement.user_id.in_(uids))).scalars().all()
         judgement_map = {j.user_id: j for j in jrows}
     try:
@@ -86,6 +108,17 @@ def review_item(pid: int, user: User = Depends(get_current_user), db: Session = 
         solvers = 0
     ex_items = []
     for e in ex:
+        author_icon_url = None
+        author_rank = None
+        author_rank_level = None
+        if e.user_id is not None:
+            user_obj = user_map.get(e.user_id)
+            if user_obj is not None:
+                author_icon_url = _icon_url(user_obj)
+            total_creations = problem_counts.get(e.user_id, 0) + explanation_counts.get(e.user_id, 0)
+            rank_label, rank_level = _rank_info(int(total_creations))
+            author_rank = rank_label
+            author_rank_level = rank_level
         imgs = db.execute(select(ExplanationImage).where(ExplanationImage.explanation_id==e.id).order_by(ExplanationImage.id.asc())).scalars().all()
         img_urls = [f"/uploads/{im.filename}" for im in imgs]
         j = judgement_map.get(getattr(e, "user_id", None))
@@ -106,6 +139,9 @@ def review_item(pid: int, user: User = Depends(get_current_user), db: Session = 
             "flagged_wrong": (e.id in flagged_ids),
             "solvers_count": int(solvers),
             "crowd_maybe_wrong": bool(crowd_maybe_wrong),
+            "author_icon_url": author_icon_url,
+            "author_rank": author_rank,
+            "author_rank_level": author_rank_level,
         })
     return {"problem": {"id": p.id, "title": p.title, "body": p.body, "qtype": p.qtype}, "latest_answer": latest, "explanations": ex_items}
 

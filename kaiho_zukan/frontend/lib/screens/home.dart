@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/home_section_theme.dart';
 import '../services/api.dart';
@@ -343,14 +343,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildProfileAction(String? iconUrl, bool isCompact) {
     final username = _profile?['username']?.toString() ?? '';
+    final rankLevel = _profileRankLevel;
+    final rankLabel = _profileRankLabel;
 
-    final avatar = CircleAvatar(
+    final avatar = _buildRankedAvatar(
       radius: 18,
+      iconUrl: iconUrl,
+      rankLevel: rankLevel,
+      rankLabel: rankLabel,
       backgroundColor: AppColors.background,
-      backgroundImage: iconUrl != null ? NetworkImage(iconUrl) : null,
-      child: iconUrl == null
-          ? const Icon(Icons.person, size: 20, color: Colors.white)
-          : null,
+      fallbackIconColor: Colors.white,
+      fallbackIconSize: 20,
+      borderWidth: 2.4,
+      showRankTooltip: false,
     );
 
     return Tooltip(
@@ -526,6 +531,11 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
+
+  int? get _profileRankLevel =>
+      _rankLevelFrom(_profile?['rank_level'], _profile?['rank']?.toString());
+
+  String? get _profileRankLabel => _profile?['rank']?.toString();
 }
 
 class _HeaderIconButton extends StatelessWidget {
@@ -611,6 +621,8 @@ class _ProfileDetailView extends StatelessWidget {
       );
     } else {
       final p = profile!;
+      final rankLabel = p['rank']?.toString();
+      final rankLevel = _rankLevelFrom(p['rank_level'], rankLabel);
       final badgeColor =
           (theme.secondaryAccent ?? theme.accent).withOpacity(0.18);
       final statsItems = <MapEntry<String, String>>[
@@ -636,15 +648,15 @@ class _ProfileDetailView extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               child: Row(
                 children: [
-                  CircleAvatar(
+                  _buildRankedAvatar(
                     radius: 36,
+                    iconUrl: p['icon_url']?.toString(),
+                    rankLevel: rankLevel,
+                    rankLabel: rankLabel,
                     backgroundColor: theme.border,
-                    backgroundImage: p['icon_url'] != null
-                        ? NetworkImage(p['icon_url'])
-                        : null,
-                    child: p['icon_url'] == null
-                        ? const Icon(Icons.person, size: 36)
-                        : null,
+                    fallbackIconColor: Colors.white,
+                    fallbackIconSize: 36,
+                    borderWidth: 3,
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -968,4 +980,94 @@ class _NotificationBellState extends State<_NotificationBell> {
       ],
     );
   }
+}
+
+int? _rankLevelFrom(dynamic raw, String? label) {
+  if (raw is int) {
+    return raw;
+  }
+  if (raw is num) {
+    return raw.toInt();
+  }
+  if (raw is String) {
+    final parsed = int.tryParse(raw);
+    if (parsed != null) {
+      return parsed;
+    }
+  }
+  if (label == null) {
+    return null;
+  }
+  if (label.contains('プラチナ')) {
+    return 4;
+  }
+  if (label.contains('ゴールド')) {
+    return 3;
+  }
+  if (label.contains('シルバー')) {
+    return 2;
+  }
+  if (label.contains('ビギナー')) {
+    return 1;
+  }
+  return null;
+}
+
+Color _rankBorderColor(int? level) {
+  switch (level) {
+    case 4:
+      return AppColors.rank1_shade;
+    case 3:
+      return AppColors.rank1;
+    case 2:
+      return AppColors.rank2;
+    case 1:
+      return AppColors.rank3;
+    default:
+      return AppColors.border;
+  }
+}
+
+Widget _buildRankedAvatar({
+  required double radius,
+  required String? iconUrl,
+  int? rankLevel,
+  String? rankLabel,
+  double borderWidth = 3,
+  Color? backgroundColor,
+  Color fallbackIconColor = AppColors.textPrimary_dark,
+  double? fallbackIconSize,
+  bool showRankTooltip = true,
+}) {
+  final resolvedIcon = AppIcon.resolveImageUrl(iconUrl)?.trim();
+  final hasIcon = resolvedIcon != null && resolvedIcon.isNotEmpty;
+
+  final avatar = CircleAvatar(
+    radius: radius,
+    backgroundColor: backgroundColor ?? AppColors.background,
+    backgroundImage: hasIcon ? NetworkImage(resolvedIcon!) : null,
+    child: hasIcon
+        ? null
+        : Icon(
+            Icons.person,
+            size: fallbackIconSize ?? radius,
+            color: fallbackIconColor,
+          ),
+  );
+
+  Widget decorated = Container(
+    padding: EdgeInsets.all(borderWidth),
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      border:
+          Border.all(color: _rankBorderColor(rankLevel), width: borderWidth),
+    ),
+    child: avatar,
+  );
+
+  if (showRankTooltip && rankLabel != null && rankLabel.isNotEmpty) {
+    decorated = Tooltip(message: rankLabel, child: decorated);
+  }
+
+  return decorated;
 }

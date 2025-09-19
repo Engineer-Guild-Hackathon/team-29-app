@@ -22,6 +22,7 @@ from models import (
     AiJudgement,
 )
 from services.ai_judge import judge_problem_for_user
+from api.explanations import _icon_url, _rank_info
 
 settings = get_settings()
 router = APIRouter()
@@ -78,8 +79,39 @@ def problem_explanations(
             if getattr(explanation, "user_id", None) is not None
         }
     )
+    problem_counts: dict[int, int] = {}
+    explanation_counts: dict[int, int] = {}
+    user_map: dict[int, dict[str, object]] = {}
     judgement_map: dict[int, AiJudgement] = {}
     if user_ids:
+        user_rows = db.execute(select(User).where(User.id.in_(user_ids))).scalars().all()
+        problem_counts.update({
+            int(uid): int(cnt or 0)
+            for uid, cnt in db.execute(
+                select(Problem.created_by, func.count())
+                .where(Problem.created_by.in_(user_ids))
+                .group_by(Problem.created_by)
+            ).all()
+        })
+        explanation_counts.update({
+            int(uid): int(cnt or 0)
+            for uid, cnt in db.execute(
+                select(Explanation.user_id, func.count())
+                .where(Explanation.user_id.in_(user_ids))
+                .group_by(Explanation.user_id)
+            ).all()
+        })
+        for user_row in user_rows:
+            total_creations = problem_counts.get(user_row.id, 0) + explanation_counts.get(user_row.id, 0)
+            rank, rank_level = _rank_info(int(total_creations))
+            display_name = user_row.nickname if user_row.nickname else user_row.username
+            user_map[user_row.id] = {
+                "user": user_row,
+                "display_name": display_name,
+                "icon_url": _icon_url(user_row),
+                "rank": rank,
+                "rank_level": rank_level,
+            }
         judgements = (
             db.execute(
                 select(AiJudgement).where(
@@ -101,15 +133,39 @@ def problem_explanations(
 
     items = []
     for explanation in explanations:
+        author_icon_url = None
+        author_rank = None
+        author_rank_level = None
+        user_row = None
+        info = None
         if explanation.user_id is None:
             created_by = "AI"
         else:
+            info = user_map.get(explanation.user_id) if explanation.user_id is not None else None
+            if info:
+                created_by = info.get("display_name")
+                author_icon_url = info.get("icon_url")
+                author_rank = info.get("rank")
+                author_rank_level = info.get("rank_level")
+                user_row = info.get("user")
+            else:
+                user_row = db.get(User, explanation.user_id) if explanation.user_id is not None else None
+                created_by = (
+                    user_row.nickname
+                    if user_row and user_row.nickname
+                    else (user_row.username if user_row else None)
+                )
+        if user_row is None and explanation.user_id is not None and info is None:
             user_row = db.get(User, explanation.user_id)
-            created_by = (
-                user_row.nickname
-                if user_row and user_row.nickname
-                else (user_row.username if user_row else None)
-            )
+        if author_icon_url is None and user_row is not None:
+            author_icon_url = _icon_url(user_row)
+        if author_rank is None and user_row is not None:
+            total_creations = problem_counts.get(user_row.id, 0) + explanation_counts.get(user_row.id, 0)
+            author_rank, author_rank_level = _rank_info(int(total_creations))
+            if not created_by:
+                created_by = user_row.nickname if user_row.nickname else user_row.username
+        if not created_by:
+            created_by = "ユーザー"
 
         images = (
             db.execute(
@@ -135,6 +191,9 @@ def problem_explanations(
                 "option_index": explanation.option_index,
                 "user_id": explanation.user_id,
                 "by": created_by,
+                "author_icon_url": author_icon_url,
+                "author_rank": author_rank,
+                "author_rank_level": author_rank_level,
                 "liked": explanation.id in liked_ids,
                 "images": image_urls,
                 "ai_is_wrong": (judgement.is_wrong if judgement else None),

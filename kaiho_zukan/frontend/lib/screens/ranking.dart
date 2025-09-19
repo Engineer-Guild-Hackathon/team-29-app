@@ -10,6 +10,7 @@ import 'login_register.dart';
 import 'subject_select.dart';
 import 'user_info.dart';
 import '../widgets/app_icon.dart';
+import '../widgets/user_profile_dialog.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/app_breadcrumbs.dart';
 import 'home.dart';
@@ -138,6 +139,10 @@ class _RankingScreenState extends State<RankingScreen>
       final nickname = _stringValue(map['nickname']);
       final username = _stringValue(map['username']);
       final rawName = _stringValue(map['name']);
+      final iconUrl = _stringValue(map['icon_url']);
+      final rankLabel = _stringValue(map['rank']);
+      final rankLevel = _intValue(map['rank_level']);
+      final userId = _intValue(map['user_id']);
       final value = map['value'];
       double score = 0;
       if (value is num) {
@@ -172,6 +177,10 @@ class _RankingScreenState extends State<RankingScreen>
           score: score,
           matchKeys: matchKeys,
           tooltip: tooltipParts.isEmpty ? null : tooltipParts.join('\n'),
+          iconUrl: iconUrl,
+          rankLabel: rankLabel,
+          rankLevel: rankLevel,
+          userId: userId,
         ),
       );
       unnamedCount++;
@@ -206,6 +215,10 @@ class _RankingScreenState extends State<RankingScreen>
           isSelf: isSelf,
           tooltip: item.tooltip,
           scrollId: entryScrollId,
+          iconUrl: item.iconUrl,
+          rankLabel: item.rankLabel,
+          rankLevel: item.rankLevel,
+          userId: item.userId,
         ),
       );
       if (isSelf && scrollId == null) {
@@ -420,7 +433,8 @@ class _RankingScreenState extends State<RankingScreen>
                   message: metric.tooltip,
                   waitDuration: const Duration(milliseconds: 400),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 12),
                     child: Text(metric.label),
                   ),
                 ),
@@ -506,7 +520,11 @@ class _RankingScreenState extends State<RankingScreen>
               child: Center(
                 child: FractionallySizedBox(
                   widthFactor: 0.92,
-                  child: _buildPodiumCard(entries[i], 190 + (i == 0 ? 20 : 0)),
+                  child: _buildPodiumCard(
+                    entries[i],
+                    190 + (i == 0 ? 20 : 0),
+                    flexibleHeight: true,
+                  ),
                 ),
               ),
             ),
@@ -553,7 +571,8 @@ class _RankingScreenState extends State<RankingScreen>
     );
   }
 
-  Widget _buildPodiumCard(_RankingEntry entry, double height) {
+  Widget _buildPodiumCard(_RankingEntry entry, double height,
+      {bool flexibleHeight = false}) {
     final key = _itemKeys.putIfAbsent(entry.scrollId, () => GlobalKey());
     return KeyedSubtree(
       key: key,
@@ -562,6 +581,7 @@ class _RankingScreenState extends State<RankingScreen>
         height: height,
         scoreText: _formatScore(entry.score),
         accentColor: _accentColor,
+        flexibleHeight: flexibleHeight,
       ),
     );
   }
@@ -667,12 +687,14 @@ class _PodiumCard extends StatefulWidget {
     required this.height,
     required this.scoreText,
     required this.accentColor,
+    this.flexibleHeight = false,
   });
 
   final _RankingEntry entry;
   final double height;
   final String scoreText;
   final Color accentColor;
+  final bool flexibleHeight;
 
   @override
   State<_PodiumCard> createState() => _PodiumCardState();
@@ -682,6 +704,43 @@ class _PodiumCardState extends State<_PodiumCard> {
   bool _hovered = false;
   bool _focused = false;
 
+  Future<void> _openProfileDialog(BuildContext context, int userId) async {
+    try {
+      await showDialog(
+        context: context,
+        builder: (_) => UserProfileDialog(userId: userId),
+      );
+    } catch (_) {}
+  }
+
+  Widget _buildAvatar() {
+    final iconUrl = widget.entry.iconUrl;
+    final resolved = AppIcon.resolveImageUrl(iconUrl);
+    final hasIcon = resolved != null && resolved.isNotEmpty;
+    final avatar = CircleAvatar(
+      radius: 24,
+      backgroundColor: AppColors.background,
+      backgroundImage: hasIcon ? NetworkImage(resolved) : null,
+      child: hasIcon
+          ? null
+          : const Icon(Icons.person, size: 24, color: Colors.white),
+    );
+    Widget decorated = Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+            color: _borderColorForRankLevel(widget.entry.rankLevel), width: 3),
+      ),
+      child: avatar,
+    );
+    final rankLabel = widget.entry.rankLabel;
+    if (rankLabel != null && rankLabel.isNotEmpty) {
+      decorated = Tooltip(message: rankLabel, child: decorated);
+    }
+    return decorated;
+  }
+
   @override
   Widget build(BuildContext context) {
     final rank = widget.entry.rank;
@@ -689,6 +748,20 @@ class _PodiumCardState extends State<_PodiumCard> {
     final borderColor =
         widget.entry.isSelf || _focused ? AppColors.primary : AppColors.border;
     final boxShadowColor = AppColors.shadow;
+    final userId = widget.entry.userId;
+    final textScale = MediaQuery.textScaleFactorOf(context);
+    final heightMultiplier = textScale > 1.0 ? min(textScale, 1.4) : 1.0;
+    final double scaledHeight = widget.height * heightMultiplier;
+    Widget avatar = _buildAvatar();
+    if (userId != null) {
+      avatar = MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: () => _openProfileDialog(context, userId),
+          child: avatar,
+        ),
+      );
+    }
 
     return FocusableActionDetector(
       onShowFocusHighlight: (focused) {
@@ -699,7 +772,10 @@ class _PodiumCardState extends State<_PodiumCard> {
         onExit: (_) => setState(() => _hovered = false),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          height: widget.height,
+          height: widget.flexibleHeight ? null : scaledHeight,
+          constraints: widget.flexibleHeight
+              ? BoxConstraints(minHeight: scaledHeight)
+              : null,
           transform: Matrix4.identity()..translate(0.0, _hovered ? -4.0 : 0.0),
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -721,48 +797,56 @@ class _PodiumCardState extends State<_PodiumCard> {
               ),
             ],
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           child: Semantics(
             container: true,
             label: '${widget.entry.rank}位 ${widget.entry.displayName}',
             value: 'スコア ${widget.scoreText}',
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Align(
-                  alignment: Alignment.topCenter,
-                  child: Text(
-                    _medalEmoji(rank),
-                    semanticsLabel: '${rank}位',
-                    style: const TextStyle(fontSize: 36),
-                  ),
-                ),
-                Tooltip(
-                  message: widget.entry.tooltip ?? widget.entry.displayName,
-                  waitDuration: const Duration(milliseconds: 400),
-                  child: Text(
-                    widget.entry.displayName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.notoSans(
-                      color: AppColors.textPrimary_dark,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.4,
-                    ),
-                  ),
-                ),
-                Text(
-                  widget.scoreText,
-                  style: GoogleFonts.robotoMono(
-                    fontSize: 30,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary_dark,
-                  ),
-                ),
-              ],
+            child: Center(
+              child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        _medalEmoji(rank),
+                        semanticsLabel: '${rank}位',
+                        style: const TextStyle(fontSize: 36),
+                      ),
+                      const SizedBox(height: 6),
+                      Tooltip(
+                        message:
+                            widget.entry.tooltip ?? widget.entry.displayName,
+                        waitDuration: const Duration(milliseconds: 400),
+                        child: Text(
+                          widget.entry.displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.notoSans(
+                            color: AppColors.textPrimary_dark,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      avatar,
+                      const SizedBox(height: 6),
+                      Text(
+                        widget.scoreText,
+                        style: GoogleFonts.robotoMono(
+                          fontSize: 30,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary_dark,
+                        ),
+                      ),
+                    ],
+                  )),
             ),
           ),
         ),
@@ -791,6 +875,43 @@ class _RankRow extends StatefulWidget {
 class _RankRowState extends State<_RankRow> {
   bool _hovered = false;
   bool _focused = false;
+
+  Future<void> _openProfileDialog(BuildContext context, int userId) async {
+    try {
+      await showDialog(
+        context: context,
+        builder: (_) => UserProfileDialog(userId: userId),
+      );
+    } catch (_) {}
+  }
+
+  Widget _buildAvatar() {
+    final iconUrl = widget.entry.iconUrl;
+    final resolved = AppIcon.resolveImageUrl(iconUrl);
+    final hasIcon = resolved != null && resolved.isNotEmpty;
+    final avatar = CircleAvatar(
+      radius: 20,
+      backgroundColor: AppColors.background,
+      backgroundImage: hasIcon ? NetworkImage(resolved) : null,
+      child: hasIcon
+          ? null
+          : const Icon(Icons.person, size: 20, color: Colors.white),
+    );
+    Widget decorated = Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+            color: _borderColorForRankLevel(widget.entry.rankLevel), width: 3),
+      ),
+      child: avatar,
+    );
+    final rankLabel = widget.entry.rankLabel;
+    if (rankLabel != null && rankLabel.isNotEmpty) {
+      decorated = Tooltip(message: rankLabel, child: decorated);
+    }
+    return decorated;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -847,19 +968,42 @@ class _RankRowState extends State<_RankRow> {
                   ),
                 ),
                 Expanded(
-                  child: Tooltip(
-                    message: widget.entry.tooltip ?? widget.entry.displayName,
-                    waitDuration: const Duration(milliseconds: 400),
-                    child: Text(
-                      widget.entry.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.notoSans(
-                        color: AppColors.textPrimary_dark,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Tooltip(
+                        message:
+                            widget.entry.tooltip ?? widget.entry.displayName,
+                        waitDuration: const Duration(milliseconds: 400),
+                        child: Text(
+                          widget.entry.displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.notoSans(
+                            color: AppColors.textPrimary_dark,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: widget.entry.userId != null
+                            ? MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: GestureDetector(
+                                  onTap: () => _openProfileDialog(
+                                    context,
+                                    widget.entry.userId!,
+                                  ),
+                                  child: _buildAvatar(),
+                                ),
+                              )
+                            : _buildAvatar(),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -1054,6 +1198,10 @@ class _RankingEntry {
     required this.isSelf,
     required this.tooltip,
     required this.scrollId,
+    this.iconUrl,
+    this.rankLabel,
+    this.rankLevel,
+    this.userId,
   });
 
   final int rank;
@@ -1062,6 +1210,10 @@ class _RankingEntry {
   final bool isSelf;
   final String? tooltip;
   final String scrollId;
+  final String? iconUrl;
+  final String? rankLabel;
+  final int? rankLevel;
+  final int? userId;
 }
 
 class _ParsedItem {
@@ -1070,12 +1222,20 @@ class _ParsedItem {
     required this.score,
     required this.matchKeys,
     required this.tooltip,
+    this.iconUrl,
+    this.rankLabel,
+    this.rankLevel,
+    this.userId,
   });
 
   final String displayName;
   final double score;
   final Set<String> matchKeys;
   final String? tooltip;
+  final String? iconUrl;
+  final String? rankLabel;
+  final int? rankLevel;
+  final int? userId;
 
   String get displayNameLower => displayName.toLowerCase();
 }
@@ -1084,6 +1244,14 @@ String? _stringValue(Object? value) {
   if (value == null) return null;
   if (value is String) return value;
   return value.toString();
+}
+
+int? _intValue(Object? value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  return null;
 }
 
 String _formatWithThousands(String digits) {
@@ -1139,3 +1307,17 @@ String _medalEmoji(int rank) {
   }
 }
 
+Color _borderColorForRankLevel(int? level) {
+  switch (level) {
+    case 4:
+      return AppColors.rank1_shade;
+    case 3:
+      return AppColors.rank1;
+    case 2:
+      return AppColors.rank2;
+    case 1:
+      return AppColors.rank3;
+    default:
+      return AppColors.border;
+  }
+}

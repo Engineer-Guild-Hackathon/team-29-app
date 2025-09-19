@@ -61,7 +61,7 @@ class AppSidebar extends StatelessWidget {
             child: GestureDetector(
               onTap: () => onSelect(0),
               child: AppIcon(
-                size: 132,
+                size: 200,
                 borderRadius: BorderRadius.circular(28),
                 backgroundColor: Colors.transparent,
                 padding: EdgeInsets.zero,
@@ -108,7 +108,7 @@ class AppDrawerMenu extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: AppIcon(
-              size: 96,
+              size: 200,
               borderRadius: BorderRadius.circular(24),
               backgroundColor: Colors.transparent,
               padding: EdgeInsets.zero,
@@ -120,7 +120,8 @@ class AppDrawerMenu extends StatelessWidget {
               leading: Icon(item.icon, color: item.color),
               title: Text(item.title),
               selected: selectedIndex == item.index,
-              selectedTileColor: AppColors.primary_light.withValues(alpha: 0.25),
+              selectedTileColor:
+                  AppColors.primary_light.withValues(alpha: 0.25),
               contentPadding: const EdgeInsets.symmetric(horizontal: 24),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),

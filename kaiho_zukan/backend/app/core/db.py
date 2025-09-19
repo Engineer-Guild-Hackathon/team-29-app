@@ -36,6 +36,15 @@ def create_all():
 
 def ensure_schema():
     with engine.begin() as conn:
+        # users.icon_path
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS icon_path VARCHAR(255) NULL"))
+        except Exception:
+            try:
+                conn.execute(text("SELECT icon_path FROM users LIMIT 1"))
+            except Exception:
+                conn.execute(text("ALTER TABLE users ADD COLUMN icon_path VARCHAR(255) NULL"))
+
         # users.points
         try:
             conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS points INT NOT NULL DEFAULT 0"))
