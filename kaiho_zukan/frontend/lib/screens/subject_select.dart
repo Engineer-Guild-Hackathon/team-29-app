@@ -144,12 +144,14 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
                               final id = c['id'] as int;
                               final bool sel = selectedChildIds.contains(id);
                               return Card(
-                                color: sel ? AppColors.primary : Colors.white,
+                                color: sel
+                                    ? AppColors.primary_light
+                                    : Colors.white,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   side: BorderSide(
                                     color: sel
-                                        ? AppColors.primary_dark
+                                        ? AppColors.primary
                                         : AppColors.border,
                                     width: 1.2,
                                   ),
@@ -158,8 +160,9 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
                                   title: Text(
                                     c['name'] ?? '',
                                     style: TextStyle(
-                                      color:
-                                          sel ? Colors.white : AppColors.dark,
+                                      color: sel
+                                          ? AppColors.primary_dark
+                                          : AppColors.dark,
                                       fontWeight: sel
                                           ? FontWeight.w600
                                           : FontWeight.w500,
@@ -169,7 +172,7 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
                                     icon: Icon(
                                       sel ? Icons.close : Icons.add,
                                       color: sel
-                                          ? Colors.white
+                                          ? AppColors.primary_dark
                                           : AppColors.primary,
                                     ),
                                     onPressed: () {

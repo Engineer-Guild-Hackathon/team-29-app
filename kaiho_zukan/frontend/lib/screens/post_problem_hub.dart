@@ -25,7 +25,7 @@ class PostProblemHubScreen extends StatelessWidget {
       theme: theme,
       maxContentWidth: 720,
       scrollable: true,
-      backgroundColor: embedded ? null : AppColors.background,
+      backgroundColor: AppColors.background,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

@@ -831,7 +831,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
       maxContentWidth: 960,
       expandChild: true,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      backgroundColor: widget.embedded ? null : AppColors.background,
+      backgroundColor: AppColors.background,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: children,
