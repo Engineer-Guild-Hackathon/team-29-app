@@ -6,18 +6,28 @@ import 'my_problems.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/app_breadcrumbs.dart';
 import 'home.dart';
+import 'post_problem_hub.dart';
+import 'post_problem_subhub.dart';
+import 'explain_hub.dart';
+import 'explain_create_new.dart';
+import 'explain_my_list.dart';
+import 'explain_fix_wrong.dart';
 import '../widgets/app_icon.dart';
 // import 'problem_posted.dart';
+
+enum ExplanationBreadcrumbContext { createNew, myList, fixWrong, legacy }
 
 class PostProblemForm extends StatefulWidget {
   final int? editId;
   final bool explainOnly; // 解説のみ編集モード
   final bool fromMyList; // 自分の問題一覧から遷移
+  final ExplanationBreadcrumbContext? explanationContext;
   const PostProblemForm({
     super.key,
     this.editId,
     this.explainOnly = false,
     this.fromMyList = false,
+    this.explanationContext,
   });
   @override
   State<PostProblemForm> createState() => _PostProblemFormState();
@@ -95,6 +105,108 @@ class _PostProblemFormState extends State<PostProblemForm> {
   // OCR progress flags
   bool _ocrProblemLoading = false;
   bool _ocrExplainLoading = false;
+
+  List<BreadcrumbItem> _buildBreadcrumbs(BuildContext context) {
+    final items = <BreadcrumbItem>[
+      BreadcrumbItem(
+        label: 'ホーム',
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        ),
+      ),
+      BreadcrumbItem(
+        label: '投稿する',
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const PostProblemHubScreen()),
+        ),
+      ),
+    ];
+
+    if (widget.explainOnly) {
+      items.add(
+        BreadcrumbItem(
+          label: '解説の投稿/編集',
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ExplainHubScreen()),
+          ),
+        ),
+      );
+
+      switch (widget.explanationContext ?? ExplanationBreadcrumbContext.legacy) {
+        case ExplanationBreadcrumbContext.createNew:
+          items.add(
+            BreadcrumbItem(
+              label: '解説未作成の問題一覧',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ExplainCreateNewScreen()),
+              ),
+            ),
+          );
+          items.add(const BreadcrumbItem(label: '解説を作成'));
+          break;
+        case ExplanationBreadcrumbContext.myList:
+          items.add(
+            BreadcrumbItem(
+              label: '自分が作った解説一覧',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ExplainMyListScreen()),
+              ),
+            ),
+          );
+          items.add(const BreadcrumbItem(label: '解説を編集'));
+          break;
+        case ExplanationBreadcrumbContext.fixWrong:
+          items.add(
+            BreadcrumbItem(
+              label: '誤りの可能性がある解説',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ExplainFixWrongScreen()),
+              ),
+            ),
+          );
+          items.add(const BreadcrumbItem(label: '解説を編集'));
+          break;
+        case ExplanationBreadcrumbContext.legacy:
+          items.add(const BreadcrumbItem(label: '解説を編集'));
+          break;
+      }
+    } else {
+      items.add(
+        BreadcrumbItem(
+          label: '問題の投稿/編集',
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const PostProblemSubHubScreen()),
+          ),
+        ),
+      );
+
+      if (widget.editId == null) {
+        items.add(const BreadcrumbItem(label: '新規で問題を作る'));
+      } else if (widget.fromMyList) {
+        items.add(
+          BreadcrumbItem(
+            label: '自分が作った問題',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MyProblemsScreen()),
+            ),
+          ),
+        );
+        items.add(const BreadcrumbItem(label: '問題を編集'));
+      } else {
+        items.add(const BreadcrumbItem(label: '問題を編集'));
+      }
+    }
+
+    return items;
+  }
 
   Future<void> _runOcrForProblemImages() async {
     final imgs = newImages
@@ -707,13 +819,6 @@ class _PostProblemFormState extends State<PostProblemForm> {
     final titleText = widget.explainOnly
         ? '解説を編集'
         : (widget.editId == null ? '新規で問題を作る' : '問題を編集');
-    final String breadcrumbTail = widget.explainOnly
-        ? '解説の投稿/編集'
-        : (widget.editId == null
-            ? '問題の投稿/編集 > 新規で問題を作る'
-            : (widget.fromMyList
-                ? '問題の投稿/編集 > 自分が作った問題 > 問題を編集する'
-                : '問題の投稿/編集'));
     return AppScaffold(
       title: titleText,
       subHeader: AppBreadcrumbs(

@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../services/api.dart';
 import 'post_problem_form.dart';
-import '../widgets/app_icon.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/app_breadcrumbs.dart';
 import 'home.dart';
+import 'post_problem_hub.dart';
+import 'explain_hub.dart';
 
 class ExplainCreateScreen extends StatefulWidget {
   const ExplainCreateScreen({super.key});
@@ -72,10 +73,17 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
             label: '投稿する',
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const HomeScreen(initialSelected: 2)),
+              MaterialPageRoute(builder: (_) => const PostProblemHubScreen()),
             ),
           ),
-          const BreadcrumbItem(label: '解説を作る'),
+          BreadcrumbItem(
+            label: '解説の投稿/編集',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ExplainHubScreen()),
+            ),
+          ),
+          const BreadcrumbItem(label: '解説を作成'),
         ],
       ),
       body: Padding(
@@ -163,7 +171,7 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => PostProblemForm(editId: p['id'] as int, explainOnly: true)),
+                                  builder: (_) => PostProblemForm(editId: p['id'] as int, explainOnly: true, explanationContext: ExplanationBreadcrumbContext.createNew)),
                             );
                           },
                         ),
@@ -189,7 +197,7 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                        builder: (_) => PostProblemForm(editId: p['id'] as int, explainOnly: true)),
+                                        builder: (_) => PostProblemForm(editId: p['id'] as int, explainOnly: true, explanationContext: ExplanationBreadcrumbContext.myList)),
                                   );
                                 },
                               ),
@@ -227,7 +235,7 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => PostProblemForm(editId: p['id'] as int, explainOnly: true)),
+                                  builder: (_) => PostProblemForm(editId: p['id'] as int, explainOnly: true, explanationContext: ExplanationBreadcrumbContext.myList)),
                             );
                           },
                         ),
@@ -240,3 +248,4 @@ class _ExplainCreateScreenState extends State<ExplainCreateScreen> {
     );
   }
 }
+
