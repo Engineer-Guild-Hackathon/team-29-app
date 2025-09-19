@@ -4,6 +4,8 @@ import 'post_problem_form.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/app_breadcrumbs.dart';
 import 'home.dart';
+import 'post_problem_hub.dart';
+import 'explain_hub.dart';
 
 class ExplainFixWrongScreen extends StatefulWidget {
   const ExplainFixWrongScreen({super.key});
@@ -124,10 +126,17 @@ class _ExplainFixWrongScreenState extends State<ExplainFixWrongScreen> {
             label: '投稿する',
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const HomeScreen(initialSelected: 2)),
+              MaterialPageRoute(builder: (_) => const PostProblemHubScreen()),
             ),
           ),
-          const BreadcrumbItem(label: '誤りの可能性がある解説一覧'),
+          BreadcrumbItem(
+            label: '解説の投稿/編集',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ExplainHubScreen()),
+            ),
+          ),
+          const BreadcrumbItem(label: '誤りの可能性がある解説'),
         ],
       ),
       body: loading
@@ -240,6 +249,7 @@ class _ExplainFixWrongScreenState extends State<ExplainFixWrongScreen> {
                                         builder: (_) => PostProblemForm(
                                           editId: it.problemId,
                                           explainOnly: true,
+                                          explanationContext: ExplanationBreadcrumbContext.fixWrong,
                                         ),
                                       ),
                                     );
@@ -317,7 +327,7 @@ class _WrongItem {
   });
 }
 
-// 画像ページャ（SolveScreen と同等の表示）
+// 画像ページ（SolveScreen と同等の表示）
 class _ImagesPager extends StatefulWidget {
   final List<String> urls;
   const _ImagesPager({super.key, required this.urls});

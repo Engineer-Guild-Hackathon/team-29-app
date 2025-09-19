@@ -6,6 +6,7 @@ import '../widgets/app_icon.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/app_breadcrumbs.dart';
 import 'home.dart';
+import 'post_problem_hub.dart';
 import '../constants/app_colors.dart';
 
 /// 問題投稿のサブハブ
@@ -31,7 +32,7 @@ class PostProblemSubHubScreen extends StatelessWidget {
             label: '投稿する',
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const HomeScreen(initialSelected: 2)),
+              MaterialPageRoute(builder: (_) => const PostProblemHubScreen()),
             ),
           ),
           const BreadcrumbItem(label: '問題の投稿/編集'),
@@ -85,3 +86,4 @@ class PostProblemSubHubScreen extends StatelessWidget {
     );
   }
 }
+
