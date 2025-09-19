@@ -5,7 +5,6 @@ import '../widgets/home_section_surface.dart';
 import '../widgets/illustrated_action_button.dart';
 import 'solve_screen.dart';
 import 'solve_picker_screen.dart';
-import '../widgets/app_icon.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/app_breadcrumbs.dart';
 import 'home.dart';
@@ -26,58 +25,37 @@ class SolveHubScreen extends StatelessWidget {
       theme: theme,
       maxContentWidth: 720,
       scrollable: true,
+      backgroundColor: AppColors.background,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          HomeSectionCard(
-            theme: theme,
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  '学習メニュー',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: AppColors.dark,
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '解き方に合わせてメニューを選びましょう。',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                ),
-                const SizedBox(height: 24),
-                IllustratedActionButton(
-                  label: '問題を解く',
-                  icon: Icons.casino,
-                  backgroundColor: AppColors.accent1_light,
-                  color: AppColors.accent1,
-                  illustrationHeight: 120,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const SolveScreen(),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                IllustratedActionButton(
-                  label: '問題を選んで解く',
-                  icon: Icons.view_list,
-                  backgroundColor: AppColors.secondary_light,
-                  color: AppColors.secondary,
-                  illustrationHeight: 120,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const SolvePickerScreen(),
-                    ),
-                  ),
-                ),
-              ],
+
+          const SizedBox(height: 8),
+          IllustratedActionButton(
+            label: '問題をランダムに解く',
+            icon: Icons.casino,
+            backgroundColor: AppColors.accent1_light,
+            color: AppColors.accent1,
+            illustrationHeight: 120,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const SolveScreen(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          IllustratedActionButton(
+            label: '問題を選んで解く',
+            icon: Icons.view_list,
+            backgroundColor: AppColors.secondary_light,
+            color: AppColors.secondary,
+            illustrationHeight: 120,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const SolvePickerScreen(),
+              ),
             ),
           ),
         ],
@@ -102,7 +80,7 @@ class SolveHubScreen extends StatelessWidget {
           const BreadcrumbItem(label: '問題を解く'),
         ],
       ),
-      backgroundColor: theme.background,
+      backgroundColor: AppColors.background,
       body: section,
     );
   }

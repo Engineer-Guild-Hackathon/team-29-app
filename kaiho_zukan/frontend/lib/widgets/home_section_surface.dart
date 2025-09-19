@@ -12,6 +12,7 @@ class HomeSectionSurface extends StatelessWidget {
     this.padding = const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
     this.scrollable = false,
     this.expandChild = false,
+    this.backgroundColor,
   });
 
   final HomeSectionTheme theme;
@@ -20,6 +21,7 @@ class HomeSectionSurface extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final bool scrollable;
   final bool expandChild;
+  final Color? backgroundColor;
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +53,7 @@ class HomeSectionSurface extends StatelessWidget {
     }
 
     return DecoratedBox(
-      decoration: BoxDecoration(color: theme.background),
+      decoration: BoxDecoration(color: backgroundColor ?? theme.background),
       child: SafeArea(
         top: false,
         bottom: false,

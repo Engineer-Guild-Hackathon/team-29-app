@@ -58,6 +58,37 @@ class _PostProblemFormState extends State<PostProblemForm> {
   int likeCount = 0;
   int explLikeCount = 0;
 
+  Widget _likeBadge(String label, int value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.success, width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.success,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '${value}',
+            style: const TextStyle(
+              color: AppColors.success,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // 問題画像（既存）
   final List<PlatformFile> newImages = [];
   List<String> existingImageUrls = [];
@@ -178,9 +209,12 @@ class _PostProblemFormState extends State<PostProblemForm> {
   }
 
   Future<void> _runOcrForProblemImages() async {
-    final imgs = newImages.where((f) => f.bytes != null && (f.bytes!.isNotEmpty)).toList();
+    final imgs = newImages
+        .where((f) => f.bytes != null && (f.bytes!.isNotEmpty))
+        .toList();
     if (imgs.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文字起こし対象の画像がありません')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('文字起こし対象の画像がありません')));
       return;
     }
     setState(() => _ocrProblemLoading = true);
@@ -193,11 +227,14 @@ class _PostProblemFormState extends State<PostProblemForm> {
       final joined = texts.join('\n\n');
       if (joined.isNotEmpty) {
         final before = body.text;
-        final after = before.isEmpty ? joined : (before.trimRight() + '\n' + joined);
+        final after =
+            before.isEmpty ? joined : (before.trimRight() + '\n' + joined);
         setState(() => body.text = after);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('問題文に文字起こしを追加しました')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('問題文に文字起こしを追加しました')));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文字を抽出できませんでした')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('文字を抽出できませんでした')));
       }
     } finally {
       if (mounted) setState(() => _ocrProblemLoading = false);
@@ -205,9 +242,12 @@ class _PostProblemFormState extends State<PostProblemForm> {
   }
 
   Future<void> _runOcrForExplainImages() async {
-    final imgs = newExplainImages.where((f) => f.bytes != null && (f.bytes!.isNotEmpty)).toList();
+    final imgs = newExplainImages
+        .where((f) => f.bytes != null && (f.bytes!.isNotEmpty))
+        .toList();
     if (imgs.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文字起こし対象の画像がありません')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('文字起こし対象の画像がありません')));
       return;
     }
     setState(() => _ocrExplainLoading = true);
@@ -221,11 +261,14 @@ class _PostProblemFormState extends State<PostProblemForm> {
       if (joined.isNotEmpty) {
         // 解説画像のOCRは、MCQも記述式も initialExplain に追記
         final before = initialExplain.text;
-        final after = before.isEmpty ? joined : (before.trimRight() + '\n' + joined);
+        final after =
+            before.isEmpty ? joined : (before.trimRight() + '\n' + joined);
         setState(() => initialExplain.text = after);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('解説に文字起こしを追加しました')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('解説に文字起こしを追加しました')));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文字を抽出できませんでした')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('文字を抽出できませんでした')));
       }
     } finally {
       if (mounted) setState(() => _ocrExplainLoading = false);
@@ -265,7 +308,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
     int? parentIdTmp = t.isNotEmpty ? t.first['id'] as int? : null;
     int? childIdTmp =
         childrenTmp.isNotEmpty ? childrenTmp.first['id'] as int? : null;
-    int? grandIdTmp = grandsTmp.isNotEmpty ? grandsTmp.first['id'] as int? : null;
+    int? grandIdTmp =
+        grandsTmp.isNotEmpty ? grandsTmp.first['id'] as int? : null;
 
     if (widget.editId != null) {
       final d = await Api.problems.get(widget.editId!);
@@ -285,8 +329,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
       if (cid != null) {
         for (final p in parentsTmp) {
           final ch = (p['children'] as List?) ?? [];
-          final match = ch.firstWhere(
-              (e) => e is Map && e['id'] == cid,
+          final match = ch.firstWhere((e) => e is Map && e['id'] == cid,
               orElse: () => null);
           if (match != null) {
             parentIdTmp = p['id'] as int?;
@@ -340,7 +383,9 @@ class _PostProblemFormState extends State<PostProblemForm> {
       if (me['options'] is List) {
         final optEx = List.from(me['options']);
         _ensureOptionControllers(optionCount);
-        for (int i = 0; i < optEx.length && i < optionExplainCtrls.length; i++) {
+        for (int i = 0;
+            i < optEx.length && i < optionExplainCtrls.length;
+            i++) {
           final v = optEx[i];
           if (v is String && v.trim().isNotEmpty) {
             optionExplainCtrls[i].text = v;
@@ -356,7 +401,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
         final mine = (d['model_answer'] as String).trim();
         if (mine.isNotEmpty && optionCtrls.isNotEmpty) {
           // 1) 選択肢テキスト一致でのマッピング
-          final idxByText = optionCtrls.indexWhere((c) => c.text.trim() == mine);
+          final idxByText =
+              optionCtrls.indexWhere((c) => c.text.trim() == mine);
           if (idxByText >= 0) {
             myModelAnswerIndex = idxByText;
           } else {
@@ -407,19 +453,26 @@ class _PostProblemFormState extends State<PostProblemForm> {
     if (!agreeGeneral) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ガイドラインに同意してください'), backgroundColor: AppColors.danger),
+        const SnackBar(
+            content: Text('ガイドラインに同意してください'),
+            backgroundColor: AppColors.danger),
       );
       return;
     }
 
     // 画像同意は、新規で画像をアップロードする場合のみ必須
-    final bool hasProblemImageUploads = !widget.explainOnly && newImages.isNotEmpty;
-    final bool hasExplainImageUploads = newExplainImages.any((f) => f.bytes != null);
-    final bool needsImageConsent = hasProblemImageUploads || hasExplainImageUploads;
+    final bool hasProblemImageUploads =
+        !widget.explainOnly && newImages.isNotEmpty;
+    final bool hasExplainImageUploads =
+        newExplainImages.any((f) => f.bytes != null);
+    final bool needsImageConsent =
+        hasProblemImageUploads || hasExplainImageUploads;
     if (needsImageConsent && !agreeImage) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('画像のガイドラインに同意してください'), backgroundColor: AppColors.danger),
+        const SnackBar(
+            content: Text('画像のガイドラインに同意してください'),
+            backgroundColor: AppColors.danger),
       );
       return;
     }
@@ -428,7 +481,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
       if (widget.editId == null) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('問題IDが不正です'), backgroundColor: AppColors.danger),
+          const SnackBar(
+              content: Text('問題IDが不正です'), backgroundColor: AppColors.danger),
         );
         return;
       }
@@ -447,7 +501,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
         } else if (qtype != 'mcq' &&
             myAnswerCtrl.text.trim().isNotEmpty &&
             widget.editId != null) {
-          await Api.problems.answer(widget.editId!, freeText: myAnswerCtrl.text.trim());
+          await Api.problems
+              .answer(widget.editId!, freeText: myAnswerCtrl.text.trim());
         }
       } catch (_) {}
 
@@ -473,8 +528,10 @@ class _PostProblemFormState extends State<PostProblemForm> {
 
       if (qtype == 'mcq') {
         _ensureOptionControllers(optionCount);
-        optionExplanationsJson =
-            optionExplainCtrls.take(optionCount).map((c) => c.text.trimRight()).toList();
+        optionExplanationsJson = optionExplainCtrls
+            .take(optionCount)
+            .map((c) => c.text.trimRight())
+            .toList();
       }
 
       // ★画像付きで投稿する場合は、updateProblemWithImages では initial_explanation を送らない
@@ -485,14 +542,16 @@ class _PostProblemFormState extends State<PostProblemForm> {
       final r = await Api.problems.updateWithImages(
         id: widget.editId!,
         // 解説が空でもフィールドを送ってサーバ側で削除させる
-        initialExplanation: hasExplainImages ? null : (initialTxt.isEmpty ? '' : initialTxt),
+        initialExplanation:
+            hasExplainImages ? null : (initialTxt.isEmpty ? '' : initialTxt),
         optionExplanationsJson: optionExplanationsJson,
       );
 
       if (!mounted) return;
       if ((r['ok'] ?? false) != true) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('保存に失敗しました'), backgroundColor: AppColors.danger),
+          const SnackBar(
+              content: Text('保存に失敗しました'), backgroundColor: AppColors.danger),
         );
         return;
       }
@@ -520,7 +579,9 @@ class _PostProblemFormState extends State<PostProblemForm> {
         if (!ok) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('解説画像の投稿に失敗しました'), backgroundColor: AppColors.danger),
+            const SnackBar(
+                content: Text('解説画像の投稿に失敗しました'),
+                backgroundColor: AppColors.danger),
           );
           return;
         }
@@ -533,7 +594,9 @@ class _PostProblemFormState extends State<PostProblemForm> {
       );
       // 記述式で解説が空ならサーバ上の自分の解説を削除
       if (qtype != 'mcq' && initialTxt.isEmpty && !hasExplainImages) {
-        try { await Api.explanations.deleteMine(widget.editId!); } catch (_) {}
+        try {
+          await Api.explanations.deleteMine(widget.editId!);
+        } catch (_) {}
       }
       Navigator.pop(context);
       return;
@@ -546,7 +609,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
     List<String>? optionExplanationsJson;
     if (qtype == 'mcq') {
       _ensureOptionControllers(optionCount);
-      final lines = optionCtrls.take(optionCount).map((c) => c.text.trim()).toList();
+      final lines =
+          optionCtrls.take(optionCount).map((c) => c.text.trim()).toList();
       optionsText = lines.join('\n');
       final exList = <String>[];
       for (int i = 0; i < optionExplainCtrls.length && i < optionCount; i++) {
@@ -578,9 +642,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
         grandId: grandId!,
         optionsText: optionsText,
         correctIndex: qtype == 'mcq' ? correctIndex : null,
-        initialExplanation: hasExplainImages
-            ? null
-            : (initialTxt.isEmpty ? null : initialTxt),
+        initialExplanation:
+            hasExplainImages ? null : (initialTxt.isEmpty ? null : initialTxt),
         modelAnswer: qtype == 'free' && modelAnswerCtrl.text.trim().isNotEmpty
             ? modelAnswerCtrl.text.trim()
             : null,
@@ -599,7 +662,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
                 final list = List.from(d['options']);
                 final idx = myModelAnswerIndex!.clamp(0, list.length - 1);
                 try {
-                  await Api.problems.answer(newId, selectedOptionId: (list[idx]['id'] as int));
+                  await Api.problems.answer(newId,
+                      selectedOptionId: (list[idx]['id'] as int));
                 } catch (_) {}
               }
               final idx = myModelAnswerIndex!;
@@ -634,7 +698,9 @@ class _PostProblemFormState extends State<PostProblemForm> {
               if (!ok) {
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('解説画像の投稿に失敗しました'), backgroundColor: AppColors.danger),
+                  const SnackBar(
+                      content: Text('解説画像の投稿に失敗しました'),
+                      backgroundColor: AppColors.danger),
                 );
                 return;
               }
@@ -643,7 +709,9 @@ class _PostProblemFormState extends State<PostProblemForm> {
         } catch (_) {}
         // 記述式で解説が空ならサーバ上の自分の解説を削除
         if (qtype != 'mcq' && initialTxt.isEmpty && !hasExplainImages) {
-          try { await Api.explanations.deleteMine(widget.editId!); } catch (_) {}
+          try {
+            await Api.explanations.deleteMine(widget.editId!);
+          } catch (_) {}
         }
         Navigator.pushReplacement(
           context,
@@ -651,7 +719,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('作成に失敗しました'), backgroundColor: AppColors.danger),
+          const SnackBar(
+              content: Text('作成に失敗しました'), backgroundColor: AppColors.danger),
         );
       }
     } else {
@@ -669,7 +738,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
             ? modelAnswerCtrl.text.trim()
             : null,
         // 解説が空でもフィールドを送ってサーバ側で削除させる
-        initialExplanation: hasExplainImages ? null : (initialTxt.isNotEmpty ? initialTxt : ''),
+        initialExplanation:
+            hasExplainImages ? null : (initialTxt.isNotEmpty ? initialTxt : ''),
         optionExplanationsJson: optionExplanationsJson,
         images: problemImgs.isEmpty ? null : problemImgs,
       );
@@ -682,9 +752,11 @@ class _PostProblemFormState extends State<PostProblemForm> {
             final idx = myModelAnswerIndex!;
             if (idx >= 0 && idx < optionIds.length) selId = optionIds[idx];
             if (selId != null) {
-              await Api.problems.answer(widget.editId!, selectedOptionId: selId);
+              await Api.problems
+                  .answer(widget.editId!, selectedOptionId: selId);
             }
-            await Api.modelAnswers.upsertMine(widget.editId!, (idx + 1).toString());
+            await Api.modelAnswers
+                .upsertMine(widget.editId!, (idx + 1).toString());
           } else if (qtype != 'mcq') {
             final mine = myAnswerCtrl.text.trim();
             final alt = modelAnswerCtrl.text.trim();
@@ -717,7 +789,9 @@ class _PostProblemFormState extends State<PostProblemForm> {
             if (!ok) {
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('解説画像の投稿に失敗しました'), backgroundColor: AppColors.danger),
+                const SnackBar(
+                    content: Text('解説画像の投稿に失敗しました'),
+                    backgroundColor: AppColors.danger),
               );
               return;
             }
@@ -729,7 +803,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('更新に失敗しました'), backgroundColor: AppColors.danger),
+          const SnackBar(
+              content: Text('更新に失敗しました'), backgroundColor: AppColors.danger),
         );
       }
     }
@@ -738,14 +813,42 @@ class _PostProblemFormState extends State<PostProblemForm> {
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const AppScaffold(title: '読み込み中', body: Center(child: CircularProgressIndicator()));
+      return const AppScaffold(
+          title: '読み込み中', body: Center(child: CircularProgressIndicator()));
     }
     final titleText = widget.explainOnly
         ? '解説を編集'
         : (widget.editId == null ? '新規で問題を作る' : '問題を編集');
     return AppScaffold(
       title: titleText,
-      subHeader: AppBreadcrumbs(items: _buildBreadcrumbs(context)),
+      subHeader: AppBreadcrumbs(
+        items: [
+          BreadcrumbItem(
+            label: 'ホーム',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            ),
+          ),
+          BreadcrumbItem(
+            label: '投稿する',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const HomeScreen(initialSelected: 2)),
+            ),
+          ),
+          const BreadcrumbItem(label: '問題の投稿/編集'),
+          if (!widget.explainOnly && widget.editId == null)
+            const BreadcrumbItem(label: '新規で問題を投稿する'),
+          if (!widget.explainOnly &&
+              widget.editId != null &&
+              widget.fromMyList) ...[
+            const BreadcrumbItem(label: '自分が作った問題'),
+            const BreadcrumbItem(label: '問題を編集する'),
+          ],
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Center(
@@ -755,11 +858,13 @@ class _PostProblemFormState extends State<PostProblemForm> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (widget.editId != null) ...[
-                  Row(children: [
-                    Chip(label: Text('問題いいね: $likeCount')),
-                    const SizedBox(width: 8),
-                    Chip(label: Text('解説いいね: $explLikeCount')),
-                  ]),
+                  Row(
+                    children: [
+                      _likeBadge('問題いいね', likeCount),
+                      const SizedBox(width: 12),
+                      _likeBadge('解説いいね', explLikeCount),
+                    ],
+                  ),
                   const SizedBox(height: 8),
                 ],
                 TextField(
@@ -776,6 +881,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
                   decoration: const InputDecoration(labelText: '問題文'),
                 ),
                 const SizedBox(height: 8),
+
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -864,6 +970,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 8),
 
                 // ===== 問題画像（既存UI） =====
@@ -901,9 +1008,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
                             ),
                           ),
                         ),
-                        ...newImages
-                            .where((f) => f.bytes != null)
-                            .map(
+                        ...newImages.where((f) => f.bytes != null).map(
                               (f) => Stack(
                                 children: [
                                   ClipRRect(
@@ -918,14 +1023,17 @@ class _PostProblemFormState extends State<PostProblemForm> {
                                       top: 8,
                                       right: 8,
                                       child: InkWell(
-                                        onTap: () => setState(() => newImages.remove(f)),
+                                        onTap: () =>
+                                            setState(() => newImages.remove(f)),
                                         child: Container(
                                           decoration: BoxDecoration(
                                             color: AppColors.textSecondary,
-                                            borderRadius: BorderRadius.circular(16),
+                                            borderRadius:
+                                                BorderRadius.circular(16),
                                           ),
                                           padding: const EdgeInsets.all(4),
-                                          child: const Icon(Icons.close, color: AppColors.background),
+                                          child: const Icon(Icons.close,
+                                              color: AppColors.background),
                                         ),
                                       ),
                                     ),
@@ -936,16 +1044,23 @@ class _PostProblemFormState extends State<PostProblemForm> {
                     ),
                     // OCR button under problem image preview (only when new images exist)
                     Builder(builder: (_) {
-                      final hasTargets = newImages.any((f) => f.bytes != null && f.bytes!.isNotEmpty);
+                      final hasTargets = newImages
+                          .any((f) => f.bytes != null && f.bytes!.isNotEmpty);
                       if (!hasTargets) return const SizedBox.shrink();
                       return Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: OutlinedButton.icon(
-                            onPressed: _ocrProblemLoading ? null : _runOcrForProblemImages,
+                            onPressed: _ocrProblemLoading
+                                ? null
+                                : _runOcrForProblemImages,
                             icon: _ocrProblemLoading
-                                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2))
                                 : const Icon(Icons.text_fields),
                             label: const Text('文字起こしする（問題文に追加）'),
                           ),
@@ -963,7 +1078,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
                     DropdownButton<int>(
                       value: optionCount,
                       items: [2, 3, 4, 5, 6]
-                          .map((n) => DropdownMenuItem<int>(value: n, child: Text('$n')))
+                          .map((n) => DropdownMenuItem<int>(
+                              value: n, child: Text('$n')))
                           .toList(),
                       onChanged: widget.explainOnly
                           ? null
@@ -972,7 +1088,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
                               setState(() {
                                 optionCount = v;
                                 _ensureOptionControllers(optionCount);
-                                if ((correctIndex ?? -1) >= optionCount) correctIndex = null;
+                                if ((correctIndex ?? -1) >= optionCount)
+                                  correctIndex = null;
                               });
                             },
                     ),
@@ -998,11 +1115,14 @@ class _PostProblemFormState extends State<PostProblemForm> {
                             children: [
                               Row(children: [
                                 Checkbox(
-                                  value: widget.explainOnly ? (myModelAnswerIndex == i) : (correctIndex == i),
+                                  value: widget.explainOnly
+                                      ? (myModelAnswerIndex == i)
+                                      : (correctIndex == i),
                                   onChanged: (v) {
                                     setState(() {
                                       if (widget.explainOnly) {
-                                        myModelAnswerIndex = (v == true) ? i : null;
+                                        myModelAnswerIndex =
+                                            (v == true) ? i : null;
                                       } else {
                                         correctIndex = (v == true) ? i : null;
                                       }
@@ -1015,13 +1135,15 @@ class _PostProblemFormState extends State<PostProblemForm> {
                               TextField(
                                 controller: optionCtrls[i],
                                 enabled: !widget.explainOnly,
-                                decoration: const InputDecoration(labelText: '選択肢文'),
+                                decoration:
+                                    const InputDecoration(labelText: '選択肢文'),
                                 maxLines: 2,
                               ),
                               const SizedBox(height: 8),
                               TextField(
                                 controller: optionExplainCtrls[i],
-                                decoration: const InputDecoration(labelText: '解説'),
+                                decoration:
+                                    const InputDecoration(labelText: '解説'),
                                 maxLines: 3,
                               ),
                             ],
@@ -1056,7 +1178,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
                   controller: initialExplain,
                   minLines: 3,
                   maxLines: 6,
-                  decoration: InputDecoration(labelText: qtype == 'mcq' ? '全体の解説' : '解説'),
+                  decoration: InputDecoration(
+                      labelText: qtype == 'mcq' ? '全体の解説' : '解説'),
                 ),
 
                 // ===== 解説画像（新規追加） =====
@@ -1087,9 +1210,7 @@ class _PostProblemFormState extends State<PostProblemForm> {
                     _ImagesPager(
                       widgets: [
                         // 既存の解説画像プレビューはAPI未提供のため新規選択分のみ表示
-                        ...newExplainImages
-                            .where((f) => f.bytes != null)
-                            .map(
+                        ...newExplainImages.where((f) => f.bytes != null).map(
                               (f) => Stack(
                                 children: [
                                   ClipRRect(
@@ -1104,34 +1225,44 @@ class _PostProblemFormState extends State<PostProblemForm> {
                                     top: 8,
                                     right: 8,
                                     child: InkWell(
-                                      onTap: () => setState(() => newExplainImages.remove(f)),
+                                      onTap: () => setState(
+                                          () => newExplainImages.remove(f)),
                                       child: Container(
                                         decoration: BoxDecoration(
                                           color: AppColors.textSecondary,
-                                          borderRadius: BorderRadius.circular(16),
+                                          borderRadius:
+                                              BorderRadius.circular(16),
                                         ),
                                         padding: const EdgeInsets.all(4),
-                                        child: const Icon(Icons.close, color: AppColors.background),
+                                        child: const Icon(Icons.close,
+                                            color: AppColors.background),
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
-                        ),
+                            ),
                       ],
                     ),
                     // OCR button under explanation image preview
                     Builder(builder: (_) {
-                      final hasTargets = newExplainImages.any((f) => f.bytes != null && f.bytes!.isNotEmpty);
+                      final hasTargets = newExplainImages
+                          .any((f) => f.bytes != null && f.bytes!.isNotEmpty);
                       if (!hasTargets) return const SizedBox.shrink();
                       return Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: OutlinedButton.icon(
-                            onPressed: _ocrExplainLoading ? null : _runOcrForExplainImages,
+                            onPressed: _ocrExplainLoading
+                                ? null
+                                : _runOcrForExplainImages,
                             icon: _ocrExplainLoading
-                                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2))
                                 : const Icon(Icons.text_fields),
                             label: Text(qtype == 'mcq'
                                 ? '文字起こしする（全体の解説に追加）'
@@ -1149,14 +1280,16 @@ class _PostProblemFormState extends State<PostProblemForm> {
                   final head = widget.explainOnly
                       ? '私は投稿する解説において以下に同意します。'
                       : '私は投稿する問題及び解説において以下に同意します。';
-                  final body = '1. 本・書籍・問題集・Webサイト・大学の過去問等の著作物を、許諾を得ず原文のまま転載していません。\n'
+                  final body =
+                      '1. 本・書籍・問題集・Webサイト・大学の過去問等の著作物を、許諾を得ず原文のまま転載していません。\n'
                       '2. 必要に応じて自分の言葉で再構成・要約しており、著作権者の権利を侵害しません。\n'
                       '3. 引用がある場合は公正な範囲で、出典を明記します。\n'
                       '4. 第三者の個人情報や機密情報を含みません。\n'
                       '5. 本サービスのガイドラインに反する投稿は非公開・削除されることに同意します。';
                   return CheckboxListTile(
                     value: agreeGeneral,
-                    onChanged: (v) => setState(() => agreeGeneral = (v ?? false)),
+                    onChanged: (v) =>
+                        setState(() => agreeGeneral = (v ?? false)),
                     controlAffinity: ListTileControlAffinity.leading,
                     title: Text(head),
                     subtitle: Text(body),
@@ -1165,12 +1298,16 @@ class _PostProblemFormState extends State<PostProblemForm> {
 
                 // ===== 画像ガイドライン同意（新規アップロード時のみ表示） =====
                 Builder(builder: (_) {
-                  final hasProblemImageUploads = !widget.explainOnly && newImages.isNotEmpty;
-                  final hasExplainImageUploads = newExplainImages.any((f) => f.bytes != null);
-                  final needsImageConsent = hasProblemImageUploads || hasExplainImageUploads;
+                  final hasProblemImageUploads =
+                      !widget.explainOnly && newImages.isNotEmpty;
+                  final hasExplainImageUploads =
+                      newExplainImages.any((f) => f.bytes != null);
+                  final needsImageConsent =
+                      hasProblemImageUploads || hasExplainImageUploads;
                   if (!needsImageConsent) return const SizedBox.shrink();
                   const head = '私は投稿する画像に関して以下に同意します。';
-                  const body = '1. 画像・図表は自作、許諾済み、またはライセンス条件を遵守しています（クレジット表記・リンク等が必要な場合は記載）。\n'
+                  const body =
+                      '1. 画像・図表は自作、許諾済み、またはライセンス条件を遵守しています（クレジット表記・リンク等が必要な場合は記載）。\n'
                       '2. 教科書・問題集・過去問の紙面を撮影/スキャン/OCRした画像は掲載していません（必要なら自作図に描き直し、要点のみ記載）。\n'
                       '3. 写真に人物・氏名・連絡先などの個人情報が写り込んでいません。';
                   return CheckboxListTile(
@@ -1220,7 +1357,7 @@ class _ImagesPagerState extends State<_ImagesPager> {
           onPageChanged: (i) => setState(() => _index = i),
           itemCount: widget.widgets.length,
           itemBuilder: (_, i) => Container(
-            color: AppColors.surface,
+            color: AppColors.primary_light,
             alignment: Alignment.center,
             child: Padding(
               padding: const EdgeInsets.all(4),
@@ -1255,11 +1392,4 @@ class _ImagesPagerState extends State<_ImagesPager> {
     ]);
   }
 }
-
-
-
-
-
-
-
 

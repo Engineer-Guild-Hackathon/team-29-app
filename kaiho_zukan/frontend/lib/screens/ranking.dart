@@ -274,7 +274,6 @@ class _RankingScreenState extends State<RankingScreen>
   Widget build(BuildContext context) {
     final palette = widget.theme;
     final shouldPadTop = !widget.embedded && !widget.showAppBar;
-    final backgroundColor = palette.background;
     final content = SafeArea(
       top: shouldPadTop,
       bottom: false,
@@ -289,7 +288,7 @@ class _RankingScreenState extends State<RankingScreen>
 
     if (widget.embedded) {
       return ColoredBox(
-        color: backgroundColor,
+        color: AppColors.background,
         child: content,
       );
     }
@@ -297,7 +296,7 @@ class _RankingScreenState extends State<RankingScreen>
     if (widget.showAppBar) {
       return AppScaffold(
         title: 'ランキング',
-        backgroundColor: backgroundColor,
+        backgroundColor: AppColors.background,
         subHeader: AppBreadcrumbs(
           items: [
             BreadcrumbItem(
@@ -314,13 +313,13 @@ class _RankingScreenState extends State<RankingScreen>
       );
     }
     // embedded view (no header/sidebar)
-    return ColoredBox(color: backgroundColor, child: content);
+    return ColoredBox(color: AppColors.background, child: content);
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       title: const IconAppBarTitle(title: 'ランキング'),
-      backgroundColor: widget.theme.background,
+      backgroundColor: AppColors.background,
       foregroundColor: AppColors.dark,
       elevation: 0,
       actions: [
