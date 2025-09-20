@@ -29,7 +29,6 @@ class SolveHubScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-
           const SizedBox(height: 8),
           IllustratedActionButton(
             label: '問題をランダムに解く',
@@ -67,7 +66,6 @@ class SolveHubScreen extends StatelessWidget {
     }
 
     return AppScaffold(
-      title: '問題を解く',
       subHeader: AppBreadcrumbs(
         items: [
           BreadcrumbItem(
@@ -81,7 +79,22 @@ class SolveHubScreen extends StatelessWidget {
         ],
       ),
       backgroundColor: AppColors.background,
-      body: section,
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '問題を解く',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Expanded(child: section),
+          ],
+        ),
+      ),
     );
   }
 }

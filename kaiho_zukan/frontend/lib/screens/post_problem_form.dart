@@ -135,14 +135,16 @@ class _PostProblemFormState extends State<PostProblemForm> {
         ),
       );
 
-      switch (widget.explanationContext ?? ExplanationBreadcrumbContext.legacy) {
+      switch (
+          widget.explanationContext ?? ExplanationBreadcrumbContext.legacy) {
         case ExplanationBreadcrumbContext.createNew:
           items.add(
             BreadcrumbItem(
               label: '解説未作成の問題一覧',
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const ExplainCreateNewScreen()),
+                MaterialPageRoute(
+                    builder: (_) => const ExplainCreateNewScreen()),
               ),
             ),
           );
@@ -166,7 +168,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
               label: '誤りの可能性がある解説',
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const ExplainFixWrongScreen()),
+                MaterialPageRoute(
+                    builder: (_) => const ExplainFixWrongScreen()),
               ),
             ),
           );
@@ -814,13 +817,12 @@ class _PostProblemFormState extends State<PostProblemForm> {
   Widget build(BuildContext context) {
     if (loading) {
       return const AppScaffold(
-          title: '読み込み中', body: Center(child: CircularProgressIndicator()));
+          body: Center(child: CircularProgressIndicator()));
     }
     final titleText = widget.explainOnly
         ? '解説を編集'
         : (widget.editId == null ? '新規で問題を作る' : '問題を編集');
     return AppScaffold(
-      title: titleText,
       subHeader: AppBreadcrumbs(
         items: [
           BreadcrumbItem(
@@ -857,6 +859,15 @@ class _PostProblemFormState extends State<PostProblemForm> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    titleText,
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 24),
                 if (widget.editId != null) ...[
                   Row(
                     children: [
@@ -919,7 +930,8 @@ class _PostProblemFormState extends State<PostProblemForm> {
                           onChanged: widget.explainOnly
                               ? null
                               : (v) {
-                                  final p = parents.firstWhere((e) => e['id'] == v);
+                                  final p =
+                                      parents.firstWhere((e) => e['id'] == v);
                                   setState(() {
                                     parentId = v;
                                     children = p['children'] ?? [];
@@ -927,9 +939,14 @@ class _PostProblemFormState extends State<PostProblemForm> {
                                         ? children.first['id']
                                         : null;
                                     grands = childId != null
-                                        ? (children.firstWhere((c) => c['id'] == childId)['children'] ?? [])
+                                        ? (children.firstWhere((c) =>
+                                                c['id'] ==
+                                                childId)['children'] ??
+                                            [])
                                         : [];
-                                    grandId = grands.isNotEmpty ? grands.first['id'] : null;
+                                    grandId = grands.isNotEmpty
+                                        ? grands.first['id']
+                                        : null;
                                   });
                                 },
                         ),
@@ -946,11 +963,14 @@ class _PostProblemFormState extends State<PostProblemForm> {
                           onChanged: widget.explainOnly
                               ? null
                               : (v) {
-                                  final c = children.firstWhere((e) => e['id'] == v);
+                                  final c =
+                                      children.firstWhere((e) => e['id'] == v);
                                   setState(() {
                                     childId = v;
                                     grands = c['children'] ?? [];
-                                    grandId = grands.isNotEmpty ? grands.first['id'] : null;
+                                    grandId = grands.isNotEmpty
+                                        ? grands.first['id']
+                                        : null;
                                   });
                                 },
                         ),
@@ -964,7 +984,9 @@ class _PostProblemFormState extends State<PostProblemForm> {
                                 ),
                               )
                               .toList(),
-                          onChanged: widget.explainOnly ? null : (v) => setState(() => grandId = v),
+                          onChanged: widget.explainOnly
+                              ? null
+                              : (v) => setState(() => grandId = v),
                         ),
                       ],
                     ),
@@ -1392,4 +1414,3 @@ class _ImagesPagerState extends State<_ImagesPager> {
     ]);
   }
 }
-

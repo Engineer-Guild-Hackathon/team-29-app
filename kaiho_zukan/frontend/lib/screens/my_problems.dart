@@ -34,7 +34,6 @@ class _MyProblemsScreenState extends State<MyProblemsScreen> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      title: '自分が作った問題',
       subHeader: AppBreadcrumbs(
         items: [
           BreadcrumbItem(
@@ -55,93 +54,123 @@ class _MyProblemsScreenState extends State<MyProblemsScreen> {
             label: '問題の投稿/編集',
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const PostProblemSubHubScreen()),
+              MaterialPageRoute(
+                  builder: (_) => const PostProblemSubHubScreen()),
             ),
           ),
           const BreadcrumbItem(label: '自分が作った問題'),
         ],
       ),
-      body: Column(children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(children: [
-            const Text('並び替え: '),
-            DropdownButton<String>(
-              value: sort,
-              items: const [
-                DropdownMenuItem(value: 'new', child: Text('新着')),
-                DropdownMenuItem(value: 'likes', child: Text('いいね')),
-                DropdownMenuItem(value: 'ex_cnt', child: Text('解説数')),
-              ],
-              onChanged: (v) {
-                setState(() => sort = v ?? 'new');
-                _load();
-              },
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '自分が作った問題',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
             ),
-          ]),
-        ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: items.length,
-            itemBuilder: (_, i) {
-              final it = items[i];
-              final qtypeJp = (it['qtype'] == 'mcq') ? '選択式' : '記述式';
-              return Card(
-                child: ListTile(
-                  title: Text(it['title'] ?? ''),
-                  subtitle: Text('解説: ${it['ex_cnt']}  いいね: ${it['like_count']}  種別: $qtypeJp'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        tooltip: '編集',
-                        icon: const Icon(Icons.edit),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PostProblemForm(editId: it['id'] as int, fromMyList: true),
-                            ),
-                          );
-                        },
-                      ),
-                      IconButton(
-                        tooltip: '削除',
-                        icon: const Icon(Icons.delete, color: AppColors.danger),
-                        onPressed: () async {
-                          final ok = await showDialog<bool>(
-                            context: context,
-                            builder: (c) => AlertDialog(
-                              title: const Text('問題を削除しますか？'),
-                              content: const Text('この操作は元に戻せません。'),
-                              actions: [
-                                TextButton(onPressed: ()=>Navigator.pop(c,false), child: const Text('キャンセル')),
-                                FilledButton(onPressed: ()=>Navigator.pop(c,true), child: const Text('削除')),
-                              ],
-                            ),
-                          );
-                          if (ok == true) {
-                            final success = await Api.problems.delete(it['id'] as int);
-                            if (success) {
-                              if (!mounted) return;
-                              setState(() { items.removeAt(i); });
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除しました')));
-                            } else {
-                              if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除に失敗しました'), backgroundColor: AppColors.danger));
-                            }
-                          }
-                        },
-                      ),
-                    ],
-                  ),
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(children: [
+                const Text('並び替え: '),
+                DropdownButton<String>(
+                  value: sort,
+                  items: const [
+                    DropdownMenuItem(value: 'new', child: Text('新着')),
+                    DropdownMenuItem(value: 'likes', child: Text('いいね')),
+                    DropdownMenuItem(value: 'ex_cnt', child: Text('解説数')),
+                  ],
+                  onChanged: (v) {
+                    setState(() => sort = v ?? 'new');
+                    _load();
+                  },
                 ),
-              );
-            },
-          ),
+              ]),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.builder(
+                itemCount: items.length,
+                itemBuilder: (_, i) {
+                  final it = items[i];
+                  final qtypeJp = (it['qtype'] == 'mcq') ? '選択式' : '記述式';
+                  return Card(
+                    child: ListTile(
+                      title: Text(it['title'] ?? ''),
+                      subtitle: Text(
+                          '解説: ${it['ex_cnt']}  いいね: ${it['like_count']}  種別: $qtypeJp'),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: '編集',
+                            icon: const Icon(Icons.edit),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => PostProblemForm(
+                                      editId: it['id'] as int,
+                                      fromMyList: true),
+                                ),
+                              );
+                            },
+                          ),
+                          IconButton(
+                            tooltip: '削除',
+                            icon: const Icon(Icons.delete,
+                                color: AppColors.danger),
+                            onPressed: () async {
+                              final ok = await showDialog<bool>(
+                                context: context,
+                                builder: (c) => AlertDialog(
+                                  title: const Text('問題を削除しますか？'),
+                                  content: const Text('この操作は元に戻せません。'),
+                                  actions: [
+                                    TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(c, false),
+                                        child: const Text('キャンセル')),
+                                    FilledButton(
+                                        onPressed: () => Navigator.pop(c, true),
+                                        child: const Text('削除')),
+                                  ],
+                                ),
+                              );
+                              if (ok == true) {
+                                final success =
+                                    await Api.problems.delete(it['id'] as int);
+                                if (success) {
+                                  if (!mounted) return;
+                                  setState(() {
+                                    items.removeAt(i);
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('削除しました')));
+                                } else {
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text('削除に失敗しました'),
+                                          backgroundColor: AppColors.danger));
+                                }
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
-      ]),
+      ),
     );
   }
 }
-

@@ -8,7 +8,7 @@ import '../screens/home.dart';
 class AppScaffold extends StatelessWidget {
   const AppScaffold({
     super.key,
-    required this.title,
+    this.title = '',
     required this.body,
     this.backgroundColor,
     this.selectedIndex = 0,
@@ -75,6 +75,7 @@ class AppScaffold extends StatelessWidget {
         );
       } catch (_) {}
     }
+
     final navigate = onNavigateIndex ?? defaultNavigate;
     return LayoutBuilder(
       builder: (context, constraints) {

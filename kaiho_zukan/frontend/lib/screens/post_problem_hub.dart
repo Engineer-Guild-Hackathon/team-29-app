@@ -66,7 +66,6 @@ class PostProblemHubScreen extends StatelessWidget {
     }
 
     return AppScaffold(
-      title: '投稿する',
       backgroundColor: AppColors.background,
       subHeader: AppBreadcrumbs(
         items: [
@@ -80,7 +79,22 @@ class PostProblemHubScreen extends StatelessWidget {
           const BreadcrumbItem(label: '投稿する'),
         ],
       ),
-      body: section,
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '投稿する',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Expanded(child: section),
+          ],
+        ),
+      ),
     );
   }
 }

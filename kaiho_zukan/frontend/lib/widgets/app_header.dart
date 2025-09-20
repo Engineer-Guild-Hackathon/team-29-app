@@ -63,14 +63,18 @@ class _AppHeaderState extends State<AppHeader> {
     final name = (_username ?? widget.username ?? '').trim();
     final iconUrl = _iconUrl ?? widget.iconUrl;
     final isCompact = widget.isCompact;
-    final onProfileTap = widget.onTapProfile ?? () async {
-      try {
-        await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const HomeScreen(initialSelected: 0)),
-        );
-      } catch (_) {}
-    };
+    final onProfileTap = widget.onTapProfile ??
+        () async {
+          try {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const HomeScreen(initialSelected: 0)),
+            );
+          } catch (_) {}
+        };
+    final title = widget.title.trim();
+    final hasTitle = title.isNotEmpty;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -100,22 +104,25 @@ class _AppHeaderState extends State<AppHeader> {
                 onPressed: widget.onOpenMenu,
               ),
             if (isCompact) const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                widget.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ) ??
-                    const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-              ),
-            ),
+            if (hasTitle)
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ) ??
+                      const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                ),
+              )
+            else
+              const Spacer(),
             const SizedBox(width: 16),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -549,4 +556,3 @@ class _NotificationBellState extends State<NotificationBell> {
     );
   }
 }
-

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/home_section_theme.dart';
 import '../services/api.dart';
@@ -628,13 +628,13 @@ class _ProfileDetailView extends StatelessWidget {
       final badgeColor = () {
         final lower = rankName.toLowerCase();
         if (lower.contains('ブロンズ') || lower.contains('bronze')) {
-          return AppColors.rank1;
+          return AppColors.rank3;
         }
         if (lower.contains('シルバー') || lower.contains('silver')) {
           return AppColors.rank2;
         }
         if (lower.contains('ゴールド') || lower.contains('gold')) {
-          return AppColors.rank3;
+          return AppColors.rank1;
         }
         return (theme.secondaryAccent ?? theme.accent).withOpacity(0.18);
       }();
@@ -1041,7 +1041,7 @@ Color _rankBorderColor(int? level) {
     case 1:
       return AppColors.rank3;
     default:
-      return AppColors.border;
+      return AppColors.rank3;
   }
 }
 

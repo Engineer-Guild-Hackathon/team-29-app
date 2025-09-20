@@ -41,6 +41,7 @@ class MyApp extends StatelessWidget {
           onError: AppColors.background,
         ),
         scaffoldBackgroundColor: AppColors.background,
+        canvasColor: AppColors.primary_light,
         textTheme: GoogleFonts.notoSansJpTextTheme().apply(
           bodyColor: Colors.black,
           displayColor: Colors.black,
@@ -50,6 +51,11 @@ class MyApp extends StatelessWidget {
           foregroundColor: AppColors.background,
         ),
         dividerColor: AppColors.border,
+        dropdownMenuTheme: DropdownMenuThemeData(
+          menuStyle: MenuStyle(
+            backgroundColor: MaterialStatePropertyAll(AppColors.primary_light),
+          ),
+        ),
       ),
       home: const LoginRegisterScreen(),
     );

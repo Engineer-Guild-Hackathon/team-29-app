@@ -46,8 +46,8 @@ class _ExplainCreateNewScreenState extends State<ExplainCreateNewScreen> {
   Future<void> _search() async {
     if (childId == null) return;
     setState(() => loading = true);
-    final list = await Api.problems.problemsForExplain(
-        childId: childId!, grandId: grandId, sort: sort);
+    final list = await Api.problems
+        .problemsForExplain(childId: childId!, grandId: grandId, sort: sort);
     final mine = await Api.explanations.myProblems();
     final mineIds = mine.map<int>((e) => e['id'] as int).toSet();
     setState(() {
@@ -59,7 +59,6 @@ class _ExplainCreateNewScreenState extends State<ExplainCreateNewScreen> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      title: '新規で解説を作成',
       subHeader: AppBreadcrumbs(
         items: [
           BreadcrumbItem(
@@ -89,6 +88,14 @@ class _ExplainCreateNewScreenState extends State<ExplainCreateNewScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(children: [
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '新規で解説を作成',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(height: 24),
           // フィルタ列
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -190,7 +197,8 @@ class _ExplainCreateNewScreenState extends State<ExplainCreateNewScreen> {
                               builder: (_) => PostProblemForm(
                                 editId: p['id'] as int,
                                 explainOnly: true,
-                                explanationContext: ExplanationBreadcrumbContext.createNew,
+                                explanationContext:
+                                    ExplanationBreadcrumbContext.createNew,
                               ),
                             ),
                           ),
@@ -204,4 +212,3 @@ class _ExplainCreateNewScreenState extends State<ExplainCreateNewScreen> {
     );
   }
 }
-
