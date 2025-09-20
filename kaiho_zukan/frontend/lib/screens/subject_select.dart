@@ -53,6 +53,9 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
       final name = (c['name'] ?? '').toString();
       return q.isEmpty || name.contains(q);
     }).toList();
+    final w = MediaQuery.of(context).size.width;
+    final cross = w < 520 ? 1 : 2; // 小幅なら1列
+    final tileHeight = w < 520 ? 64.0 : 56.0;
 
     return AppScaffold(
       subHeader: AppBreadcrumbs(
@@ -79,6 +82,13 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Text(
+                          widget.isOnboarding ? '教科を選んで登録' : '教科をえらび直す',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         Wrap(spacing: 8, runSpacing: 8, children: [
                           const Text('選択した教科：',
                               style: TextStyle(fontWeight: FontWeight.bold)),
@@ -128,12 +138,15 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
+
                         // 教科一覧
                         Expanded(
                           child: GridView.builder(
                             gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 2, childAspectRatio: 5),
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: cross,
+                              mainAxisExtent: tileHeight, // ← 高さ固定で文字が潰れない
+                            ),
                             itemCount: filtered.length,
                             itemBuilder: (_, i) {
                               final c = filtered[i];
@@ -144,13 +157,15 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   side: BorderSide(
-                                    color: AppColors.primary,
-                                    width: 1.2,
-                                  ),
+                                      color: AppColors.primary, width: 1.2),
                                 ),
                                 child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12),
                                   title: Text(
                                     c['name'] ?? '',
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       color: AppColors.primary_dark,
                                       fontWeight: sel
@@ -159,10 +174,8 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
                                     ),
                                   ),
                                   trailing: IconButton(
-                                    icon: Icon(
-                                      sel ? Icons.close : Icons.add,
-                                      color: AppColors.primary_dark,
-                                    ),
+                                    icon: Icon(sel ? Icons.close : Icons.add,
+                                        color: AppColors.primary_dark),
                                     onPressed: () {
                                       setState(() {
                                         if (sel) {
