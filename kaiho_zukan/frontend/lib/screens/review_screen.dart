@@ -401,7 +401,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
           }
         }
         final rank = e['author_rank'];
-        if (rank != null && (g['rank'] == null || g['rank'].toString().isEmpty)) {
+        if (rank != null &&
+            (g['rank'] == null || g['rank'].toString().isEmpty)) {
           g['rank'] = rank;
         }
         final rankLevelRaw = e['author_rank_level'];
@@ -668,9 +669,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
                         return StatefulBuilder(builder: (context2, setCard) {
                           final bool isAiGroup = g['isAi'] == true;
-                          final int? avatarUserId = isAiGroup ? null : g['uid'] as int?;
+                          final int? avatarUserId =
+                              isAiGroup ? null : g['uid'] as int?;
                           Widget? avatarWidget = _buildExplanationAvatar(g);
-                          if (!isAiGroup && avatarWidget != null && avatarUserId != null) {
+                          if (!isAiGroup &&
+                              avatarWidget != null &&
+                              avatarUserId != null) {
                             avatarWidget = GestureDetector(
                               onTap: () => _openUserProfile(avatarUserId),
                               child: avatarWidget,
@@ -979,7 +983,6 @@ class _ReviewScreenState extends State<ReviewScreen> {
     }
 
     return AppScaffold(
-      title: '振り返り',
       subHeader: AppBreadcrumbs(
         items: [
           BreadcrumbItem(
@@ -993,7 +996,22 @@ class _ReviewScreenState extends State<ReviewScreen> {
         ],
       ),
       backgroundColor: AppColors.background,
-      body: section,
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '振り返り',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Expanded(child: section),
+          ],
+        ),
+      ),
     );
   }
 }

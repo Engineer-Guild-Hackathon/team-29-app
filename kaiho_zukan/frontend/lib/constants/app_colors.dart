@@ -23,7 +23,7 @@ class AppColors {
   static const Color textPrimary_dark = Color(0xFF000000);
   static const Color textPrimary_light = Color(0xFFEEEEEE);
   static const Color textSecondary = Color(0xFF757575);
-  static const Color border = Color(0xFF77163F);
+  static const Color border = Color.fromARGB(255, 103, 106, 205);
   static const Color highlight = Color(0xFFF4A5C3);
   static const Color rank1 = Color(0xFFFFCF3E);
   static const Color rank1_shade = Color(0xFFFFAA09);

@@ -18,7 +18,6 @@ class PostProblemSubHubScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      title: '問題の投稿/編集',
       subHeader: AppBreadcrumbs(
         items: [
           BreadcrumbItem(
@@ -47,6 +46,14 @@ class PostProblemSubHubScreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '問題の投稿/編集',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 24),
                 IllustratedActionButton(
                   label: '新規で問題を投稿する',
                   icon: Icons.add_task,
@@ -86,4 +93,3 @@ class PostProblemSubHubScreen extends StatelessWidget {
     );
   }
 }
-

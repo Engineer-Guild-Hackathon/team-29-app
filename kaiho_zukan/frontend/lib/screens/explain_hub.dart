@@ -15,7 +15,6 @@ class ExplainHubScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      title: '解説の投稿/編集',
       subHeader: AppBreadcrumbs(
         items: [
           BreadcrumbItem(
@@ -43,6 +42,14 @@ class ExplainHubScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '解説の投稿/編集',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 24),
                 IllustratedActionButton(
                   label: '新規で解説を投稿する',
                   icon: Icons.lightbulb,
@@ -92,4 +99,3 @@ class ExplainHubScreen extends StatelessWidget {
     );
   }
 }
-

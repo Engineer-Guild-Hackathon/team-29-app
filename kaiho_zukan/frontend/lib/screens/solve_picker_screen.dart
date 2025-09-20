@@ -53,7 +53,10 @@ class _S extends State<SolvePickerScreen> {
     setState(() => loading = true);
     final list = await Api.problems
         .problemsForExplain(childId: childId!, grandId: grandId, sort: sort);
-    setState(() { items = list; loading = false; });
+    setState(() {
+      items = list;
+      loading = false;
+    });
   }
 
   List<dynamic> _filtered() {
@@ -69,7 +72,6 @@ class _S extends State<SolvePickerScreen> {
   @override
   Widget build(BuildContext c) {
     return AppScaffold(
-      title: '問題を選んで解く',
       subHeader: AppBreadcrumbs(
         items: [
           BreadcrumbItem(
@@ -83,7 +85,8 @@ class _S extends State<SolvePickerScreen> {
             label: '問題を解く',
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const HomeScreen(initialSelected: 1)),
+              MaterialPageRoute(
+                  builder: (_) => const HomeScreen(initialSelected: 1)),
             ),
           ),
           const BreadcrumbItem(label: '問題を選んで解く'),
@@ -92,17 +95,33 @@ class _S extends State<SolvePickerScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '問題を選んで解く',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(height: 24),
           Row(children: [
             DropdownButton<int>(
               value: parentId,
-              items: parents.map<DropdownMenuItem<int>>((p) => DropdownMenuItem(value: p['id'] as int, child: Text(p['name']))).toList(),
+              items: parents
+                  .map<DropdownMenuItem<int>>((p) => DropdownMenuItem(
+                      value: p['id'] as int, child: Text(p['name'])))
+                  .toList(),
               onChanged: (v) {
                 final p = parents.firstWhere((e) => e['id'] == v);
                 setState(() {
                   parentId = v;
                   children = p['children'] ?? [];
-                  childId = children.isNotEmpty ? children.first['id'] as int : null;
-                  grands = childId != null ? (children.firstWhere((c) => c['id'] == childId)['children'] ?? []) : [];
+                  childId =
+                      children.isNotEmpty ? children.first['id'] as int : null;
+                  grands = childId != null
+                      ? (children.firstWhere(
+                              (c) => c['id'] == childId)['children'] ??
+                          [])
+                      : [];
                   grandId = null; // 全単元
                 });
                 _search();
@@ -111,7 +130,10 @@ class _S extends State<SolvePickerScreen> {
             const SizedBox(width: 8),
             DropdownButton<int>(
               value: childId,
-              items: children.map<DropdownMenuItem<int>>((c) => DropdownMenuItem(value: c['id'] as int, child: Text(c['name']))).toList(),
+              items: children
+                  .map<DropdownMenuItem<int>>((c) => DropdownMenuItem(
+                      value: c['id'] as int, child: Text(c['name'])))
+                  .toList(),
               onChanged: (v) {
                 final ch = children.firstWhere((e) => e['id'] == v);
                 setState(() {
@@ -127,12 +149,19 @@ class _S extends State<SolvePickerScreen> {
               value: grandId,
               items: <DropdownMenuItem<int?>>[
                 const DropdownMenuItem(value: null, child: Text('全単元（すべて）')),
-                ...grands.map<DropdownMenuItem<int?>>((g) => DropdownMenuItem(value: g['id'] as int, child: Text(g['name']))),
+                ...grands.map<DropdownMenuItem<int?>>((g) => DropdownMenuItem(
+                    value: g['id'] as int, child: Text(g['name']))),
               ],
-              onChanged: (v) { setState(() => grandId = v); _search(); },
+              onChanged: (v) {
+                setState(() => grandId = v);
+                _search();
+              },
             ),
             const Spacer(),
-            IconButton(onPressed: _search, icon: const Icon(Icons.refresh), tooltip: '更新'),
+            IconButton(
+                onPressed: _search,
+                icon: const Icon(Icons.refresh),
+                tooltip: '更新'),
           ]),
           const SizedBox(height: 8),
           TextField(
@@ -157,7 +186,8 @@ class _S extends State<SolvePickerScreen> {
                           final p = _filtered()[i];
                           return ListTile(
                             title: Text(p['title'] ?? ''),
-                            subtitle: Text('いいね ${p['like_count']} / 解説数: ${p['ex_cnt']}'),
+                            subtitle: Text(
+                                'いいね ${p['like_count']} / 解説数: ${p['ex_cnt']}'),
                             trailing: FilledButton(
                               onPressed: () => Navigator.push(
                                 context,

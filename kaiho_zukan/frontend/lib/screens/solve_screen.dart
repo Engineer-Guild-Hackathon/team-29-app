@@ -171,7 +171,14 @@ class _SolveScreenState extends State<SolveScreen> {
     }
     final rankLabel = group['rank']?.toString();
     final hasIcon = resolved != null && resolved.isNotEmpty;
-    debugPrint('[Solve] avatar: user ' + uid.toString() + ' icon=' + (icon ?? 'null') + ' resolved=' + (resolved ?? 'null') + ' rankLevelRaw=' + (rankLevelRaw?.toString() ?? 'null'));
+    debugPrint('[Solve] avatar: user ' +
+        uid.toString() +
+        ' icon=' +
+        (icon ?? 'null') +
+        ' resolved=' +
+        (resolved ?? 'null') +
+        ' rankLevelRaw=' +
+        (rankLevelRaw?.toString() ?? 'null'));
     final avatar = CircleAvatar(
       radius: 24,
       backgroundColor: AppColors.background,
@@ -181,7 +188,8 @@ class _SolveScreenState extends State<SolveScreen> {
           : const Icon(Icons.person, size: 24, color: Colors.white),
     );
     if (!hasIcon) {
-      debugPrint('[Solve] avatar: falling back to placeholder for user ' + uid.toString());
+      debugPrint('[Solve] avatar: falling back to placeholder for user ' +
+          uid.toString());
     }
     Widget content = Container(
       padding: const EdgeInsets.all(3),
@@ -367,7 +375,6 @@ class _SolveScreenState extends State<SolveScreen> {
 
     final crumbLabel = widget.fromPicker ? '問題を選んで解く' : 'ランダムに解く';
     return AppScaffold(
-      title: '問題を解く',
       subHeader: AppBreadcrumbs(
         items: [
           BreadcrumbItem(
@@ -393,6 +400,16 @@ class _SolveScreenState extends State<SolveScreen> {
         padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: 24),
+                child: Text(
+                  '問題を解く',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
             // フィルタ列
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -905,7 +922,8 @@ class _SolveScreenState extends State<SolveScreen> {
           }
         }
         final rank = e['author_rank'];
-        if (rank != null && (g['rank'] == null || g['rank'].toString().isEmpty)) {
+        if (rank != null &&
+            (g['rank'] == null || g['rank'].toString().isEmpty)) {
           g['rank'] = rank;
         }
         final rankLevelRaw = e['author_rank_level'];
@@ -1040,7 +1058,6 @@ class _SolveScreenState extends State<SolveScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 sectionBlock,
-              
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

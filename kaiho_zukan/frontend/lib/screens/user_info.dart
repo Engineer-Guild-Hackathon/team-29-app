@@ -161,7 +161,7 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
     }
     return CircleAvatar(
       radius: radius,
-      backgroundColor: AppColors.border,
+      backgroundColor: AppColors.dashboard_border,
       backgroundImage: image,
       child: image == null
           ? const Icon(Icons.person, size: 48, color: Colors.white)
@@ -172,7 +172,6 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      title: 'ユーザー情報',
       subHeader: AppBreadcrumbs(
         items: [
           BreadcrumbItem(
@@ -187,99 +186,132 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: loading
-            ? const Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('プロフィール画像', style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 12),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildAvatar(),
-                        const SizedBox(width: 24),
-                        Expanded(
-                          child: Column(
+        child: Column(
+          children: [
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'ユーザー情報',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('プロフィール画像',
+                              style: Theme.of(context).textTheme.titleMedium),
+                          const SizedBox(height: 12),
+                          Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              OutlinedButton.icon(
-                                onPressed: _uploadingIcon ? null : _pickIcon,
-                                icon: const Icon(Icons.photo_library_outlined),
-                                label: const Text('画像を選択'),
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'PNG / JPG / GIF / WEBP に対応しています',
-                                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                              ),
-                              if (_pendingIcon != null) ...[
-                                const SizedBox(height: 8),
-                                Text(
-                                  _pendingIcon!.name,
-                                  style: const TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'サイズ: ' + (_pendingIcon!.size / 1024).toStringAsFixed(1) + ' KB',
-                                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                                ),
-                                const SizedBox(height: 12),
-                                Row(
+                              _buildAvatar(),
+                              const SizedBox(width: 24),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    FilledButton(
-                                      onPressed: _uploadingIcon ? null : _uploadIcon,
-                                      child: _uploadingIcon
-                                          ? const SizedBox(
-                                              width: 16,
-                                              height: 16,
-                                              child: CircularProgressIndicator(strokeWidth: 2),
-                                            )
-                                          : const Text('アップロード'),
+                                    OutlinedButton.icon(
+                                      onPressed:
+                                          _uploadingIcon ? null : _pickIcon,
+                                      icon: const Icon(
+                                          Icons.photo_library_outlined),
+                                      label: const Text('画像を選択'),
                                     ),
-                                    const SizedBox(width: 12),
-                                    TextButton(
-                                      onPressed: _uploadingIcon ? null : _clearPendingIcon,
-                                      child: const Text('キャンセル'),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'PNG / JPG / GIF / WEBP に対応しています',
+                                      style: TextStyle(
+                                          color: AppColors.textSecondary,
+                                          fontSize: 12),
                                     ),
+                                    if (_pendingIcon != null) ...[
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        _pendingIcon!.name,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'サイズ: ' +
+                                            (_pendingIcon!.size / 1024)
+                                                .toStringAsFixed(1) +
+                                            ' KB',
+                                        style: const TextStyle(
+                                            color: AppColors.textSecondary,
+                                            fontSize: 12),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        children: [
+                                          FilledButton(
+                                            onPressed: _uploadingIcon
+                                                ? null
+                                                : _uploadIcon,
+                                            child: _uploadingIcon
+                                                ? const SizedBox(
+                                                    width: 16,
+                                                    height: 16,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                            strokeWidth: 2),
+                                                  )
+                                                : const Text('アップロード'),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          TextButton(
+                                            onPressed: _uploadingIcon
+                                                ? null
+                                                : _clearPendingIcon,
+                                            child: const Text('キャンセル'),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ],
                                 ),
-                              ],
+                              ),
                             ],
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    Text('ユーザーID: ${username ?? ''}'),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: nicknameCtrl,
-                      decoration: const InputDecoration(labelText: 'ニックネーム'),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: () async {
-                          final ok = await Api.users.updateNickname(nicknameCtrl.text.trim());
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(ok ? '更新しました' : '更新に失敗しました'),
-                              backgroundColor: ok ? null : AppColors.danger,
+                          const SizedBox(height: 24),
+                          Text('ユーザーID: ${username ?? ''}'),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: nicknameCtrl,
+                            decoration:
+                                const InputDecoration(labelText: 'ニックネーム'),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton(
+                              onPressed: () async {
+                                final ok = await Api.users
+                                    .updateNickname(nicknameCtrl.text.trim());
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(ok ? '更新しました' : '更新に失敗しました'),
+                                    backgroundColor:
+                                        ok ? null : AppColors.danger,
+                                  ),
+                                );
+                              },
+                              child: const Text('保存'),
                             ),
-                          );
-                        },
-                        child: const Text('保存'),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
-

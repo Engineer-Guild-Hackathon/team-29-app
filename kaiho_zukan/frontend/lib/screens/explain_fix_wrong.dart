@@ -111,7 +111,6 @@ class _ExplainFixWrongScreenState extends State<ExplainFixWrongScreen> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      title: '誤りの可能性がある解説一覧',
       appBar: AppBar(title: const Text('誤りの可能性がある解説一覧')),
       subHeader: AppBreadcrumbs(
         items: [
@@ -139,159 +138,226 @@ class _ExplainFixWrongScreenState extends State<ExplainFixWrongScreen> {
           const BreadcrumbItem(label: '誤りの可能性がある解説'),
         ],
       ),
-      body: loading
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 12),
-                  Text(total > 0 ? '読み込み中... ($loaded/$total)' : '読み込み中...'),
-                ],
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '誤りの可能性がある解説一覧',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-            )
-          : (items.isEmpty
-              ? const Center(child: Text('対象の解説はありません'))
-              : ListView.separated(
-                  itemCount: items.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (_, i) {
-                    final it = items[i];
-
-                    // Compose "あなたの解答" テキスト
-                    String myAnswerText = '';
-                    if (it.myFreeText != null && it.myFreeText!.trim().isNotEmpty) {
-                      myAnswerText = it.myFreeText!.trim();
-                    } else if (it.mySelectedOptionId != null && it.options.isNotEmpty) {
-                      final idx = it.options.indexWhere((o) => o['id'] == it.mySelectedOptionId);
-                      if (idx >= 0) {
-                        final label = _kanaOf(idx);
-                        final txt = (it.options[idx]['text'] ?? '').toString();
-                        myAnswerText = '$label: $txt';
-                      }
-                    }
-
-                    return Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // タイトル
-                            Text(it.problemTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 8),
-
-                            // 問題文
-                            if (it.problemBody.trim().isNotEmpty) ...[
-                              const Text('問題文：', style: TextStyle(fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 4),
-                              Text(it.problemBody),
-                              const SizedBox(height: 8),
-                            ],
-
-                            // 画像（問題を解くページと同じ表示方式）
-                            Builder(builder: (_) {
-                              final urls = it.problemImages
-                                  .map((u) => u.startsWith('http') ? u : Api.base + u)
-                                  .toList();
-                              if (urls.isEmpty) return const SizedBox.shrink();
-                              return _ImagesPager(urls: urls);
-                            }),
-
-                            // あなたの解答
-                            if (myAnswerText.isNotEmpty) ...[
-                              const Text('あなたの解答：', style: TextStyle(fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 4),
-                              Text(myAnswerText),
-                              const SizedBox(height: 8),
-                            ],
-
-                            // あなたの解説
-                            const Text('あなたの解説：', style: TextStyle(fontWeight: FontWeight.w600)),
-                            const SizedBox(height: 4),
-                            Text(
-                              it.content,
-                              maxLines: 6,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 8),
-
-                            // AIの説明
-                            if (it.aiReason.trim().isNotEmpty) ...[
-                              const Text('AIの説明：', style: TextStyle(fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 4),
-                              Text(it.aiReason),
-                              const SizedBox(height: 8),
-                            ],
-
-                            // 自分の模範解答
-                            if (it.myModelAnswer != null && it.myModelAnswer!.trim().isNotEmpty) ...[
-                              const Text('あなたの模範解答：', style: TextStyle(fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 4),
-                              Text(it.myModelAnswer!.trim()),
-                              const SizedBox(height: 8),
-                            ],
-
-                            if (it.crowdFlag)
-                              const Text('多くのユーザーが間違っていると判断'),
-
-                            // 右端に鉛筆・ゴミ箱アイコン（他の一覧と統一）
-                            Row(
-                              children: [
-                                const Spacer(),
-                                IconButton(
-                                  tooltip: '編集',
-                                  icon: const Icon(Icons.edit),
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => PostProblemForm(
-                                          editId: it.problemId,
-                                          explainOnly: true,
-                                          explanationContext: ExplanationBreadcrumbContext.fixWrong,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                                IconButton(
-                                  tooltip: '削除',
-                                  icon: const Icon(Icons.delete, color: Colors.redAccent),
-                                  onPressed: () async {
-                                    final ok = await showDialog<bool>(
-                                      context: context,
-                                      builder: (c) => AlertDialog(
-                                        title: const Text('この問題の自分の解説を削除しますか？'),
-                                        content: const Text('この操作は元に戻せません。'),
-                                        actions: [
-                                          TextButton(onPressed: ()=>Navigator.pop(c,false), child: const Text('キャンセル')),
-                                          FilledButton(onPressed: ()=>Navigator.pop(c,true), child: const Text('削除')),
-                                        ],
-                                      ),
-                                    );
-                                    if (ok == true) {
-                                      final success = await Api.explanations.deleteMine(it.problemId);
-                                      if (!mounted) return;
-                                      if (success) {
-                                        setState(() {
-                                          items.removeAt(i);
-                                        });
-                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除しました')));
-                                      } else {
-                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除に失敗しました'), backgroundColor: Colors.red));
-                                      }
-                                    }
-                                  },
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: loading
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const CircularProgressIndicator(),
+                          const SizedBox(height: 12),
+                          Text(total > 0
+                              ? '読み込み中... ($loaded/$total)'
+                              : '読み込み中...'),
+                        ],
                       ),
-                    );
-                  },
-                )),
+                    )
+                  : (items.isEmpty
+                      ? const Center(child: Text('対象の解説はありません'))
+                      : ListView.separated(
+                          itemCount: items.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (_, i) {
+                            final it = items[i];
+
+                            // Compose "あなたの解答" テキスト
+                            String myAnswerText = '';
+                            if (it.myFreeText != null &&
+                                it.myFreeText!.trim().isNotEmpty) {
+                              myAnswerText = it.myFreeText!.trim();
+                            } else if (it.mySelectedOptionId != null &&
+                                it.options.isNotEmpty) {
+                              final idx = it.options.indexWhere(
+                                  (o) => o['id'] == it.mySelectedOptionId);
+                              if (idx >= 0) {
+                                final label = _kanaOf(idx);
+                                final txt =
+                                    (it.options[idx]['text'] ?? '').toString();
+                                myAnswerText = '$label: $txt';
+                              }
+                            }
+
+                            return Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // タイトル
+                                    Text(it.problemTitle,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 8),
+
+                                    // 問題文
+                                    if (it.problemBody.trim().isNotEmpty) ...[
+                                      const Text('問題文：',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600)),
+                                      const SizedBox(height: 4),
+                                      Text(it.problemBody),
+                                      const SizedBox(height: 8),
+                                    ],
+
+                                    // 画像（問題を解くページと同じ表示方式）
+                                    Builder(builder: (_) {
+                                      final urls = it.problemImages
+                                          .map((u) => u.startsWith('http')
+                                              ? u
+                                              : Api.base + u)
+                                          .toList();
+                                      if (urls.isEmpty)
+                                        return const SizedBox.shrink();
+                                      return _ImagesPager(urls: urls);
+                                    }),
+
+                                    // あなたの解答
+                                    if (myAnswerText.isNotEmpty) ...[
+                                      const Text('あなたの解答：',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600)),
+                                      const SizedBox(height: 4),
+                                      Text(myAnswerText),
+                                      const SizedBox(height: 8),
+                                    ],
+
+                                    // あなたの解説
+                                    const Text('あなたの解説：',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w600)),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      it.content,
+                                      maxLines: 6,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 8),
+
+                                    // AIの説明
+                                    if (it.aiReason.trim().isNotEmpty) ...[
+                                      const Text('AIの説明：',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600)),
+                                      const SizedBox(height: 4),
+                                      Text(it.aiReason),
+                                      const SizedBox(height: 8),
+                                    ],
+
+                                    // 自分の模範解答
+                                    if (it.myModelAnswer != null &&
+                                        it.myModelAnswer!
+                                            .trim()
+                                            .isNotEmpty) ...[
+                                      const Text('あなたの模範解答：',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600)),
+                                      const SizedBox(height: 4),
+                                      Text(it.myModelAnswer!.trim()),
+                                      const SizedBox(height: 8),
+                                    ],
+
+                                    if (it.crowdFlag)
+                                      const Text('多くのユーザーが間違っていると判断'),
+
+                                    // 右端に鉛筆・ゴミ箱アイコン（他の一覧と統一）
+                                    Row(
+                                      children: [
+                                        const Spacer(),
+                                        IconButton(
+                                          tooltip: '編集',
+                                          icon: const Icon(Icons.edit),
+                                          onPressed: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => PostProblemForm(
+                                                  editId: it.problemId,
+                                                  explainOnly: true,
+                                                  explanationContext:
+                                                      ExplanationBreadcrumbContext
+                                                          .fixWrong,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                        IconButton(
+                                          tooltip: '削除',
+                                          icon: const Icon(Icons.delete,
+                                              color: Colors.redAccent),
+                                          onPressed: () async {
+                                            final ok = await showDialog<bool>(
+                                              context: context,
+                                              builder: (c) => AlertDialog(
+                                                title: const Text(
+                                                    'この問題の自分の解説を削除しますか？'),
+                                                content:
+                                                    const Text('この操作は元に戻せません。'),
+                                                actions: [
+                                                  TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                              c, false),
+                                                      child:
+                                                          const Text('キャンセル')),
+                                                  FilledButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                              c, true),
+                                                      child: const Text('削除')),
+                                                ],
+                                              ),
+                                            );
+                                            if (ok == true) {
+                                              final success = await Api
+                                                  .explanations
+                                                  .deleteMine(it.problemId);
+                                              if (!mounted) return;
+                                              if (success) {
+                                                setState(() {
+                                                  items.removeAt(i);
+                                                });
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                        const SnackBar(
+                                                            content: Text(
+                                                                '削除しました')));
+                                              } else {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                        const SnackBar(
+                                                            content: Text(
+                                                                '削除に失敗しました'),
+                                                            backgroundColor:
+                                                                Colors.red));
+                                              }
+                                            }
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        )),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -371,7 +437,9 @@ class _ImagesPagerState extends State<_ImagesPager> {
         children: List.generate(widget.urls.length, (i) {
           final sel = i == _index;
           return GestureDetector(
-            onTap: () => _pc.animateToPage(i, duration: const Duration(milliseconds: 200), curve: Curves.easeOut),
+            onTap: () => _pc.animateToPage(i,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut),
             child: Container(
               width: 10,
               height: 10,

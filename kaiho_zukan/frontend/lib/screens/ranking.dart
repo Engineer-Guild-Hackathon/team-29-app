@@ -295,7 +295,6 @@ class _RankingScreenState extends State<RankingScreen>
 
     if (widget.showAppBar) {
       return AppScaffold(
-        title: 'ランキング',
         backgroundColor: AppColors.background,
         subHeader: AppBreadcrumbs(
           items: [
@@ -309,7 +308,22 @@ class _RankingScreenState extends State<RankingScreen>
             const BreadcrumbItem(label: 'ランキング'),
           ],
         ),
-        body: content,
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'ランキング',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Expanded(child: content),
+            ],
+          ),
+        ),
       );
     }
     // embedded view (no header/sidebar)

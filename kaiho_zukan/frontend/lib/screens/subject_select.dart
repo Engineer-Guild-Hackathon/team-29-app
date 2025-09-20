@@ -55,12 +55,6 @@ class _SubjectSelectScreenState extends State<SubjectSelectScreen> {
     }).toList();
 
     return AppScaffold(
-      title: widget.isOnboarding ? '教科を選んで登録' : '教科をえらび直す',
-      appBar: AppBar(
-        title: IconAppBarTitle(
-          title: widget.isOnboarding ? '教科を選んで登録' : '教科をえらび直す',
-        ),
-      ),
       subHeader: AppBreadcrumbs(
         items: [
           BreadcrumbItem(
